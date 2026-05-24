@@ -27,7 +27,7 @@ const menuItems = [
   { href: '/perfil',        label: 'Perfil',           icon: User,            plan: null },
 ]
 
-const planBadgeColors: Record<string, string> = {
+const planBadgeColors: Record<PlanName, string> = {
   ESSENCIAL: 'bg-blue-500/20 text-blue-200',
   PREMIUM:   'bg-yellow-500/20 text-yellow-200',
   GOLD:      'bg-amber-400/20 text-amber-200',
@@ -66,6 +66,7 @@ function SidebarContent({ userPlan, onNavigate }: SidebarProps & { onNavigate?: 
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 isActive

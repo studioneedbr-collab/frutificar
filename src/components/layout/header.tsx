@@ -1,4 +1,4 @@
-import { auth, signOut } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -8,11 +8,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { MobileSidebarTrigger } from './sidebar'
-import { prisma } from '@/lib/prisma'
 import type { PlanName } from '@prisma/client'
+import { logoutAction } from '@/server/actions/auth'
 
 const planBadgeStyle: Record<PlanName, { variant: 'secondary' | 'outline' | 'default'; className?: string }> = {
   ESSENCIAL: { variant: 'secondary' },
@@ -30,19 +29,17 @@ function getInitials(name: string | null | undefined): string {
     .toUpperCase()
 }
 
-export async function Header() {
+interface HeaderProps {
+  userPlan?: PlanName | null
+  userName?: string | null
+}
+
+export async function Header({ userPlan, userName }: HeaderProps) {
   const session = await auth()
   if (!session?.user) return null
 
-  const firstName = session.user.name?.split(' ')[0] ?? 'Usuário'
-  const initials = getInitials(session.user.name)
-
-  // Fetch plan from database
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: session.user.id },
-    select: { plan: { select: { name: true } } },
-  })
-  const userPlan = subscription?.plan?.name ?? null
+  const firstName = (userName ?? session.user.name)?.split(' ')[0] ?? 'Usuário'
+  const initials = getInitials(userName ?? session.user.name)
   const badgeStyle = userPlan ? planBadgeStyle[userPlan] : null
 
   return (
@@ -98,13 +95,7 @@ export async function Header() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <form
-                action={async () => {
-                  'use server'
-                  await signOut({ redirectTo: '/login' })
-                }}
-                className="w-full"
-              >
+              <form action={logoutAction} className="w-full">
                 <button type="submit" className="w-full text-left text-destructive text-sm">
                   Sair
                 </button>
