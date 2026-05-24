@@ -6,10 +6,25 @@ export const PLAN_HIERARCHY: Record<PlanName, number> = {
   GOLD: 3,
 }
 
-export const PLAN_FEATURES: Record<PlanName, string[]> = {
-  ESSENCIAL: ['courses', 'lives', 'podcasts'],
-  PREMIUM: ['courses', 'lives', 'podcasts', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services'],
-  GOLD: ['courses', 'lives', 'podcasts', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'field_days', 'tutoring'],
+export const PLAN_FEATURES = {
+  ESSENCIAL: ['courses', 'chat', 'diagnostic'] as const,
+  PREMIUM: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams'] as const,
+  GOLD: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams', 'field_days', 'tutoring'] as const,
+} as const satisfies Record<PlanName, readonly string[]>
+
+export type Feature = typeof PLAN_FEATURES[PlanName][number]
+
+export const ROUTE_FEATURE_MAP: Record<string, Feature> = {
+  '/cursos': 'courses',
+  '/chat': 'chat',
+  '/diagnostico': 'diagnostic',
+  '/minicursos': 'minicourses',
+  '/agendamentos': 'visits',
+  '/gestao': 'management',
+  '/servicos': 'services',
+  '/podcasts': 'podcasts',
+  '/lives': 'live_streams',
+  '/dias-de-campo': 'field_days',
 }
 
 export const ROUTES = {

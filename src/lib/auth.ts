@@ -3,7 +3,7 @@ import Credentials from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import type { Role } from '@prisma/client'
+import type { Role, PlanName } from '@prisma/client'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -42,6 +42,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = user.role
+        // Fetch plan and cache in JWT (refreshed on each sign-in)
+        const subscription = await prisma.subscription.findUnique({
+          where: { userId: user.id },
+          select: { status: true, plan: { select: { name: true } } },
+        })
+        token.plan = subscription?.status === 'ACTIVE' ? subscription.plan.name : null
       }
       return token
     },
@@ -49,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as Role
+        session.user.plan = token.plan as PlanName | null
       }
       return session
     },
