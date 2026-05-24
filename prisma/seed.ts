@@ -72,7 +72,7 @@ async function main() {
     update: {},
     create: {
       name: PlanName.ESSENCIAL,
-      priceMonthly: 0,
+      priceMonthly: 0, // placeholder — set real price in production
       features: essencialFeatures,
       maxProperties: 1,
     },
@@ -83,7 +83,7 @@ async function main() {
     update: {},
     create: {
       name: PlanName.PREMIUM,
-      priceMonthly: 0,
+      priceMonthly: 0, // placeholder — set real price in production
       features: premiumFeatures,
       maxProperties: 3,
     },
@@ -94,7 +94,7 @@ async function main() {
     update: {},
     create: {
       name: PlanName.GOLD,
-      priceMonthly: 0,
+      priceMonthly: 0, // placeholder — set real price in production
       features: goldFeatures,
       maxProperties: 10,
     },
@@ -179,19 +179,19 @@ async function main() {
             data: [
               {
                 title: 'História e origem do café',
-                youtubeVideoId: 'dQw4w9WgXcQ',
+                youtubeVideoId: 'dQw4w9WgXcQ', // TODO: replace with real video ID
                 order: 1,
                 durationSec: 212,
               },
               {
                 title: 'Variedades do café arábica',
-                youtubeVideoId: 'jNQXAC9IVRw',
+                youtubeVideoId: 'jNQXAC9IVRw', // TODO: replace with real video ID
                 order: 2,
                 durationSec: 19,
               },
               {
                 title: 'Clima e altitude ideais',
-                youtubeVideoId: 'sFSn3ycqb_0',
+                youtubeVideoId: 'sFSn3ycqb_0', // TODO: replace with real video ID
                 order: 3,
                 durationSec: 60,
               },
@@ -212,19 +212,19 @@ async function main() {
             data: [
               {
                 title: 'Preparo do solo',
-                youtubeVideoId: 'M7lc1UVf-VE',
+                youtubeVideoId: 'M7lc1UVf-VE', // TODO: replace with real video ID
                 order: 1,
                 durationSec: 600,
               },
               {
                 title: 'Plantio e espaçamento',
-                youtubeVideoId: '5qap5aO4i9A',
+                youtubeVideoId: '5qap5aO4i9A', // TODO: replace with real video ID
                 order: 2,
                 durationSec: 5765,
               },
               {
                 title: 'Irrigação e adubação',
-                youtubeVideoId: 'kJQP7kiw5Fk',
+                youtubeVideoId: 'kJQP7kiw5Fk', // TODO: replace with real video ID
                 order: 3,
                 durationSec: 282,
               },
