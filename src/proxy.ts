@@ -9,7 +9,7 @@ export default auth((req) => {
 
   const isPublicPath =
     PUBLIC_PATHS.includes(pathname) ||
-    pathname.startsWith('/api') ||
+    pathname.startsWith('/api/auth') ||
     pathname.startsWith('/_next') ||
     pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|css|js)$/) !== null
 
