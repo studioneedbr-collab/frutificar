@@ -14,6 +14,7 @@ export const PLAN_FEATURES = {
 
 export type Feature = typeof PLAN_FEATURES[PlanName][number]
 
+// Dashboard accessible to all authenticated users regardless of plan
 export const ROUTE_FEATURE_MAP: Record<string, Feature> = {
   '/cursos': 'courses',
   '/chat': 'chat',
@@ -25,6 +26,7 @@ export const ROUTE_FEATURE_MAP: Record<string, Feature> = {
   '/podcasts': 'podcasts',
   '/lives': 'live_streams',
   '/dias-de-campo': 'field_days',
+  '/tutoring': 'tutoring',
 }
 
 export const ROUTES = {
