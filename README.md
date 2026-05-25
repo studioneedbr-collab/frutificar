@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frutificar Digital
 
-## Getting Started
+Plataforma educacional e de gestão para produtores rurais. Cursos em vídeo, chat com IA agrícola, diagnóstico de solo, visitas técnicas e gestão de propriedades.
 
-First, run the development server:
+## Stack
+
+Next.js 16 · TypeScript · PostgreSQL · Prisma 7 · NextAuth v5 · shadcn/ui · OpenAI GPT-4o-mini
+
+## Documentação
+
+- [Setup e instalação](docs/SETUP.md)
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Padrões de código](docs/PATTERNS.md)
+
+## Desenvolvimento rápido
 
 ```bash
+npm install
+cp .env.example .env.local  # configure variáveis
+docker compose up -d         # sobe o banco
+./node_modules/.bin/prisma migrate dev
+./node_modules/.bin/prisma db seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Login de teste:** `aluno@teste.com` / `aluno123`
+**Admin:** `admin@frutificar.com` / `admin123`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estrutura
 
-## Learn More
+```
+src/app/(app)/      # Rotas autenticadas
+src/app/(admin)/    # Painel admin
+src/app/(public)/   # Rotas públicas
+src/app/api/        # API routes (auth, chat)
+src/server/         # Actions, Services, Repositories
+src/components/     # UI components
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Planos
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Plano | Acesso |
+|-------|--------|
+| ESSENCIAL | Cursos gratuitos, dashboard |
+| PREMIUM | Cursos premium, lives, podcasts |
+| GOLD | Tudo + chat IA, diagnóstico solo, visitas técnicas |
