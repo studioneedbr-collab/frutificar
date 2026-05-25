@@ -70,6 +70,16 @@ export function ChatInterface({ sessionId, initialMessages }: ChatInterfaceProps
             return updated
           })
         }
+        // Flush any remaining bytes
+        const remaining = decoder.decode()
+        if (remaining) {
+          assistantMessage += remaining
+          setMessages((prev) => {
+            const updated = [...prev]
+            updated[updated.length - 1] = { role: 'assistant', content: assistantMessage }
+            return updated
+          })
+        }
       }
     } catch {
       setError('Erro de conexão.')

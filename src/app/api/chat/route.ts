@@ -108,12 +108,12 @@ export async function POST(request: Request) {
               controller.enqueue(new TextEncoder().encode(delta))
             }
           }
-        } finally {
-          controller.close()
-
-          // Persist assistant response after stream ends
-          try {
-            await prisma.chatSession.update({
+          // Persist with timeout to avoid hanging on DB issues
+          const persistTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Persist timeout')), 5000)
+          )
+          await Promise.race([
+            prisma.chatSession.update({
               where: { id: sessionId_ },
               data: {
                 messages: [
@@ -121,10 +121,14 @@ export async function POST(request: Request) {
                   { role: 'assistant', content: fullResponse, ts: Date.now() },
                 ],
               },
-            })
-          } catch (persistErr) {
-            console.error('Failed to persist assistant message:', persistErr)
-          }
+            }),
+            persistTimeout,
+          ]).catch((err: unknown) => console.error('Failed to persist message:', err))
+        } catch (err) {
+          console.error('Stream error:', err)
+          controller.enqueue(new TextEncoder().encode('\n\n[Erro ao processar resposta. Tente novamente.]'))
+        } finally {
+          controller.close()
         }
       },
     })
