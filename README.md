@@ -46,3 +46,4 @@ src/components/     # UI components
 | ESSENCIAL | Cursos gratuitos, dashboard |
 | PREMIUM | Cursos premium, lives, podcasts |
 | GOLD | Tudo + chat IA, diagnóstico solo, visitas técnicas |
+# frutificar
