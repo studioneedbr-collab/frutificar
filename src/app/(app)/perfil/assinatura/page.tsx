@@ -8,6 +8,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { gerarRecibo } from '@/lib/reports'
 
 /* DEV PREVIEW — sem banco. Dados mock de uma assinatura Gold, com ações em memória. */
 
@@ -115,8 +116,15 @@ export default function AssinaturaPage() {
     notify(`Mudança para o ${name} agendada`, 'Entra em vigor no próximo ciclo, em 12 jul 2026.', 'info')
   }
 
-  function handleReceipt(date: string) {
-    notify('Recibo baixado', `Comprovante de ${date} (PDF)`, 'info')
+  function handleReceipt(p: { date: string; desc: string; value: string }) {
+    gerarRecibo({
+      plano: 'Gold',
+      valor: p.value,
+      data: p.date,
+      metodo: `Cartão de crédito •••• ${card.last4} · Asaas`,
+      pagador: 'Douglas Vargas',
+    })
+    notify('Recibo gerado', `Comprovante de ${p.date} (PDF) baixado.`, 'success')
   }
 
   const cancelled = status === 'Cancelado'
@@ -302,7 +310,7 @@ export default function AssinaturaPage() {
                 Pago
               </span>
               <button
-                onClick={() => handleReceipt(p.date)}
+                onClick={() => handleReceipt(p)}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-opacity hover:opacity-70"
                 style={{ color: 'var(--color-earth)' }}
               >

@@ -9,6 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { gerarLaudoSolo } from '@/lib/reports'
 
 /* DEV PREVIEW — sem banco. Dados mock de diagnóstico de solo (plano Premium). */
 
@@ -295,7 +296,16 @@ export default function DiagnosticoPage() {
             ))}
           </ul>
           <button
-            onClick={() => toast.info('Laudo baixado', { description: 'PDF salvo no seu dispositivo.' })}
+            onClick={() => {
+              gerarLaudoSolo({
+                talhao: 'Talhão A1',
+                data: '24 jun 2026',
+                ph: '5,8',
+                parametros: params.map((p) => ({ nome: p.label, valor: p.value, status: p.tag })),
+                recomendacoes: recommendations,
+              })
+              toast.success('Laudo gerado', { description: 'O PDF foi baixado no seu dispositivo.' })
+            }}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
             style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
           >

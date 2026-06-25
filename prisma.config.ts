@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrations usam a conexão session-mode (5432). Cai no DATABASE_URL
+    // quando DIRECT_URL não está definido (ex.: Postgres local).
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

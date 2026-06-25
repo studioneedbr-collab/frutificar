@@ -345,7 +345,7 @@ export default function AgendamentosPage() {
                   </p>
                 </div>
                 <button
-                  onClick={handleReport}
+                  onClick={() => handleReport(h)}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold transition-opacity hover:opacity-70 shrink-0"
                   style={{ color: 'var(--color-earth)' }}
                 >

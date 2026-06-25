@@ -3,10 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // Supabase: conexão direta (porta 5432) para migrations; runtime usa o pooler (6543).
-  directUrl = env("DIRECT_URL")
+  // Prisma 7: as connection strings ficam em prisma.config.ts (migrations) e no
+  // driver adapter em src/lib/prisma.ts (runtime). Supabase: pooler 6543 no runtime,
+  // session-mode 5432 (DIRECT_URL) nas migrations.
+  provider = "postgresql"
 }
 
 // ─── Enums ────────────────────────────────────────────────
