@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, passwordHash: true, role: true, deletedAt: true },
+          select: { id: true, email: true, name: true, passwordHash: true, role: true, deletedAt: true, emailVerified: true },
         })
 
         if (!user || user.deletedAt) return null
@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const passwordValid = await bcrypt.compare(password, user.passwordHash)
         if (!passwordValid) return null
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role }
+        return { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: user.emailVerified != null }
       },
     }),
   ],
@@ -42,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = user.role
+        token.emailVerified = user.emailVerified
         // Fetch plan and cache in JWT (refreshed on each sign-in)
         const subscription = await prisma.subscription.findUnique({
           where: { userId: user.id },
@@ -56,6 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string
         session.user.role = token.role as Role
         session.user.plan = token.plan as PlanName | null
+        ;(session.user as { emailVerified: boolean }).emailVerified = token.emailVerified as boolean
       }
       return session
     },
