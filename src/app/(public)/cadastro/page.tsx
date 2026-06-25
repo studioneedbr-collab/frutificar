@@ -13,13 +13,15 @@ import { Button } from '@/components/ui/button'
 import { FrutificarLogo } from '@/components/shared/logo'
 import Link from 'next/link'
 import { ArrowLeft, Sprout } from 'lucide-react'
+import { signIn } from 'next-auth/react'
+import { registerUser } from '@/server/actions/auth'
 
 const cadastroSchema = z
   .object({
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
     email: z.string().email('Email inválido'),
-    password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-    confirmPassword: z.string().min(6, 'Confirmação de senha obrigatória'),
+    password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
+    confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'As senhas não conferem',
@@ -45,13 +47,33 @@ export default function CadastroPage() {
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
-  async function onSubmit(_data: CadastroForm) {
+  async function onSubmit(data: CadastroForm) {
     setLoading(true)
     setError(null)
-    await new Promise((resolve) => setTimeout(resolve, 800))
+
+    const result = await registerUser(data)
+    if (!result.ok) {
+      setLoading(false)
+      setError(result.error)
+      return
+    }
+
+    const signInResult = await signIn('credentials', {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    })
+
     setLoading(false)
+
+    if (signInResult?.error) {
+      // Conta criada, mas o login automático falhou: manda pro login manual.
+      router.push('/login')
+      return
+    }
+
     setSuccess(true)
-    setTimeout(() => router.push('/login'), 2500)
+    setTimeout(() => router.push('/dashboard'), 1500)
   }
 
   if (success) {
