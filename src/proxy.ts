@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server'
 import { PLAN_FEATURES, ROUTE_FEATURE_MAP, type Feature } from '@/lib/constants'
 import type { PlanName } from '@prisma/client'
 
+// DEV PREVIEW — auth/plan-gating desligado enquanto não há banco.
+// Defina PREVIEW_MODE=false no ambiente (Vercel/Supabase) para ativar o controle real.
+const PREVIEW_MODE = process.env.PREVIEW_MODE !== 'false'
+
 // Inline pure helpers — no DB/Prisma dependency in middleware
 function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
   if (!plan) return false
@@ -23,6 +27,7 @@ export default auth((req) => {
   const isPublicPath =
     pathname === '/' ||
     pathname === '/login' ||
+    pathname === '/admin/login' ||
     pathname === '/cadastro' ||
     pathname === '/esqueci-senha' ||
     pathname.startsWith('/planos') ||
@@ -32,27 +37,20 @@ export default auth((req) => {
 
   if (isPublicPath) return NextResponse.next()
 
-  // Admin routes
-  const isAdminPath = pathname.startsWith('/admin')
+  // DEV PREVIEW — libera tudo sem banco. Ative o controle real com PREVIEW_MODE=false.
+  if (PREVIEW_MODE) return NextResponse.next()
 
-  // Not authenticated → redirect to login
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-
-  // Admin check
-  if (isAdminPath) {
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'INSTRUCTOR') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-    return NextResponse.next()
+  // Rotas não autenticadas → login
+  if (!session?.user) {
+    const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/login'
+    return NextResponse.redirect(new URL(loginPath, req.url))
   }
 
   // App route plan check
   const requiredFeature = getRouteRequiredFeature(pathname)
 
   if (requiredFeature) {
-    const userPlan = session.user.plan ?? null
+    const userPlan = session?.user?.plan ?? null
 
     if (!userPlan) {
       // No subscription at all → redirect to plans

@@ -1,3 +1,6 @@
+// DEV PREVIEW: renderiza em request-time (depende de banco/sessão); evita prerender sem DB.
+export const dynamic = 'force-dynamic'
+
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'

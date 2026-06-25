@@ -1,3 +1,6 @@
+// DEV PREVIEW: renderiza em request-time (depende de banco/sessão); evita prerender sem DB.
+export const dynamic = 'force-dynamic'
+
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
