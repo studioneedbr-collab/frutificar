@@ -42,6 +42,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = user.role
+        // Só atualiza no sign-in (como token.plan). Após verificar o e-mail, o
+        // banner persiste até o próximo login/refresh do JWT — comportamento
+        // aceitável para verificação "soft".
         token.emailVerified = user.emailVerified
         // Fetch plan and cache in JWT (refreshed on each sign-in)
         const subscription = await prisma.subscription.findUnique({

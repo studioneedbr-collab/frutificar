@@ -68,7 +68,14 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
       }),
     ])
 
-    await sendVerificationEmail(email, token)
+    // A conta já foi criada (transação commitada). Uma falha no envio do e-mail
+    // não deve derrubar o cadastro nem fazer o usuário tentar de novo e cair em
+    // "e-mail já cadastrado" — apenas logamos; o reenvio pode ser feito depois.
+    try {
+      await sendVerificationEmail(email, token)
+    } catch (mailErr) {
+      console.error('[registerUser] falha ao enviar e-mail de verificação:', mailErr)
+    }
     return { ok: true, data: undefined }
   } catch (err) {
     if ((err as { code?: string }).code === 'P2002') {

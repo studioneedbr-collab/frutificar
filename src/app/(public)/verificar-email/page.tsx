@@ -12,13 +12,14 @@ export default async function VerificarEmailPage({
   if (token) {
     const record = await prisma.verificationToken.findUnique({ where: { token } })
     if (record && record.expires > new Date()) {
-      await prisma.$transaction([
-        prisma.user.update({
-          where: { email: record.identifier },
-          data: { emailVerified: new Date() },
-        }),
-        prisma.verificationToken.delete({ where: { token } }),
-      ])
+      // Idempotente de propósito: NÃO deletamos o token aqui. Prescanners de e-mail
+      // (antivírus corporativo, preview de links) costumam fazer GET no link antes
+      // do usuário clicar; se consumíssemos o token, o clique real veria "link
+      // inválido". O token expira sozinho em 24h.
+      await prisma.user.update({
+        where: { email: record.identifier },
+        data: { emailVerified: new Date() },
+      })
       status = 'ok'
     }
   }
