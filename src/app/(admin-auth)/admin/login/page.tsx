@@ -1,8 +1,51 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { FrutificarLogo } from '@/components/shared/logo'
 import { ShieldCheck } from 'lucide-react'
 
 export default function AdminLoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const result = await signIn('credentials', { email, password, redirect: false })
+
+    if (result?.error) {
+      setLoading(false)
+      setError('E-mail ou senha incorretos.')
+      return
+    }
+
+    // Verifica se o usuário autenticado é ADMIN; caso contrário, bloqueia o acesso.
+    try {
+      const res = await fetch('/api/auth/session', { cache: 'no-store' })
+      const session = await res.json()
+      if (session?.user?.role !== 'ADMIN') {
+        setLoading(false)
+        setError('Esta conta não tem acesso ao painel administrativo.')
+        return
+      }
+    } catch {
+      setLoading(false)
+      setError('Não foi possível validar o acesso. Tente novamente.')
+      return
+    }
+
+    router.push('/admin')
+    router.refresh()
+  }
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4"
@@ -58,14 +101,17 @@ export default function AdminLoginPage() {
             Acesso exclusivo para administradores
           </p>
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={onSubmit}>
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
                 E-MAIL
               </label>
               <input
                 type="email"
-                placeholder="admin@frutificar.com.br"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@frutificar.com"
                 className="w-full px-4 h-11 rounded-xl text-sm outline-none transition-all"
                 style={{
                   background: 'oklch(1 0 0 / 0.06)',
@@ -80,6 +126,9 @@ export default function AdminLoginPage() {
               </label>
               <input
                 type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full px-4 h-11 rounded-xl text-sm outline-none transition-all"
                 style={{
@@ -90,16 +139,29 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            {/* Preview bypass button */}
-            <Link
-              href="/admin"
-              className="flex items-center justify-center w-full h-11 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-85 mt-2"
+            {error && (
+              <div
+                className="text-sm font-medium px-4 py-3 rounded-xl"
+                style={{
+                  background: 'oklch(0.55 0.2 27 / 0.15)',
+                  color: 'oklch(0.85 0.12 27)',
+                  border: '1px solid oklch(0.55 0.2 27 / 0.3)',
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center justify-center w-full h-11 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-85 mt-2 disabled:opacity-60"
               style={{
                 background: 'linear-gradient(130deg, var(--color-frutificar-forest) 0%, var(--color-frutificar-green) 100%)',
               }}
             >
-              Entrar no painel
-            </Link>
+              {loading ? 'Entrando...' : 'Entrar no painel'}
+            </button>
           </form>
         </div>
 

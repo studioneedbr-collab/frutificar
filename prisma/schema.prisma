@@ -61,6 +61,18 @@ enum ServiceStatus {
   CANCELED
 }
 
+enum AnalysisStatus {
+  PENDING
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
+  REFUNDED
+}
+
 // ─── Usuários e acesso ────────────────────────────────────
 
 model User {
@@ -70,11 +82,13 @@ model User {
   passwordHash String
   role         Role      @default(STUDENT)
   emailVerified DateTime?
+  suspendedAt  DateTime?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   subscription      Subscription?
+  payments          Payment[]
   enrollments       Enrollment[]
   lessonProgress    LessonProgress[]
   certificates      Certificate[]
@@ -128,6 +142,7 @@ model Plan {
   priceMonthly  Decimal  @db.Decimal(10, 2)
   features      Json
   maxProperties Int      @default(1)
+  active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -146,8 +161,25 @@ model Subscription {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan Plan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments Payment[]
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  amount         Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus @default(PAID)
+  method         String        @default("Cartão de crédito")
+  description    String?
+  paidAt         DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 }
 
 model CourseAccess {
@@ -328,6 +360,7 @@ model TechnicalVisit {
   reason        String
   requestedDate DateTime
   status        VisitStatus @default(REQUESTED)
+  agronomist    String?
   notes         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -379,6 +412,8 @@ model Property {
   name        String
   totalAreaHa Decimal  @db.Decimal(10, 2)
   location    String?
+  cropName    String?
+  altitudeM   Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -393,6 +428,7 @@ model Plot {
   name       String
   areaHa     Decimal  @db.Decimal(10, 2)
   status     String
+  cropName   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -403,13 +439,16 @@ model Plot {
 }
 
 model SoilAnalysis {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   plotId     String
-  ph         Decimal  @db.Decimal(4, 2)
+  ph         Decimal        @db.Decimal(4, 2)
   nutrients  Json
+  status     AnalysisStatus @default(COMPLETED)
+  summary    String?
+  analysisType String       @default("Completa")
   analyzedAt DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   plot Plot @relation(fields: [plotId], references: [id], onDelete: Cascade)
 }

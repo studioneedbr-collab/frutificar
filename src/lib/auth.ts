@@ -7,6 +7,9 @@ import type { Role, PlanName } from '@prisma/client'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // Confia no host da requisição (necessário fora da Vercel / atrás de proxy /
+  // em portas diferentes). Sem isso o Auth.js retorna UntrustedHost.
+  trustHost: true,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',

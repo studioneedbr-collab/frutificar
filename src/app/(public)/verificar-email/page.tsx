@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export default async function VerificarEmailPage({
   searchParams,
@@ -16,11 +17,26 @@ export default async function VerificarEmailPage({
       // (antivírus corporativo, preview de links) costumam fazer GET no link antes
       // do usuário clicar; se consumíssemos o token, o clique real veria "link
       // inválido". O token expira sozinho em 24h.
-      await prisma.user.update({
+      const user = await prisma.user.findUnique({
         where: { email: record.identifier },
-        data: { emailVerified: new Date() },
+        select: { emailVerified: true, name: true },
       })
-      status = 'ok'
+      if (user) {
+        // Só envia boas-vindas na PRIMEIRA confirmação (transição null → data).
+        const firstTime = !user.emailVerified
+        if (firstTime) {
+          await prisma.user.update({
+            where: { email: record.identifier },
+            data: { emailVerified: new Date() },
+          })
+          try {
+            await sendWelcomeEmail(record.identifier, user.name)
+          } catch (mailErr) {
+            console.error('[verificar-email] falha ao enviar boas-vindas:', mailErr)
+          }
+        }
+        status = 'ok'
+      }
     }
   }
 

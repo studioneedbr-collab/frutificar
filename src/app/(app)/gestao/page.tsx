@@ -9,6 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { SelectField, DateField } from '@/components/ui/field-controls'
 
 /* DEV PREVIEW — sem banco. Dados mock da Fazenda Santa Clara (Patrocínio/MG), plano Premium. */
 
@@ -109,22 +110,51 @@ const inputStyle: React.CSSProperties = {
   background: 'oklch(0.99 0.005 144)',
 }
 
+const typeOptions = [
+  { value: 'receita', label: 'Receita' },
+  { value: 'custo', label: 'Custo' },
+]
+const categoryOptions = [
+  { value: 'Insumos', label: 'Insumos' },
+  { value: 'Mão de obra', label: 'Mão de obra' },
+  { value: 'Mecanização', label: 'Mecanização' },
+  { value: 'Defensivos', label: 'Defensivos' },
+  { value: 'Venda', label: 'Venda' },
+  { value: 'Outros', label: 'Outros' },
+]
+
 export default function GestaoPage() {
   const [entries, setEntries] = useState<Entry[]>(initialEntries)
   const [nextId, setNextId] = useState(initialEntries.length + 1)
 
-  const [newOpen, setNewOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<Entry | null>(null)
+
+  /* Controles do design system (não capturados por FormData) */
+  const [newType, setNewType] = useState('custo')
+  const [newCategory, setNewCategory] = useState('Insumos')
+  const [newDate, setNewDate] = useState('')
+
+  function resetNewForm() {
+    setNewType('custo')
+    setNewCategory('Insumos')
+    setNewDate('')
+  }
+
+  const [newOpen, setNewOpenState] = useState(false)
+  function setNewOpen(open: boolean) {
+    if (open) resetNewForm()
+    setNewOpenState(open)
+  }
 
   /* ── Ações ── */
   function handleAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const data = new FormData(e.currentTarget)
-    const type = (String(data.get('type') ?? 'custo') === 'receita' ? 'receita' : 'custo') as Entry['type']
-    const category = String(data.get('category') ?? 'Outros')
+    const type = (newType === 'receita' ? 'receita' : 'custo') as Entry['type']
+    const category = newCategory || 'Outros'
     const desc = String(data.get('desc') ?? '').trim() || 'Lançamento sem descrição'
     const rawValue = String(data.get('value') ?? '').trim()
-    const date = String(data.get('date') ?? '')
+    const date = newDate
 
     const cleanValue = rawValue.replace(/^R\$\s*/i, '').replace(/^\+/, '').trim()
     const value = type === 'receita' ? `+R$ ${cleanValue}` : `R$ ${cleanValue}`
@@ -141,7 +171,8 @@ export default function GestaoPage() {
 
     setEntries((cur) => [entry, ...cur])
     setNextId((n) => n + 1)
-    setNewOpen(false)
+    setNewOpenState(false)
+    resetNewForm()
     toast.success('Lançamento adicionado', { description: `${desc} registrado.` })
   }
 
@@ -368,23 +399,23 @@ export default function GestaoPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Tipo</label>
-                <select name="type" defaultValue="custo"
-                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]" style={inputStyle}>
-                  <option value="receita">Receita</option>
-                  <option value="custo">Custo</option>
-                </select>
+                <SelectField
+                  id="new-type"
+                  value={newType}
+                  onValueChange={(val) => setNewType(val)}
+                  options={typeOptions}
+                  placeholder="Selecione"
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Categoria</label>
-                <select name="category" defaultValue="Insumos"
-                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]" style={inputStyle}>
-                  <option value="Insumos">Insumos</option>
-                  <option value="Mão de obra">Mão de obra</option>
-                  <option value="Mecanização">Mecanização</option>
-                  <option value="Defensivos">Defensivos</option>
-                  <option value="Venda">Venda</option>
-                  <option value="Outros">Outros</option>
-                </select>
+                <SelectField
+                  id="new-category"
+                  value={newCategory}
+                  onValueChange={(val) => setNewCategory(val)}
+                  options={categoryOptions}
+                  placeholder="Selecione"
+                />
               </div>
             </div>
             <div>
@@ -400,8 +431,12 @@ export default function GestaoPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Data</label>
-                <input name="date" type="date"
-                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]" style={inputStyle} />
+                <DateField
+                  id="new-date"
+                  value={newDate}
+                  onChange={(iso) => setNewDate(iso)}
+                  placeholder="Selecione a data"
+                />
               </div>
             </div>
             <DialogFooter className="gap-2 sm:gap-2 pt-1">

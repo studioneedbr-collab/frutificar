@@ -9,6 +9,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { SelectField, DateField } from '@/components/ui/field-controls'
 
 /* DEV PREVIEW — sem banco. Catálogo de serviços de um produtor Gold. */
 
@@ -77,11 +78,28 @@ const inputStyle: React.CSSProperties = {
 export default function ServicosPage() {
   const [requestTarget, setRequestTarget] = useState<ServiceRequest | null>(null)
   const [contactOpen, setContactOpen] = useState(false)
+  const [talhao, setTalhao] = useState(talhoes[0])
+  const [data, setData] = useState('')
+
+  function openRequest(target: ServiceRequest) {
+    setTalhao(talhoes[0])
+    setData('')
+    setRequestTarget(target)
+  }
+
+  function closeRequest() {
+    setRequestTarget(null)
+    setTalhao(talhoes[0])
+    setData('')
+  }
 
   function handleRequestSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const name = requestTarget?.name ?? ''
-    setRequestTarget(null)
+    // valores lidos do state (componentes controlados, fora do FormData)
+    void talhao
+    void data
+    closeRequest()
     toast.success('Solicitação enviada', { description: `${name} — entraremos em contato para confirmar.` })
   }
 
@@ -166,7 +184,7 @@ export default function ServicosPage() {
 
                 <button
                   type="button"
-                  onClick={() => setRequestTarget({ name: s.title })}
+                  onClick={() => openRequest({ name: s.title })}
                   className="mt-auto flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
                   style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
                 >
@@ -213,7 +231,7 @@ export default function ServicosPage() {
 
                 <button
                   type="button"
-                  onClick={() => setRequestTarget({ name: s.title, priceLabel })}
+                  onClick={() => openRequest({ name: s.title, priceLabel })}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.4)' }}
                 >
@@ -260,7 +278,7 @@ export default function ServicosPage() {
       {/* ═══════════ MODAIS ═══════════ */}
 
       {/* Solicitar serviço */}
-      <Dialog open={requestTarget !== null} onOpenChange={(o) => !o && setRequestTarget(null)}>
+      <Dialog open={requestTarget !== null} onOpenChange={(o) => !o && closeRequest()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>
@@ -292,25 +310,22 @@ export default function ServicosPage() {
 
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Propriedade / Talhão</label>
-              <select
-                name="talhao"
-                defaultValue={talhoes[0]}
-                className="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]"
-                style={inputStyle}
-              >
-                {talhoes.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <SelectField
+                id="talhao"
+                value={talhao}
+                onValueChange={(val) => setTalhao(val)}
+                options={talhoes.map((t) => ({ value: t, label: t }))}
+                placeholder="Selecione a propriedade"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Data desejada</label>
-              <input
-                type="date"
-                name="data"
-                className="w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]"
-                style={inputStyle}
+              <DateField
+                id="data"
+                value={data}
+                onChange={(iso) => setData(iso)}
+                placeholder="Selecione a data"
               />
             </div>
 
@@ -326,7 +341,7 @@ export default function ServicosPage() {
             </div>
 
             <DialogFooter className="gap-2 sm:gap-2 pt-1">
-              <button type="button" onClick={() => setRequestTarget(null)}
+              <button type="button" onClick={() => closeRequest()}
                 className="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-[oklch(0.96_0.01_144)]"
                 style={{ color: 'oklch(0.45 0.04 144)', border: '1px solid oklch(0.91 0.01 144)' }}>
                 Cancelar

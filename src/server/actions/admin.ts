@@ -34,9 +34,60 @@ export async function rejectVisit(id: string): Promise<ActionResult> {
   try {
     await adminRepository.setVisitStatus(id, VisitStatus.CANCELED)
     revalidatePath('/admin')
+    revalidatePath('/agendamentos')
     return { ok: true, data: undefined }
   } catch {
     return { ok: false, error: 'Erro ao recusar visita.' }
+  }
+}
+
+export async function completeVisit(id: string): Promise<ActionResult> {
+  const session = await auth()
+  if (!session || session.user.role !== 'ADMIN') {
+    return { ok: false, error: 'Acesso negado.' }
+  }
+
+  try {
+    await adminRepository.setVisitStatus(id, VisitStatus.COMPLETED)
+    revalidatePath('/admin')
+    revalidatePath('/agendamentos')
+    return { ok: true, data: undefined }
+  } catch {
+    return { ok: false, error: 'Erro ao concluir visita.' }
+  }
+}
+
+const assignVisitSchema = z.object({
+  agronomist: z.string().min(2, 'Selecione um agrônomo.'),
+  date: z.string().optional(), // ISO yyyy-mm-dd; vazio = mantém a data atual
+})
+
+export async function assignVisitAction(
+  id: string,
+  input: unknown,
+): Promise<ActionResult> {
+  const session = await auth()
+  if (!session || session.user.role !== 'ADMIN') {
+    return { ok: false, error: 'Acesso negado.' }
+  }
+
+  const parsed = assignVisitSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+  }
+
+  try {
+    await adminRepository.assignVisit(id, {
+      agronomist: parsed.data.agronomist,
+      requestedDate: parsed.data.date ? new Date(parsed.data.date) : undefined,
+    })
+    // Atribuir um agrônomo confirma a visita, se ainda estava só solicitada.
+    await adminRepository.setVisitStatus(id, VisitStatus.CONFIRMED)
+    revalidatePath('/admin')
+    revalidatePath('/agendamentos')
+    return { ok: true, data: undefined }
+  } catch {
+    return { ok: false, error: 'Erro ao atribuir agrônomo.' }
   }
 }
 

@@ -18,14 +18,26 @@ const envSchema = z.object({
   GATEWAY_API_KEY: z.string().optional(),
   GATEWAY_WEBHOOK_SECRET: z.string().optional(),
 
-  // Email
+  // Email (Brevo transacional)
   RESEND_API_KEY: z.string().optional(),
+  BREVO_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().email('EMAIL_FROM deve ser um e-mail válido').optional(),
+  EMAIL_FROM_NAME: z.string().optional(),
+  ADMIN_NOTIFICATION_EMAIL: z
+    .string()
+    .email('ADMIN_NOTIFICATION_EMAIL deve ser um e-mail válido')
+    .optional(),
 
   // AWS
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_BUCKET_NAME: z.string().optional(),
   AWS_REGION: z.string().optional(),
+
+  // Supabase Storage (upload de arquivos: materiais, áudios de podcast, etc.)
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().optional(),
 
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

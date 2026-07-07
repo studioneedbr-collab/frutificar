@@ -239,7 +239,7 @@ export default function LoginPage() {
                         Senha
                       </FormLabel>
                       <Link
-                        href="#"
+                        href="/esqueci-senha"
                         className="text-[12px] font-semibold hover:underline underline-offset-2"
                         style={{ color: 'var(--color-frutificar-green)' }}
                       >

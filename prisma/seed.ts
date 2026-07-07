@@ -11,6 +11,8 @@ import {
   LiveStatus,
   VisitStatus,
   ServiceStatus,
+  AnalysisStatus,
+  PaymentStatus,
 } from '@prisma/client'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
@@ -119,11 +121,25 @@ async function main() {
   // 3. Assinatura Gold do aluno
   const nextBilling = new Date()
   nextBilling.setMonth(nextBilling.getMonth() + 1)
-  await prisma.subscription.upsert({
+  const subscription = await prisma.subscription.upsert({
     where: { userId: studentUser.id }, update: { planId: planGold.id, status: SubscriptionStatus.ACTIVE, currentPeriodEnd: nextBilling },
     create: { userId: studentUser.id, planId: planGold.id, status: SubscriptionStatus.ACTIVE, currentPeriodEnd: nextBilling },
   })
   console.log('Assinatura: Douglas → GOLD (ACTIVE)')
+
+  // 3b. Histórico de pagamentos (5 meses)
+  await prisma.payment.deleteMany({ where: { userId: studentUser.id } })
+  for (let i = 1; i <= 5; i++) {
+    const paidAt = new Date(); paidAt.setMonth(paidAt.getMonth() - i)
+    await prisma.payment.create({
+      data: {
+        userId: studentUser.id, subscriptionId: subscription.id, amount: 197,
+        status: PaymentStatus.PAID, method: 'Cartão de crédito •••• 4242',
+        description: 'Plano Gold — Mensal', paidAt,
+      },
+    })
+  }
+  console.log('Pagamentos: 5 registros (Gold, PAID)')
 
   // 4. Curso principal + 8 módulos
   const mainCourse = await prisma.course.upsert({
@@ -174,12 +190,13 @@ async function main() {
   const santaClara = await prisma.property.create({
     data: {
       userId: studentUser.id, name: 'Fazenda Santa Clara', location: 'Patrocínio/MG', totalAreaHa: 84,
+      cropName: 'Café arábica', altitudeM: 980,
       plots: {
         create: [
-          { name: 'Talhão A1', areaHa: 24, status: 'Saudável' },
-          { name: 'Talhão A2', areaHa: 18, status: 'Atenção' },
-          { name: 'Talhão B1', areaHa: 22, status: 'Saudável' },
-          { name: 'Várzea',    areaHa: 20, status: 'Pousio' },
+          { name: 'Talhão A1', areaHa: 24, status: 'Saudável', cropName: 'Café Catuaí' },
+          { name: 'Talhão A2', areaHa: 18, status: 'Atenção',  cropName: 'Café Mundo Novo' },
+          { name: 'Talhão B1', areaHa: 22, status: 'Saudável', cropName: 'Café Bourbon' },
+          { name: 'Várzea',    areaHa: 20, status: 'Pousio',   cropName: 'Pousio' },
         ],
       },
     },
@@ -189,6 +206,8 @@ async function main() {
   await prisma.soilAnalysis.create({
     data: {
       plotId: talhaoA1.id, ph: 5.8, analyzedAt: new Date(),
+      status: AnalysisStatus.COMPLETED, analysisType: 'Completa',
+      summary: 'pH adequado; fósforo baixo e magnésio a corrigir.',
       nutrients: { P: 18, K: 120, Ca: 2.4, Mg: 0.8, MO: 2.9, V: 58 },
     },
   })

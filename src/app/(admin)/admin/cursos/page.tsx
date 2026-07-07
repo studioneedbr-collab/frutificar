@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { SelectField } from '@/components/ui/field-controls'
 
 type CourseType = 'PRINCIPAL' | 'MINICOURSE'
 
@@ -93,6 +94,15 @@ const inputClass =
   'w-full rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]'
 const labelClass = 'block text-xs font-semibold mb-1.5'
 
+const typeOptions = [
+  { value: 'PRINCIPAL', label: 'Curso principal' },
+  { value: 'MINICOURSE', label: 'Minicurso' },
+]
+const statusOptions = [
+  { value: 'Publicado', label: 'Publicado' },
+  { value: 'Rascunho', label: 'Rascunho' },
+]
+
 // derive an approximate lesson count from module count (in-memory, no DB)
 function lessonCount(modules: number) {
   return modules === 0 ? 0 : modules * 3
@@ -105,9 +115,13 @@ export default function AdminCursosPage() {
 
   // Novo curso
   const [createOpen, setCreateOpen] = useState(false)
+  const [createType, setCreateType] = useState<CourseType>('PRINCIPAL')
+  const [createStatus, setCreateStatus] = useState<'Publicado' | 'Rascunho'>('Rascunho')
 
   // Editar curso
   const [editTarget, setEditTarget] = useState<Course | null>(null)
+  const [editType, setEditType] = useState<CourseType>('PRINCIPAL')
+  const [editStatus, setEditStatus] = useState<'Publicado' | 'Rascunho'>('Rascunho')
 
   // Gerenciar módulos
   const [modulesTargetId, setModulesTargetId] = useState<number | null>(null)
@@ -133,9 +147,9 @@ export default function AdminCursosPage() {
     const data = new FormData(e.currentTarget)
     const title = String(data.get('title') ?? '').trim()
     if (!title) return
-    const type = String(data.get('type') ?? 'PRINCIPAL') as CourseType
+    const type = createType
     const instructor = String(data.get('instructor') ?? '').trim() || 'A definir'
-    const published = String(data.get('status') ?? 'Rascunho') === 'Publicado'
+    const published = createStatus === 'Publicado'
 
     const course: Course = {
       id: nextId,
@@ -158,9 +172,9 @@ export default function AdminCursosPage() {
     if (!editTarget) return
     const data = new FormData(e.currentTarget)
     const title = String(data.get('title') ?? '').trim() || editTarget.title
-    const type = String(data.get('type') ?? editTarget.type) as CourseType
+    const type = editType
     const instructor = String(data.get('instructor') ?? '').trim() || editTarget.instructor
-    const published = String(data.get('status') ?? '') === 'Publicado'
+    const published = editStatus === 'Publicado'
 
     setCourses((cur) =>
       cur.map((c) => (c.id === editTarget.id ? { ...c, title, type, instructor, published } : c)),
@@ -215,7 +229,7 @@ export default function AdminCursosPage() {
           <p className="text-sm mt-1" style={{ color: 'oklch(0.52 0.04 144)' }}>{courses.length} cursos · {publishedCount} publicados</p>
         </div>
         <button
-          onClick={() => setCreateOpen(true)}
+          onClick={() => { setCreateType('PRINCIPAL'); setCreateStatus('Rascunho'); setCreateOpen(true) }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-85 transition-opacity"
           style={{ background: 'linear-gradient(130deg, var(--color-frutificar-night) 0%, var(--color-frutificar-forest) 100%)' }}>
           <Plus size={15} /> Novo curso
@@ -263,7 +277,7 @@ export default function AdminCursosPage() {
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle}>
                     <Layers size={15} />
                   </button>
-                  <button onClick={() => setEditTarget(c)} title="Editar"
+                  <button onClick={() => { setEditType(c.type); setEditStatus(c.published ? 'Publicado' : 'Rascunho'); setEditTarget(c) }} title="Editar"
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle}>
                     <Pencil size={15} />
                   </button>
@@ -320,17 +334,23 @@ export default function AdminCursosPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Tipo</label>
-                <select name="type" defaultValue="PRINCIPAL" className={inputClass} style={inputStyle}>
-                  <option value="PRINCIPAL">Curso principal</option>
-                  <option value="MINICOURSE">Minicurso</option>
-                </select>
+                <SelectField
+                  id="create-type"
+                  value={createType}
+                  onValueChange={(v) => setCreateType(v as CourseType)}
+                  options={typeOptions}
+                  placeholder="Selecione"
+                />
               </div>
               <div>
                 <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Status</label>
-                <select name="status" defaultValue="Rascunho" className={inputClass} style={inputStyle}>
-                  <option value="Publicado">Publicado</option>
-                  <option value="Rascunho">Rascunho</option>
-                </select>
+                <SelectField
+                  id="create-status"
+                  value={createStatus}
+                  onValueChange={(v) => setCreateStatus(v as 'Publicado' | 'Rascunho')}
+                  options={statusOptions}
+                  placeholder="Selecione"
+                />
               </div>
             </div>
             <div>
@@ -371,17 +391,23 @@ export default function AdminCursosPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Tipo</label>
-                  <select name="type" defaultValue={editTarget.type} className={inputClass} style={inputStyle}>
-                    <option value="PRINCIPAL">Curso principal</option>
-                    <option value="MINICOURSE">Minicurso</option>
-                  </select>
+                  <SelectField
+                    id="edit-type"
+                    value={editType}
+                    onValueChange={(v) => setEditType(v as CourseType)}
+                    options={typeOptions}
+                    placeholder="Selecione"
+                  />
                 </div>
                 <div>
                   <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Status</label>
-                  <select name="status" defaultValue={editTarget.published ? 'Publicado' : 'Rascunho'} className={inputClass} style={inputStyle}>
-                    <option value="Publicado">Publicado</option>
-                    <option value="Rascunho">Rascunho</option>
-                  </select>
+                  <SelectField
+                    id="edit-status"
+                    value={editStatus}
+                    onValueChange={(v) => setEditStatus(v as 'Publicado' | 'Rascunho')}
+                    options={statusOptions}
+                    placeholder="Selecione"
+                  />
                 </div>
               </div>
               <div>

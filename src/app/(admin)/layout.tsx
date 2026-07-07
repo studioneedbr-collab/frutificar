@@ -1,7 +1,17 @@
+import { redirect } from 'next/navigation'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
+import { PREVIEW_MODE } from '@/lib/preview'
+import { auth } from '@/lib/auth'
 
-// DEV PREVIEW — auth desabilitada temporariamente para visualização sem banco
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+// Em modo real (PREVIEW_MODE=false) exige uma sessão com role ADMIN.
+// Em modo preview continua liberado para visualização sem banco.
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  if (!PREVIEW_MODE) {
+    const session = await auth()
+    if (!session?.user) redirect('/admin/login')
+    if (session.user.role !== 'ADMIN') redirect('/login')
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <AdminSidebar />
@@ -18,16 +28,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             Painel Administrativo
           </p>
-          <span
-            className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-            style={{
-              background: 'oklch(0.62 0.12 55 / 0.1)',
-              color: 'oklch(0.48 0.12 55)',
-              border: '1px solid oklch(0.62 0.12 55 / 0.25)',
-            }}
-          >
-            Visualização · sem banco
-          </span>
+          {PREVIEW_MODE && (
+            <span
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{
+                background: 'oklch(0.62 0.12 55 / 0.1)',
+                color: 'oklch(0.48 0.12 55)',
+                border: '1px solid oklch(0.62 0.12 55 / 0.25)',
+              }}
+            >
+              Visualização · sem banco
+            </span>
+          )}
         </header>
         <main
           className="flex-1 overflow-y-auto p-6"

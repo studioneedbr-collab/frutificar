@@ -30,6 +30,8 @@ export default auth((req) => {
     pathname === '/admin/login' ||
     pathname === '/cadastro' ||
     pathname === '/esqueci-senha' ||
+    pathname === '/redefinir-senha' ||
+    pathname === '/verificar-email' ||
     pathname.startsWith('/planos') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/_next') ||
@@ -44,6 +46,11 @@ export default auth((req) => {
   if (!session?.user) {
     const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/login'
     return NextResponse.redirect(new URL(loginPath, req.url))
+  }
+
+  // Área administrativa exige role ADMIN — usuário logado sem permissão vai ao dashboard.
+  if (pathname.startsWith('/admin') && session.user.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // App route plan check
