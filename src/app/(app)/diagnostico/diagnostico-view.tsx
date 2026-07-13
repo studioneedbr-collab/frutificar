@@ -1,19 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Leaf, Microscope, FlaskConical, Upload, Sparkles,
-  CheckCircle2, FileText, ArrowRight, Calendar, Paperclip,
+  CheckCircle2, FileText, ArrowRight, Calendar, Paperclip, Loader2,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { SelectField } from '@/components/ui/field-controls'
 import { gerarLaudoSolo } from '@/lib/reports'
-import { requestDiagnostic } from '@/server/actions/diagnostics'
-import { params, recommendations, type HistoricoItem, type TalhaoOption } from './data'
+import { analyzeSoilReport } from '@/server/actions/diagnostics'
+import type { HistoricoItem, TalhaoOption, DiagnosticResult } from './data'
 
 const howItWorks = [
   { n: '01', icon: Upload, title: 'Envie a análise', desc: 'Suba o laudo do laboratório em PDF ou foto.' },
@@ -21,23 +21,21 @@ const howItWorks = [
   { n: '03', icon: CheckCircle2, title: 'Plano pronto', desc: 'Receba correção e adubação por talhão.' },
 ]
 
-const statusColor = {
+const statusColor: Record<string, string> = {
   ok: 'var(--color-frutificar-green)',
   attention: 'oklch(0.7 0.15 70)',
   low: 'oklch(0.6 0.18 25)',
-} as const
-
-const statusBg = {
+}
+const statusBg: Record<string, string> = {
   ok: 'oklch(0.48 0.13 144 / 0.1)',
   attention: 'oklch(0.7 0.15 70 / 0.14)',
   low: 'oklch(0.6 0.18 25 / 0.12)',
-} as const
-
-const statusText = {
+}
+const statusText: Record<string, string> = {
   ok: 'var(--color-frutificar-green)',
   attention: 'oklch(0.5 0.13 70)',
   low: 'oklch(0.5 0.18 25)',
-} as const
+}
 
 const inputStyle: React.CSSProperties = {
   border: '1px solid oklch(0.91 0.01 144)',
@@ -50,29 +48,45 @@ const tipoOptions = [
   { value: 'Foliar', label: 'Foliar' },
 ]
 
+const MAX_BYTES = 15 * 1024 * 1024
+
 export function DiagnosticoView({
-  initialHistorico, talhaoOptions, preview,
+  initialHistorico, talhaoOptions, initialResult, preview,
 }: {
   initialHistorico: HistoricoItem[]
   talhaoOptions: TalhaoOption[]
+  initialResult: DiagnosticResult | null
   preview: boolean
 }) {
   const router = useRouter()
   const [historico, setHistorico] = useState<HistoricoItem[]>(initialHistorico)
+  const [result, setResult] = useState<DiagnosticResult | null>(initialResult)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
   useEffect(() => { setHistorico(initialHistorico) }, [initialHistorico])
+  useEffect(() => { setResult(initialResult) }, [initialResult])
 
   const firstTalhao = talhaoOptions[0]?.value ?? ''
   const [selectedTalhao, setSelectedTalhao] = useState(firstTalhao)
   const [novoOpen, setNovoOpen] = useState(false)
-  const [fileName, setFileName] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
   const [detalhe, setDetalhe] = useState<HistoricoItem | null>(null)
   const [modalTalhao, setModalTalhao] = useState(firstTalhao)
   const [modalTipo, setModalTipo] = useState('Completa')
+  const obsRef = useRef<HTMLTextAreaElement>(null)
 
   const labelOf = (value: string) =>
     talhaoOptions.find((o) => o.value === value)?.label ?? value
+
+  function onPickFile(f: File | undefined) {
+    if (!f) { setFile(null); return }
+    if (f.size > MAX_BYTES) {
+      toast.error('Arquivo muito grande', { description: 'O limite é 15MB.' })
+      return
+    }
+    setFile(f)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -80,31 +94,69 @@ export function DiagnosticoView({
     const talhaoLabel = labelOf(talhaoValue)
     const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 
-    setHistorico((cur) => [
-      { talhao: talhaoLabel, data: hoje, status: 'Em análise' },
-      ...cur,
-    ])
-    setNovoOpen(false)
-    setFileName('')
-    toast.success('Análise enviada', { description: 'Seu diagnóstico fica pronto em até 24h.' })
-
-    if (!preview) {
-      const res = await requestDiagnostic({
-        plotId: talhaoValue,
-        ph: 0,
-        nutrients: {},
-        analysisType: modalTipo || 'Completa',
-      })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
+    if (!file) {
+      toast.error('Anexe o laudo', { description: 'Envie uma foto nítida ou o PDF do laboratório.' })
+      return
     }
+
+    // Modo demo: sem IA/banco, apenas simula.
+    if (preview) {
+      setHistorico((cur) => [{ talhao: talhaoLabel, data: hoje, status: 'Concluído' }, ...cur])
+      setNovoOpen(false)
+      setFile(null)
+      toast.success('Análise concluída (demo)', { description: 'Conecte o banco + OpenAI para a IA real.' })
+      return
+    }
+
+    setAnalyzing(true)
+    const fd = new FormData()
+    fd.set('plotId', talhaoValue)
+    fd.set('analysisType', modalTipo || 'Completa')
+    fd.set('observacoes', obsRef.current?.value ?? '')
+    fd.set('file', file)
+
+    const res = await analyzeSoilReport(fd)
+    setAnalyzing(false)
+
+    if (!res.ok) {
+      toast.error(res.error)
+      return
+    }
+
+    setResult({
+      id: res.data.id,
+      talhao: talhaoLabel,
+      data: hoje,
+      ph: res.data.ph,
+      params: res.data.params,
+      recommendations: res.data.recommendations,
+      summary: res.data.summary,
+      fileUrl: res.data.fileUrl,
+    })
+    setHistorico((cur) => [{ id: res.data.id, talhao: talhaoLabel, data: hoje, status: 'Concluído' }, ...cur])
+    setNovoOpen(false)
+    setFile(null)
+    toast.success('Diagnóstico pronto', { description: 'A IA leu o laudo e gerou seu plano.' })
+    router.refresh()
   }
 
   function openNovo() {
-    setFileName('')
+    setFile(null)
     setModalTalhao(selectedTalhao)
     setModalTipo('Completa')
     setNovoOpen(true)
+  }
+
+  function baixarLaudo() {
+    if (!result) return
+    gerarLaudoSolo({
+      talhao: result.talhao,
+      data: result.data,
+      ph: result.ph != null ? String(result.ph).replace('.', ',') : '—',
+      parametros: result.params.map((p) => ({ nome: p.label, valor: p.value, status: p.tag })),
+      recomendacoes: result.recommendations,
+    })
+    toast.success('Laudo gerado', { description: 'O PDF foi baixado no seu dispositivo.' })
   }
 
   return (
@@ -136,7 +188,7 @@ export function DiagnosticoView({
           </span>
         </h1>
         <p className="mt-1.5 text-sm" style={{ color: 'oklch(0.52 0.04 144)' }}>
-          Envie sua análise de solo e receba um plano de adubação e correção para cada talhão.
+          Envie a foto ou o PDF da sua análise de solo e a IA gera um plano de adubação e correção para cada talhão.
         </p>
       </header>
 
@@ -162,7 +214,7 @@ export function DiagnosticoView({
                 Novo diagnóstico
               </h2>
               <p className="mt-1 text-sm" style={{ color: 'oklch(1 0 0 / 0.6)', lineHeight: 1.6 }}>
-                Selecione o talhão e envie a análise. A IA devolve o plano em minutos.
+                Selecione o talhão e envie a análise. A IA devolve o plano em segundos.
               </p>
               {/* talhão selector chips */}
               <div className="flex flex-wrap gap-2 mt-3.5">
@@ -232,156 +284,168 @@ export function DiagnosticoView({
       </section>
 
       {/* ── RESULT — Último diagnóstico ── */}
-      <section
-        className="dash-anim rounded-2xl p-5 md:p-6 bg-white"
-        style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.16s' }}
-      >
-        <div className="flex items-center justify-between gap-3 mb-5">
-          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
-            <Microscope size={18} style={{ color: 'var(--color-frutificar-green)' }} />
-            Último diagnóstico — Talhão A1
-          </h2>
-          <div className="flex items-center gap-2 shrink-0">
-            <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-              style={{ background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }}
-            >
-              <CheckCircle2 size={11} /> Concluído
-            </span>
-            <span className="text-xs hidden sm:block" style={{ color: 'oklch(0.55 0.04 144)' }}>24 jun 2026</span>
-          </div>
-        </div>
-
-        {/* soil parameters as horizontal bars */}
-        <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
-          {params.map((p, i) => (
-            <div key={p.label}>
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{p.label}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[13px] font-bold" style={{ color: 'var(--color-frutificar-deep)' }}>{p.value}</span>
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: statusBg[p.status as keyof typeof statusBg], color: statusText[p.status as keyof typeof statusText] }}
-                  >
-                    {p.tag}
-                  </span>
-                </div>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'oklch(0.94 0.01 144)' }}>
-                <div
-                  className="bar-fill h-full rounded-full"
-                  style={{
-                    width: `${p.pct}%`,
-                    background: statusColor[p.status as keyof typeof statusColor],
-                    animationDelay: `${0.2 + i * 0.05}s`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Recomendação da IA */}
-        <div
-          className="mt-6 rounded-xl p-5"
-          style={{ background: 'linear-gradient(150deg, oklch(0.48 0.13 144 / 0.06), oklch(0.62 0.12 55 / 0.05))', border: '1px solid oklch(0.91 0.01 144)' }}
+      {result ? (
+        <section
+          className="dash-anim rounded-2xl p-5 md:p-6 bg-white"
+          style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.16s' }}
         >
-          <div className="flex items-center gap-2 mb-3.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'oklch(0.62 0.12 55 / 0.12)' }}>
-              <FlaskConical size={17} style={{ color: 'var(--color-earth)' }} />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
-                Recomendação da IA
-              </h3>
-              <p className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>Plano de correção e adubação · Café arábica</p>
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
+              <Microscope size={18} style={{ color: 'var(--color-frutificar-green)' }} />
+              Último diagnóstico — {result.talhao}
+            </h2>
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }}
+              >
+                <CheckCircle2 size={11} /> Concluído
+              </span>
+              <span className="text-xs hidden sm:block" style={{ color: 'oklch(0.55 0.04 144)' }}>{result.data}</span>
             </div>
           </div>
-          <ul className="space-y-2.5 mb-5">
-            {recommendations.map((r) => (
-              <li key={r} className="flex items-start gap-2.5 text-[13px]">
-                <CheckCircle2 size={16} className="shrink-0 mt-0.5" style={{ color: 'var(--color-frutificar-green)' }} />
-                <span style={{ color: 'oklch(0.4 0.04 144)', lineHeight: 1.55 }}>{r}</span>
-              </li>
-            ))}
-          </ul>
-          <button
-            onClick={() => {
-              gerarLaudoSolo({
-                talhao: 'Talhão A1',
-                data: '24 jun 2026',
-                ph: '5,8',
-                parametros: params.map((p) => ({ nome: p.label, valor: p.value, status: p.tag })),
-                recomendacoes: recommendations,
-              })
-              toast.success('Laudo gerado', { description: 'O PDF foi baixado no seu dispositivo.' })
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
-            style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
+
+          {/* soil parameters as horizontal bars */}
+          {result.params.length > 0 && (
+            <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+              {result.params.map((p, i) => (
+                <div key={p.label + i}>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{p.label}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[13px] font-bold" style={{ color: 'var(--color-frutificar-deep)' }}>{p.value}</span>
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: statusBg[p.status] ?? statusBg.attention, color: statusText[p.status] ?? statusText.attention }}
+                      >
+                        {p.tag}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'oklch(0.94 0.01 144)' }}>
+                    <div
+                      className="bar-fill h-full rounded-full"
+                      style={{
+                        width: `${Math.max(0, Math.min(100, p.pct))}%`,
+                        background: statusColor[p.status] ?? statusColor.attention,
+                        animationDelay: `${0.2 + i * 0.05}s`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recomendação da IA */}
+          <div
+            className="mt-6 rounded-xl p-5"
+            style={{ background: 'linear-gradient(150deg, oklch(0.48 0.13 144 / 0.06), oklch(0.62 0.12 55 / 0.05))', border: '1px solid oklch(0.91 0.01 144)' }}
           >
-            <FileText size={15} /> Baixar laudo (PDF)
-          </button>
-        </div>
-      </section>
+            <div className="flex items-center gap-2 mb-3.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'oklch(0.62 0.12 55 / 0.12)' }}>
+                <FlaskConical size={17} style={{ color: 'var(--color-earth)' }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
+                  Recomendação da IA
+                </h3>
+                <p className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>
+                  {result.summary || 'Plano de correção e adubação · Café'}
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-2.5 mb-5">
+              {result.recommendations.map((r, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-[13px]">
+                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" style={{ color: 'var(--color-frutificar-green)' }} />
+                  <span style={{ color: 'oklch(0.4 0.04 144)', lineHeight: 1.55 }}>{r}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={baixarLaudo}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
+              style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
+            >
+              <FileText size={15} /> Baixar laudo (PDF)
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section
+          className="dash-anim rounded-2xl p-10 bg-white text-center"
+          style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.16s' }}
+        >
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'oklch(0.48 0.13 144 / 0.08)' }}>
+            <Microscope size={22} style={{ color: 'var(--color-frutificar-green)' }} />
+          </div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>Nenhum diagnóstico ainda</p>
+          <p className="text-xs mt-1" style={{ color: 'oklch(0.58 0.03 144)' }}>
+            Envie a foto ou o PDF do seu laudo de solo — a IA gera o plano na hora.
+          </p>
+        </section>
+      )}
 
       {/* ── Histórico de diagnósticos ── */}
-      <section
-        className="dash-anim rounded-2xl p-5 md:p-6 bg-white"
-        style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.22s' }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
-            <Leaf size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Histórico de diagnósticos
-          </h2>
-        </div>
-        <div className="space-y-2.5">
-          {historico.map((h) => {
-            const concluido = h.status === 'Concluído'
-            return (
-              <div
-                key={h.id ?? h.talhao + h.data}
-                className="dash-lift flex items-center gap-4 rounded-xl p-4"
-                style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'oklch(0.48 0.13 144 / 0.08)' }}>
-                  <Microscope size={17} style={{ color: 'var(--color-frutificar-green)' }} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{h.talhao}</h3>
-                  <p className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>{h.data}</p>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0"
-                  style={concluido
-                    ? { background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }
-                    : { background: 'oklch(0.7 0.15 70 / 0.14)', color: 'oklch(0.5 0.13 70)' }}
+      {historico.length > 0 && (
+        <section
+          className="dash-anim rounded-2xl p-5 md:p-6 bg-white"
+          style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.22s' }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
+              <Leaf size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Histórico de diagnósticos
+            </h2>
+          </div>
+          <div className="space-y-2.5">
+            {historico.map((h) => {
+              const concluido = h.status === 'Concluído'
+              return (
+                <div
+                  key={h.id ?? h.talhao + h.data}
+                  className="dash-lift flex items-center gap-4 rounded-xl p-4"
+                  style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}
                 >
-                  {h.status}
-                </span>
-                <button
-                  onClick={() => setDetalhe(h)}
-                  aria-label={`Ver diagnóstico do ${h.talhao}`}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:bg-[oklch(0.48_0.13_144_/_0.08)]"
-                >
-                  <ArrowRight size={16} style={{ color: 'oklch(0.55 0.04 144)' }} />
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      </section>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'oklch(0.48 0.13 144 / 0.08)' }}>
+                    <Microscope size={17} style={{ color: 'var(--color-frutificar-green)' }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{h.talhao}</h3>
+                    <p className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>{h.data}</p>
+                  </div>
+                  <span
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0"
+                    style={concluido
+                      ? { background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }
+                      : { background: 'oklch(0.7 0.15 70 / 0.14)', color: 'oklch(0.5 0.13 70)' }}
+                  >
+                    {h.status}
+                  </span>
+                  <button
+                    onClick={() => setDetalhe(h)}
+                    aria-label={`Ver diagnóstico do ${h.talhao}`}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:bg-[oklch(0.48_0.13_144_/_0.08)]"
+                  >
+                    <ArrowRight size={16} style={{ color: 'oklch(0.55 0.04 144)' }} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ═══════════ MODAIS ═══════════ */}
 
       {/* Novo diagnóstico — enviar análise */}
-      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
+      <Dialog open={novoOpen} onOpenChange={(o) => { if (!analyzing) setNovoOpen(o) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>
               <Upload size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Enviar análise de solo
             </DialogTitle>
-            <DialogDescription>Selecione o talhão e envie o laudo. A IA devolve o plano em até 24h.</DialogDescription>
+            <DialogDescription>Selecione o talhão e envie o laudo (foto ou PDF). A IA lê e devolve o plano em segundos.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
@@ -411,33 +475,33 @@ export function DiagnosticoView({
                 style={inputStyle}
               >
                 <Paperclip size={15} style={{ color: 'var(--color-earth)', flexShrink: 0 }} />
-                <span className="truncate" style={{ color: fileName ? 'var(--color-frutificar-deep)' : 'oklch(0.6 0.04 144)' }}>
-                  {fileName || 'Selecionar PDF, CSV ou imagem…'}
+                <span className="truncate" style={{ color: file ? 'var(--color-frutificar-deep)' : 'oklch(0.6 0.04 144)' }}>
+                  {file?.name || 'Selecionar PDF ou foto (JPG, PNG)…'}
                 </span>
                 <input
                   name="arquivo"
                   type="file"
-                  accept=".pdf,.csv,.jpg"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf"
                   className="hidden"
-                  onChange={(e) => setFileName(e.target.files?.[0]?.name ?? '')}
+                  onChange={(e) => onPickFile(e.target.files?.[0])}
                 />
               </label>
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-frutificar-deep)' }}>Observações</label>
-              <textarea name="observacoes" rows={3} placeholder="Cultura, histórico de adubação, observações de campo…"
+              <textarea ref={obsRef} name="observacoes" rows={3} placeholder="Cultura, histórico de adubação, observações de campo…"
                 className="w-full rounded-lg px-3 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]" style={inputStyle} />
             </div>
             <DialogFooter className="gap-2 sm:gap-2 pt-1">
-              <button type="button" onClick={() => setNovoOpen(false)}
-                className="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-[oklch(0.96_0.01_144)]"
+              <button type="button" disabled={analyzing} onClick={() => setNovoOpen(false)}
+                className="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-[oklch(0.96_0.01_144)] disabled:opacity-50"
                 style={{ color: 'oklch(0.45 0.04 144)', border: '1px solid oklch(0.91 0.01 144)' }}>
                 Cancelar
               </button>
-              <button type="submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
+              <button type="submit" disabled={analyzing}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-70"
                 style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.35)' }}>
-                <Upload size={15} /> Enviar análise
+                {analyzing ? <><Loader2 size={15} className="animate-spin" /> Analisando com IA…</> : <><Upload size={15} /> Enviar análise</>}
               </button>
             </DialogFooter>
           </form>

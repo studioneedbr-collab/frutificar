@@ -35,6 +35,7 @@ export async function createSoilAnalysis(
     analyzedAt: Date
     status?: AnalysisStatus
     analysisType?: string
+    summary?: string
   },
 ) {
   return prisma.soilAnalysis.create({
@@ -45,6 +46,7 @@ export async function createSoilAnalysis(
       analyzedAt: data.analyzedAt,
       status: data.status ?? AnalysisStatus.PENDING,
       analysisType: data.analysisType ?? 'Completa',
+      summary: data.summary,
     },
   })
 }

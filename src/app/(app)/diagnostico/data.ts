@@ -9,6 +9,27 @@ export type HistoricoItem = {
 
 export type TalhaoOption = { value: string; label: string }
 
+// Parâmetro de solo (lido pela IA ou mock). status: 'ok' | 'attention' | 'low'
+export type SoilParam = {
+  label: string
+  value: string
+  status: string
+  tag: string
+  pct: number
+}
+
+// Resultado de um diagnóstico concluído (o que a tela exibe no bloco "último diagnóstico").
+export type DiagnosticResult = {
+  id: string
+  talhao: string
+  data: string
+  ph?: number
+  params: SoilParam[]
+  recommendations: string[]
+  summary?: string
+  fileUrl?: string | null
+}
+
 /* status: 'ok' (adequado), 'attention' (atenção), 'low' (baixo) */
 export const params = [
   { label: 'pH (água)', value: '5,8', pct: 72, status: 'ok', tag: 'Ideal' },
