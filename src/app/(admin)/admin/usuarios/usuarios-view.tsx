@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Circle, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Search, Circle, Pencil, Trash2, X, KeyRound, Mail, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -10,6 +10,7 @@ import {
 import { SelectField } from '@/components/ui/field-controls'
 import {
   createUserAction, updateUserAction, toggleUserSuspended, deleteUserAction,
+  changeUserPlanAction, setTemporaryPasswordAction, sendPasswordResetAction,
 } from '@/server/actions/admin-users'
 import type { User } from './data'
 
@@ -91,6 +92,12 @@ export function UsuariosView({
   // Remover usuário
   const [removeTarget, setRemoveTarget] = useState<User | null>(null)
 
+  // Redefinir senha
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetBusy, setResetBusy] = useState(false)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
   const activeCount = users.filter((u) => u.status === 'ACTIVE').length
 
   const visibleUsers = users.filter((u) => {
@@ -139,6 +146,8 @@ export function UsuariosView({
     const name = String(data.get('name') ?? '').trim() || target.name
     const email = String(data.get('email') ?? '').trim() || target.email
 
+    const planChanged = editPlan !== target.plan
+
     setUsers((cur) =>
       cur.map((u) => (u.id === target.id ? { ...u, name, email, role: editRole, plan: editPlan } : u)),
     )
@@ -148,6 +157,11 @@ export function UsuariosView({
     if (!preview) {
       const res = await updateUserAction(target.id, { name, email, role: editRole })
       if (!res.ok) toast.error(res.error)
+      // O plano fica na assinatura, não no User — grava separadamente.
+      if (planChanged) {
+        const planRes = await changeUserPlanAction(target.id, { plan: editPlan })
+        if (!planRes.ok) toast.error(planRes.error)
+      }
       router.refresh()
     }
   }
@@ -161,6 +175,59 @@ export function UsuariosView({
       const res = await toggleUserSuspended(user.id, next !== 'ACTIVE')
       if (!res.ok) toast.error(res.error)
       router.refresh()
+    }
+  }
+
+  function openReset(user: User) {
+    setTempPassword(null)
+    setCopied(false)
+    setResetTarget(user)
+  }
+
+  async function handleTempPassword() {
+    if (!resetTarget) return
+    if (preview) {
+      setTempPassword('Exemplo123x') // demo: sem banco não grava
+      toast.success('Senha temporária gerada (demo)')
+      return
+    }
+    setResetBusy(true)
+    const res = await setTemporaryPasswordAction(resetTarget.id)
+    setResetBusy(false)
+    if (res.ok) {
+      setTempPassword(res.data.password)
+      toast.success('Senha temporária definida', { description: resetTarget.name })
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  async function handleSendReset() {
+    if (!resetTarget) return
+    if (preview) {
+      toast.success('Link de redefinição enviado (demo)', { description: resetTarget.email })
+      setResetTarget(null)
+      return
+    }
+    setResetBusy(true)
+    const res = await sendPasswordResetAction(resetTarget.id)
+    setResetBusy(false)
+    if (res.ok) {
+      toast.success('Link enviado por e-mail', { description: resetTarget.email })
+      setResetTarget(null)
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  async function copyTempPassword() {
+    if (!tempPassword) return
+    try {
+      await navigator.clipboard.writeText(tempPassword)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      toast.error('Não foi possível copiar. Copie manualmente.')
     }
   }
 
@@ -247,6 +314,10 @@ export function UsuariosView({
                   <button onClick={() => { setEditRole(u.role as Role); setEditPlan(u.plan as Plan); setEditTarget(u) }} title="Editar"
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle}>
                     <Pencil size={15} />
+                  </button>
+                  <button onClick={() => openReset(u)} title="Redefinir senha"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle}>
+                    <KeyRound size={15} />
                   </button>
                   <button onClick={() => toggleStatus(u)} title={u.status === 'ACTIVE' ? 'Suspender' : 'Ativar'}
                     className="px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-gray-100 transition-colors"
@@ -419,6 +490,65 @@ export function UsuariosView({
               <X size={14} /> Confirmar remoção
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Redefinir senha */}
+      <Dialog open={resetTarget !== null} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-1" style={{ background: 'oklch(0.48 0.13 144 / 0.1)' }}>
+              <KeyRound size={20} style={{ color: 'var(--color-frutificar-green)' }} />
+            </div>
+            <DialogTitle style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>Redefinir senha</DialogTitle>
+            <DialogDescription>
+              Escolha como redefinir a senha de <strong>{resetTarget?.name}</strong> ({resetTarget?.email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          {tempPassword ? (
+            <div className="space-y-3">
+              <p className="text-xs" style={{ color: 'oklch(0.5 0.04 144)' }}>
+                Senha temporária definida. Copie e envie ao aluno — peça que troque no primeiro acesso pelo perfil.
+              </p>
+              <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ background: 'oklch(0.97 0.01 144)', border: '1px solid oklch(0.91 0.01 144)' }}>
+                <code className="flex-1 text-base font-bold tracking-wide" style={{ color: 'var(--color-frutificar-deep)' }}>{tempPassword}</code>
+                <button onClick={copyTempPassword}
+                  className="p-2 rounded-lg transition-colors hover:bg-[oklch(0.48_0.13_144_/_0.1)]"
+                  style={{ color: 'var(--color-frutificar-green)' }} title="Copiar">
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
+              <DialogFooter className="pt-1">
+                <button onClick={() => setResetTarget(null)}
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--color-frutificar-green)', boxShadow: '0 8px 24px oklch(0.48 0.13 144 / 0.3)' }}>
+                  Concluir
+                </button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <button onClick={handleTempPassword} disabled={resetBusy}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-[oklch(0.97_0.01_144)] disabled:opacity-50"
+                style={{ border: '1px solid oklch(0.91 0.01 144)' }}>
+                <KeyRound size={18} style={{ color: 'var(--color-frutificar-green)' }} />
+                <div>
+                  <p className="text-sm font-bold" style={{ color: 'var(--color-frutificar-deep)' }}>Gerar senha temporária</p>
+                  <p className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>Define uma senha na hora para você repassar ao aluno.</p>
+                </div>
+              </button>
+              <button onClick={handleSendReset} disabled={resetBusy}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-[oklch(0.97_0.01_144)] disabled:opacity-50"
+                style={{ border: '1px solid oklch(0.91 0.01 144)' }}>
+                <Mail size={18} style={{ color: 'var(--color-frutificar-green)' }} />
+                <div>
+                  <p className="text-sm font-bold" style={{ color: 'var(--color-frutificar-deep)' }}>Enviar link por e-mail</p>
+                  <p className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>Manda o link de redefinição para o e-mail do aluno (expira em 1h).</p>
+                </div>
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
