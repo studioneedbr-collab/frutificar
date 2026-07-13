@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, BookOpen, MessageCircle, Radio,
   Leaf, Mic2, Calendar, Wrench, BarChart3, MapPin, Sun, User, Menu,
+  GraduationCap,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { FrutificarLogo } from '@/components/shared/logo'
@@ -22,7 +23,8 @@ const navGroups = [
   {
     label: 'Conteúdo',
     items: [
-      { href: '/cursos',   label: 'Cursos',    icon: BookOpen,        plan: 'ESSENCIAL' as PlanName },
+      { href: '/cursos',     label: 'Cursos',     icon: BookOpen,        plan: 'ESSENCIAL' as PlanName },
+      { href: '/minicursos', label: 'Minicursos', icon: GraduationCap,   plan: 'PREMIUM' as PlanName },
       { href: '/lives',    label: 'Lives',     icon: Radio,           plan: 'ESSENCIAL' as PlanName },
       { href: '/podcasts', label: 'Podcasts',  icon: Mic2,            plan: 'ESSENCIAL' as PlanName },
       { href: '/chat',     label: 'Chat IA',   icon: MessageCircle,   plan: 'PREMIUM' as PlanName },
@@ -40,9 +42,10 @@ const navGroups = [
   {
     label: 'Suporte',
     items: [
-      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar, plan: null },
-      { href: '/servicos',     label: 'Serviços',     icon: Wrench,   plan: null },
-      { href: '/perfil',       label: 'Perfil',       icon: User,     plan: null },
+      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: null },
+      { href: '/tutoring',     label: 'Tutoria',      icon: GraduationCap, plan: 'GOLD' as PlanName },
+      { href: '/servicos',     label: 'Serviços',     icon: Wrench,        plan: null },
+      { href: '/perfil',       label: 'Perfil',       icon: User,          plan: null },
     ],
   },
 ]
