@@ -16,15 +16,18 @@ const statusLabel: Record<string, string> = {
   CANCELED: 'Cancelado',
 }
 
+// Link do grupo de WhatsApp da tutoria (configurável por env). Vazio = botão "em breve".
+const WHATSAPP_URL = process.env.WHATSAPP_TUTORIA_URL ?? process.env.NEXT_PUBLIC_WHATSAPP_TUTORIA ?? ''
+
 export default async function TutoringPage() {
   if (PREVIEW_MODE) {
-    return <TutoringView initialRequests={mockTutorias} preview />
+    return <TutoringView initialRequests={mockTutorias} whatsappUrl={WHATSAPP_URL} preview />
   }
 
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return <TutoringView initialRequests={[]} preview={false} />
+      return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
     }
 
     const rows = await listServiceRequestsByUser(session.user.id)
@@ -38,8 +41,8 @@ export default async function TutoringPage() {
         data: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
 
-    return <TutoringView initialRequests={requests} preview={false} />
+    return <TutoringView initialRequests={requests} whatsappUrl={WHATSAPP_URL} preview={false} />
   } catch {
-    return <TutoringView initialRequests={[]} preview={false} />
+    return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
   }
 }

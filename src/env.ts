@@ -39,6 +39,9 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   SUPABASE_STORAGE_BUCKET: z.string().optional(),
 
+  // Tutoria — link do grupo de WhatsApp (opcional)
+  WHATSAPP_TUTORIA_URL: z.string().url().optional(),
+
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  GraduationCap, Sparkles, Video, MessageSquareText, Target, Send, Loader2, Clock, CheckCircle2,
+  GraduationCap, Sparkles, Video, MessageSquareText, Target, Send, Loader2, Clock, CheckCircle2, MessageCircle,
 } from 'lucide-react'
 import { SelectField } from '@/components/ui/field-controls'
 import { requestService } from '@/server/actions/appointments'
@@ -25,9 +25,10 @@ const statusStyle: Record<string, { bg: string; text: string }> = {
 }
 
 export function TutoringView({
-  initialRequests, preview,
+  initialRequests, whatsappUrl, preview,
 }: {
   initialRequests: TutoriaRequest[]
+  whatsappUrl: string
   preview: boolean
 }) {
   const router = useRouter()
@@ -97,6 +98,35 @@ export function TutoringView({
             Agende uma sessão 1:1 com um especialista da Frutificar e receba orientação sob medida para os desafios da sua lavoura de café.
           </p>
         </div>
+      </section>
+
+      {/* ── Grupo no WhatsApp (destaque, conforme o spec) ── */}
+      <section className="dash-anim rounded-2xl p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+        style={{ background: 'oklch(0.96 0.06 150)', border: '1px solid oklch(0.8 0.12 150 / 0.4)', animationDelay: '0.03s' }}>
+        <div className="flex items-start gap-3.5 flex-1 min-w-0">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#25D366' }}>
+            <MessageCircle size={22} color="white" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-bold text-[15px]" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>Grupo exclusivo de Tutoria no WhatsApp</h2>
+            <p className="text-xs mt-1" style={{ color: 'oklch(0.4 0.06 150)', lineHeight: 1.55 }}>
+              Acompanhamento contínuo com o especialista, tira-dúvidas e troca de experiências direto no seu WhatsApp.
+            </p>
+          </div>
+        </div>
+        {whatsappUrl ? (
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm shrink-0 transition-transform hover:scale-[1.03]"
+            style={{ background: '#25D366', boxShadow: '0 8px 24px oklch(0.7 0.15 150 / 0.4)' }}>
+            <MessageCircle size={16} /> Entrar no grupo
+          </a>
+        ) : (
+          <span className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm shrink-0 opacity-70 cursor-not-allowed"
+            style={{ background: 'oklch(0.85 0.02 150)', color: 'oklch(0.45 0.05 150)' }}
+            title="Configure WHATSAPP_TUTORIA_URL para ativar">
+            <MessageCircle size={16} /> Link em breve
+          </span>
+        )}
       </section>
 
       {/* ── Benefícios ── */}
