@@ -147,7 +147,7 @@ export function AssinaturasView({
   }
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)', letterSpacing: '-0.03em' }}>Assinaturas</h1>
         <p className="text-sm mt-1" style={{ color: 'oklch(0.52 0.04 144)' }}>Gestão de receita recorrente</p>

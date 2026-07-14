@@ -129,7 +129,7 @@ export default function AdminServicosPage() {
   const iconBtnStyle: React.CSSProperties = { color: 'oklch(0.6 0.02 144)' }
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)', letterSpacing: '-0.03em' }}>Serviços</h1>

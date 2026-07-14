@@ -157,7 +157,7 @@ export function AdminDashboardView({
   }
 
   return (
-    <div className="space-y-8 max-w-7xl">
+    <div className="space-y-8">
       {/* Título */}
       <div>
         <h1
