@@ -21,21 +21,31 @@ const prisma = new PrismaClient({ adapter })
 
 // ─── Plan features ────────────────────────────────────────────────────────────
 
-const essencialFeatures = {
-  cursos: true, modulosBasicos: true, chatIA: false, downloadMateriais: false,
-  visitaTecnica: false, gestaoPropriedade: true, maxPropriedades: 1, podcast: true,
-  lives: false, suportePrioritario: false, certificados: false, minicursos: false,
-}
-const premiumFeatures = {
-  cursos: true, modulosBasicos: true, chatIA: true, downloadMateriais: true,
-  visitaTecnica: false, gestaoPropriedade: true, maxPropriedades: 3, podcast: true,
-  lives: true, suportePrioritario: false, certificados: true, minicursos: true,
-}
-const goldFeatures = {
-  cursos: true, modulosBasicos: true, chatIA: true, downloadMateriais: true,
-  visitaTecnica: true, gestaoPropriedade: true, maxPropriedades: 10, podcast: true,
-  lives: true, suportePrioritario: true, certificados: true, minicursos: true,
-}
+// Features exibidas em /planos — texto legível, alinhado ao spec do produto.
+const essencialFeatures = [
+  'Curso completo com 8 módulos',
+  'Conteúdo progressivo e didático',
+  'Chat inteligente para dúvidas rápidas',
+  'Diagnóstico rápido por imagem',
+  'Acesso à plataforma (App e Web)',
+]
+const premiumFeatures = [
+  'Tudo do plano Essencial',
+  'Minicursos especializados',
+  'Suporte técnico com especialista (agendado)',
+  'Gestão da propriedade rural',
+  'Licenças ambientais e histórico da propriedade',
+  'Organização e documentação da propriedade',
+  'Podcast com conteúdos técnicos',
+]
+const goldFeatures = [
+  'Tudo do plano Premium',
+  'Acesso a todos os cursos',
+  'Dia de campo presencial',
+  'Estágio supervisionado',
+  'Tutoria especializada',
+  'Certificado de conclusão',
+]
 
 // ─── Currículo: curso principal (8 módulos) + minicursos ──────────────────────
 

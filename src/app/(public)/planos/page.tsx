@@ -37,8 +37,16 @@ export default async function PlanosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {plans.map((plan) => {
-              const features = plan.features as Record<string, unknown>
+              // features é um array de strings legíveis (spec). Fallback: chaves true de um objeto antigo.
+              const raw = plan.features
+              const features: string[] = Array.isArray(raw)
+                ? (raw as string[])
+                : Object.entries((raw ?? {}) as Record<string, unknown>)
+                    .filter(([, v]) => v === true)
+                    .map(([k]) => k)
               const isPremium = plan.name === 'PREMIUM'
+              const displayName =
+                plan.name.charAt(0) + plan.name.slice(1).toLowerCase()
               return (
                 <Card
                   key={plan.name}
@@ -53,7 +61,7 @@ export default async function PlanosPage() {
                     </div>
                   )}
                   <CardHeader>
-                    <CardTitle>{plan.name}</CardTitle>
+                    <CardTitle>{displayName}</CardTitle>
                     <CardDescription className="text-2xl font-bold text-foreground">
                       {Number(plan.priceMonthly) === 0
                         ? 'Gratuito'
@@ -64,13 +72,11 @@ export default async function PlanosPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <ul className="space-y-2 text-sm">
-                      {Object.entries(features).map(([key, value]) => (
-                        <li key={key} className="flex items-start gap-2">
+                    <ul className="space-y-2.5 text-sm">
+                      {features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2">
                           <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <span className="text-muted-foreground">
-                            <span className="font-medium text-foreground">{key}:</span> {String(value)}
-                          </span>
+                          <span className="text-muted-foreground">{f}</span>
                         </li>
                       ))}
                     </ul>
