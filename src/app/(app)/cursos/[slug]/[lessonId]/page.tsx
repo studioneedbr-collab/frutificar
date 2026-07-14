@@ -107,7 +107,7 @@ export default async function LessonPage({
           )}
 
           {/* Prev/Next navigation */}
-          <div className="flex justify-between pt-4 border-t">
+          <div className="flex justify-between gap-3 pt-4 border-t">
             {prevLesson ? (
               <Button variant="outline" asChild>
                 <Link href={`/cursos/${slug}/${prevLesson.id}`}>
@@ -129,6 +129,42 @@ export default async function LessonPage({
               </Button>
             )}
           </div>
+
+          {/* Lista de aulas — versão mobile (colapsável), já que a sidebar some no celular */}
+          <details className="lg:hidden rounded-lg border overflow-hidden" open>
+            <summary className="px-4 py-3 bg-muted/50 font-medium text-sm cursor-pointer select-none">
+              Aulas do curso
+            </summary>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {course.modules.map((module) => (
+                <div key={module.id}>
+                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20 border-t">
+                    {module.title}
+                  </div>
+                  {module.lessons.map((l) => {
+                    const isDone = completedIds.has(l.id)
+                    const isCurrent = l.id === lessonId
+                    return (
+                      <Link
+                        key={l.id}
+                        href={`/cursos/${slug}/${l.id}`}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors ${
+                          isCurrent ? 'bg-primary/10 text-primary font-medium' : ''
+                        }`}
+                      >
+                        {isDone ? (
+                          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="truncate">{l.title}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </details>
         </div>
 
         {/* Sidebar — lesson list */}
