@@ -423,6 +423,13 @@ model Property {
   documents       PropertyDocument[]
 }
 
+// Configurações globais da plataforma (chave-valor), editáveis no /admin/configuracoes.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @default(now())
+}
+
 // Gestão da propriedade: licenças ambientais, documentos e histórico (spec Premium).
 model PropertyDocument {
   id          String    @id @default(cuid())

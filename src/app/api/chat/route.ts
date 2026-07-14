@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { openai } from '@/lib/openai'
+import { getSetting } from '@/server/repositories/settings.repository'
 import { createTextStreamResponse } from 'ai'
 import { z } from 'zod'
 
@@ -72,6 +73,10 @@ export async function POST(request: Request) {
   const { messages: incomingMessages, sessionId } = parsed.data
   const userId = session.user.id
 
+  // Configurações dinâmicas (admin /configuracoes) com fallback.
+  const rateLimit = Number(await getSetting('chat_limit')) || RATE_LIMIT_PER_HOUR
+  const aiModel = (await getSetting('ai_model')) || 'gpt-4o-mini'
+
   // Last message must be from user
   const lastMsg = incomingMessages[incomingMessages.length - 1]
   if (lastMsg.role !== 'user') {
@@ -99,9 +104,9 @@ export async function POST(request: Request) {
   const recentUserMessages = storedMessages.filter(
     (m) => m.role === 'user' && m.ts != null && m.ts > oneHourAgo
   )
-  if (recentUserMessages.length >= RATE_LIMIT_PER_HOUR) {
+  if (recentUserMessages.length >= rateLimit) {
     return new Response(
-      JSON.stringify({ error: 'Limite de 30 mensagens por hora atingido.' }),
+      JSON.stringify({ error: `Limite de ${rateLimit} mensagens por hora atingido.` }),
       { status: 429, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -133,7 +138,7 @@ export async function POST(request: Request) {
   // Stream from OpenAI
   try {
     const stream = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: aiModel,
       messages: allMessages,
       stream: true,
       max_tokens: 1000,
