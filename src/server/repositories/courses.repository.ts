@@ -51,6 +51,84 @@ export async function createCourse(data: Prisma.CourseCreateInput) {
   return prisma.course.create({ data })
 }
 
+// ─── Admin: cursos com módulos + aulas (para o editor) ────
+export async function listCoursesForAdmin() {
+  return prisma.course.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ type: 'asc' }, { createdAt: 'asc' }],
+    include: {
+      instructor: { select: { name: true } },
+      _count: { select: { enrollments: true } },
+      modules: {
+        orderBy: { order: 'asc' },
+        include: { lessons: { orderBy: { order: 'asc' } } },
+      },
+    },
+  })
+}
+
+export async function setCoursePublished(id: string, published: boolean) {
+  return prisma.course.update({ where: { id }, data: { published } })
+}
+
+// ─── Admin: módulos ───────────────────────────────────────
+export async function createModule(courseId: string, title: string) {
+  const last = await prisma.module.findFirst({
+    where: { courseId },
+    orderBy: { order: 'desc' },
+    select: { order: true },
+  })
+  return prisma.module.create({
+    data: { courseId, title, order: (last?.order ?? 0) + 1 },
+  })
+}
+
+export async function updateModule(id: string, title: string) {
+  return prisma.module.update({ where: { id }, data: { title } })
+}
+
+export async function deleteModule(id: string) {
+  return prisma.module.delete({ where: { id } })
+}
+
+// ─── Admin: aulas ─────────────────────────────────────────
+export async function createLesson(
+  moduleId: string,
+  data: { title: string; youtubeVideoId?: string | null; durationSec?: number | null; description?: string | null },
+) {
+  const last = await prisma.lesson.findFirst({
+    where: { moduleId },
+    orderBy: { order: 'desc' },
+    select: { order: true },
+  })
+  return prisma.lesson.create({
+    data: {
+      moduleId,
+      title: data.title,
+      youtubeVideoId: data.youtubeVideoId ?? null,
+      durationSec: data.durationSec ?? null,
+      description: data.description ?? null,
+      order: (last?.order ?? 0) + 1,
+    },
+  })
+}
+
+export async function updateLesson(
+  id: string,
+  data: { title?: string; youtubeVideoId?: string | null; durationSec?: number | null; description?: string | null },
+) {
+  return prisma.lesson.update({ where: { id }, data })
+}
+
+export async function deleteLesson(id: string) {
+  return prisma.lesson.delete({ where: { id } })
+}
+
+export async function getModuleCourseId(moduleId: string): Promise<string | null> {
+  const m = await prisma.module.findUnique({ where: { id: moduleId }, select: { courseId: true } })
+  return m?.courseId ?? null
+}
+
 export async function updateCourse(id: string, data: Prisma.CourseUpdateInput) {
   return prisma.course.update({ where: { id }, data })
 }

@@ -26,15 +26,15 @@ const navGroups = [
       { href: '/cursos',     label: 'Cursos',     icon: BookOpen,        plan: 'ESSENCIAL' as PlanName },
       { href: '/minicursos', label: 'Minicursos', icon: GraduationCap,   plan: 'PREMIUM' as PlanName },
       { href: '/lives',    label: 'Lives',     icon: Radio,           plan: 'PREMIUM' as PlanName },
-      { href: '/podcasts', label: 'Podcasts',  icon: Mic2,            plan: 'ESSENCIAL' as PlanName },
-      { href: '/chat',     label: 'Chat IA',   icon: MessageCircle,   plan: 'PREMIUM' as PlanName },
+      { href: '/podcasts', label: 'Podcasts',  icon: Mic2,            plan: 'PREMIUM' as PlanName },
+      { href: '/chat',     label: 'Chat IA',   icon: MessageCircle,   plan: 'ESSENCIAL' as PlanName },
     ],
   },
   {
     label: 'Ferramentas',
     items: [
-      { href: '/diagnostico',   label: 'Diagnóstico',   icon: Leaf,      plan: 'PREMIUM' as PlanName },
-      { href: '/gestao',        label: 'Gestão',        icon: BarChart3, plan: 'ESSENCIAL' as PlanName },
+      { href: '/diagnostico',   label: 'Diagnóstico',   icon: Leaf,      plan: 'ESSENCIAL' as PlanName },
+      { href: '/gestao',        label: 'Gestão',        icon: BarChart3, plan: 'PREMIUM' as PlanName },
       { href: '/propriedades',  label: 'Propriedades',  icon: MapPin,    plan: null },
       { href: '/dias-de-campo', label: 'Dias de Campo', icon: Sun,       plan: 'GOLD' as PlanName },
     ],
@@ -42,9 +42,9 @@ const navGroups = [
   {
     label: 'Suporte',
     items: [
-      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: 'GOLD' as PlanName },
+      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: 'PREMIUM' as PlanName },
       { href: '/tutoring',     label: 'Tutoria',      icon: GraduationCap, plan: 'GOLD' as PlanName },
-      { href: '/servicos',     label: 'Serviços',     icon: Wrench,        plan: null },
+      { href: '/servicos',     label: 'Serviços',     icon: Wrench,        plan: 'PREMIUM' as PlanName },
       { href: '/perfil',       label: 'Perfil',       icon: User,          plan: null },
     ],
   },
