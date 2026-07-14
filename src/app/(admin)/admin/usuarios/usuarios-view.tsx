@@ -284,8 +284,7 @@ export function UsuariosView({
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'white', border: '1px solid oklch(0.91 0.01 144)' }}>
-       <div className="overflow-x-auto">
-        <div className="min-w-[820px]">
+        <div className="hidden md:block">
         <div className="grid gap-4 px-5 py-3 text-[11px] font-bold tracking-wide uppercase"
           style={{ color: 'oklch(0.6 0.03 144)', borderBottom: '1px solid oklch(0.93 0.005 144)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto' }}>
           <span>Usuário</span><span>Plano</span><span>Status</span><span>Função</span><span>Cadastro</span><span />
@@ -342,7 +341,42 @@ export function UsuariosView({
           )}
         </div>
         </div>
-       </div>
+
+        {/* Cartões (mobile) */}
+        <div className="md:hidden divide-y" style={{ borderColor: 'oklch(0.96 0.005 144)' }}>
+          {visibleUsers.map((u) => {
+            const plan = planStyle[u.plan]; const status = statusStyle[u.status]; const role = roleStyle[u.role]
+            return (
+              <div key={u.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-white" style={{ background: 'var(--color-frutificar-forest)' }}>
+                    {u.name.split(' ').slice(0, 2).map(n => n[0]).join('')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{u.name}</p>
+                    <p className="text-xs truncate" style={{ color: 'oklch(0.58 0.03 144)' }}>{u.email}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: plan?.bg, color: plan?.text }}>{u.plan}</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: status?.text }}><Circle size={6} fill={status?.dot} style={{ color: status?.dot }} />{status?.label ?? u.status}</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg" style={{ background: role?.bg, color: role?.text }}>{role?.label ?? u.role}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-1 mt-3">
+                  <button onClick={() => { setEditRole(u.role as Role); setEditPlan(u.plan as Plan); setEditTarget(u) }} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle} title="Editar"><Pencil size={16} /></button>
+                  <button onClick={() => openReset(u)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" style={iconBtnStyle} title="Redefinir senha"><KeyRound size={16} /></button>
+                  <button onClick={() => toggleStatus(u)} className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold hover:bg-gray-100 transition-colors" style={{ color: 'var(--color-frutificar-green)' }}>{u.status === 'ACTIVE' ? 'Suspender' : 'Ativar'}</button>
+                  <button onClick={() => setRemoveTarget(u)} className="p-2 rounded-lg transition-colors hover:bg-[oklch(0.6_0.18_25_/_0.08)]" style={{ color: 'oklch(0.6 0.18 25)' }} title="Remover"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            )
+          })}
+          {visibleUsers.length === 0 && (
+            <div className="px-5 py-10 text-center text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>
+              Nenhum usuário neste filtro.
+            </div>
+          )}
+        </div>
         <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: 'oklch(0.93 0.005 144)' }}>
           <span className="text-xs" style={{ color: 'oklch(0.58 0.03 144)' }}>Mostrando {visibleUsers.length} de {users.length} usuários</span>
           <div className="flex items-center gap-1">

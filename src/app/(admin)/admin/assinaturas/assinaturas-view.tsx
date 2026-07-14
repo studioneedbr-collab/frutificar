@@ -191,8 +191,7 @@ export function AssinaturasView({
             </div>
           </div>
         </div>
-       <div className="overflow-x-auto">
-        <div className="min-w-[820px]">
+        <div className="hidden md:block">
         <div className="grid gap-4 px-5 py-3 text-[11px] font-bold tracking-wide uppercase"
           style={{ color: 'oklch(0.6 0.03 144)', borderBottom: '1px solid oklch(0.95 0.005 144)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.4fr' }}>
           <span>Assinante</span><span>Plano</span><span>Valor</span><span>Status</span><span>Renovação</span><span className="text-right">Ações</span>
@@ -257,7 +256,48 @@ export function AssinaturasView({
           )}
         </div>
         </div>
-       </div>
+
+        {/* Cartões (mobile) */}
+        <div className="md:hidden divide-y" style={{ borderColor: 'oklch(0.96 0.005 144)' }}>
+          {visibleSubs.map((s) => {
+            const plan = planStyle[s.plan]; const status = statusStyle[s.status]
+            return (
+              <div key={s.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: 'var(--color-frutificar-forest)' }}>
+                    {s.name.split(' ').slice(0,2).map(n=>n[0]).join('')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{s.name}</p>
+                    <p className="text-[11px]" style={{ color: 'oklch(0.6 0.02 144)' }}>{s.gateway} · renova {s.renewal}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: plan.bg, color: plan.text }}>{s.plan}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{s.value}/mês</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: status.text }}><Circle size={6} fill={status.dot} style={{ color: status.dot }} />{status.label}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-1 mt-3">
+                  <button onClick={() => setDetailTarget(s)} className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'oklch(0.6 0.02 144)' }} title="Ver detalhes"><Eye size={16} /></button>
+                  <button onClick={() => { setNewPlan(s.plan); setPlanTarget(s) }} className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'oklch(0.6 0.02 144)' }} title="Alterar plano"><ArrowLeftRight size={16} /></button>
+                  {s.status === 'PAST_DUE' && (
+                    <button onClick={() => { setPayDate(''); setPayTarget(s) }} className="p-2 rounded-lg hover:bg-[oklch(0.55_0.14_144_/_0.1)]" style={{ color: 'var(--color-frutificar-green)' }} title="Marcar como pago"><CheckCircle2 size={16} /></button>
+                  )}
+                  {s.status === 'CANCELED' ? (
+                    <button onClick={() => setToggleTarget(s)} className="p-2 rounded-lg hover:bg-[oklch(0.55_0.14_144_/_0.1)]" style={{ color: 'var(--color-frutificar-green)' }} title="Reativar"><RotateCcw size={16} /></button>
+                  ) : (
+                    <button onClick={() => setToggleTarget(s)} className="p-2 rounded-lg hover:bg-[oklch(0.6_0.18_25_/_0.08)]" style={{ color: 'oklch(0.6 0.18 25)' }} title="Cancelar"><Ban size={16} /></button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {visibleSubs.length === 0 && (
+            <div className="px-5 py-10 text-center text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>
+              Nenhuma assinatura neste filtro.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ═══════════ MODAIS ═══════════ */}
