@@ -33,6 +33,15 @@ export async function listOpenServiceRequests() {
   })
 }
 
+export async function listAllServiceRequests() {
+  return prisma.serviceRequest.findMany({
+    include: {
+      user: { select: { name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
 export async function setServiceStatus(
   id: string,
   status: ServiceStatus,

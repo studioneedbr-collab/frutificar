@@ -102,9 +102,26 @@ export async function acceptServiceRequest(id: string): Promise<ActionResult> {
   try {
     await adminRepository.setServiceStatus(id, ServiceStatus.IN_PROGRESS)
     revalidatePath('/admin')
+    revalidatePath('/admin/solicitacoes')
     return { ok: true, data: undefined }
   } catch {
     return { ok: false, error: 'Erro ao aceitar solicitação.' }
+  }
+}
+
+export async function completeServiceRequest(id: string): Promise<ActionResult> {
+  const session = await auth()
+  if (!session || session.user.role !== 'ADMIN') {
+    return { ok: false, error: 'Acesso negado.' }
+  }
+
+  try {
+    await adminRepository.setServiceStatus(id, ServiceStatus.COMPLETED)
+    revalidatePath('/admin')
+    revalidatePath('/admin/solicitacoes')
+    return { ok: true, data: undefined }
+  } catch {
+    return { ok: false, error: 'Erro ao concluir solicitação.' }
   }
 }
 
@@ -117,6 +134,7 @@ export async function rejectServiceRequest(id: string): Promise<ActionResult> {
   try {
     await adminRepository.setServiceStatus(id, ServiceStatus.CANCELED)
     revalidatePath('/admin')
+    revalidatePath('/admin/solicitacoes')
     return { ok: true, data: undefined }
   } catch {
     return { ok: false, error: 'Erro ao recusar solicitação.' }

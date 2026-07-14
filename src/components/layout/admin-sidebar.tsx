@@ -7,7 +7,7 @@ import { FrutificarLogo } from '@/components/shared/logo'
 import {
   LayoutDashboard, Users, CreditCard, BookOpen, Video,
   Mic2, Download, Calendar, Wrench, Sun, FileText,
-  Settings, ChevronRight,
+  Settings, ChevronRight, Inbox,
 } from 'lucide-react'
 
 const navGroups = [
@@ -36,6 +36,7 @@ const navGroups = [
   {
     label: 'Operação',
     items: [
+      { href: '/admin/solicitacoes',  label: 'Solicitações',    icon: Inbox },
       { href: '/admin/agendamentos',  label: 'Agendamentos',    icon: Calendar },
       { href: '/admin/servicos',      label: 'Serviços',        icon: Wrench },
       { href: '/admin/dias-de-campo', label: 'Dias de Campo',   icon: Sun },
