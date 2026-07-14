@@ -191,6 +191,8 @@ export function AssinaturasView({
             </div>
           </div>
         </div>
+       <div className="overflow-x-auto">
+        <div className="min-w-[820px]">
         <div className="grid gap-4 px-5 py-3 text-[11px] font-bold tracking-wide uppercase"
           style={{ color: 'oklch(0.6 0.03 144)', borderBottom: '1px solid oklch(0.95 0.005 144)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.4fr' }}>
           <span>Assinante</span><span>Plano</span><span>Valor</span><span>Status</span><span>Renovação</span><span className="text-right">Ações</span>
@@ -254,6 +256,8 @@ export function AssinaturasView({
             </div>
           )}
         </div>
+        </div>
+       </div>
       </div>
 
       {/* ═══════════ MODAIS ═══════════ */}

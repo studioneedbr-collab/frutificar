@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { AdminSidebar } from '@/components/layout/admin-sidebar'
+import { AdminSidebar, AdminMobileTrigger } from '@/components/layout/admin-sidebar'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 
@@ -17,17 +17,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminSidebar />
 
       {/* Conteúdo principal */}
-      <div className="flex flex-col flex-1 overflow-hidden md:ml-56">
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0 md:ml-56">
         <header
-          className="flex items-center justify-between px-6 py-3 border-b flex-shrink-0"
+          className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b flex-shrink-0"
           style={{ borderColor: 'oklch(0.92 0.01 144)', background: 'white' }}
         >
-          <p
-            className="text-sm font-semibold"
-            style={{ color: 'oklch(0.45 0.05 144)' }}
-          >
-            Painel Administrativo
-          </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <AdminMobileTrigger />
+            <p
+              className="text-sm font-semibold truncate"
+              style={{ color: 'oklch(0.45 0.05 144)' }}
+            >
+              Painel Administrativo
+            </p>
+          </div>
           {PREVIEW_MODE && (
             <span
               className="text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -42,7 +45,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           )}
         </header>
         <main
-          className="flex-1 overflow-y-auto p-6"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6"
           style={{ background: 'oklch(0.975 0.005 144)' }}
         >
           {children}

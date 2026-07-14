@@ -284,6 +284,8 @@ export function UsuariosView({
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'white', border: '1px solid oklch(0.91 0.01 144)' }}>
+       <div className="overflow-x-auto">
+        <div className="min-w-[820px]">
         <div className="grid gap-4 px-5 py-3 text-[11px] font-bold tracking-wide uppercase"
           style={{ color: 'oklch(0.6 0.03 144)', borderBottom: '1px solid oklch(0.93 0.005 144)', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto' }}>
           <span>Usuário</span><span>Plano</span><span>Status</span><span>Função</span><span>Cadastro</span><span />
@@ -339,6 +341,8 @@ export function UsuariosView({
             </div>
           )}
         </div>
+        </div>
+       </div>
         <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: 'oklch(0.93 0.005 144)' }}>
           <span className="text-xs" style={{ color: 'oklch(0.58 0.03 144)' }}>Mostrando {visibleUsers.length} de {users.length} usuários</span>
           <div className="flex items-center gap-1">

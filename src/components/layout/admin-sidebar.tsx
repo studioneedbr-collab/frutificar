@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { FrutificarLogo } from '@/components/shared/logo'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
   LayoutDashboard, Users, CreditCard, BookOpen, Video,
   Mic2, Download, Calendar, Wrench, Sun, FileText,
-  Settings, ChevronRight, Inbox,
+  Settings, ChevronRight, Inbox, Menu,
 } from 'lucide-react'
 
 const navGroups = [
@@ -51,14 +53,11 @@ const navGroups = [
   },
 ]
 
-export function AdminSidebar() {
+function AdminSidebarInner({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <aside
-      className="hidden md:flex flex-col w-56 h-screen fixed left-0 top-0 bottom-0 z-30"
-      style={{ background: 'var(--color-frutificar-night)', borderRight: '1px solid oklch(1 0 0 / 0.06)' }}
-    >
+    <div className="flex flex-col h-full w-56" style={{ background: 'var(--color-frutificar-night)' }}>
       {/* Logo */}
       <div className="px-4 py-4 border-b" style={{ borderColor: 'oklch(1 0 0 / 0.07)' }}>
         <FrutificarLogo white size={20} />
@@ -91,6 +90,7 @@ export function AdminSidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={onNavigate}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all',
@@ -127,12 +127,45 @@ export function AdminSidebar() {
       <div className="px-2 py-3 border-t" style={{ borderColor: 'oklch(1 0 0 / 0.07)' }}>
         <Link
           href="/dashboard"
+          onClick={onNavigate}
           className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] font-medium transition-all text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
         >
           <ChevronRight size={12} className="rotate-180" />
           Voltar ao app
         </Link>
       </div>
+    </div>
+  )
+}
+
+export function AdminSidebar() {
+  return (
+    <aside
+      className="hidden md:flex flex-col h-screen fixed left-0 top-0 bottom-0 z-30"
+      style={{ borderRight: '1px solid oklch(1 0 0 / 0.06)' }}
+    >
+      <AdminSidebarInner />
     </aside>
+  )
+}
+
+export function AdminMobileTrigger() {
+  const [open, setOpen] = useState(false)
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        render={
+          <button
+            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent"
+            aria-label="Abrir menu"
+          />
+        }
+      >
+        <Menu className="h-5 w-5" />
+      </SheetTrigger>
+      <SheetContent side="left" className="p-0 w-56 border-0" style={{ background: 'var(--color-frutificar-night)' }}>
+        <AdminSidebarInner onNavigate={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
   )
 }
