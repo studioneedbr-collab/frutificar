@@ -25,7 +25,7 @@ const navGroups = [
     items: [
       { href: '/cursos',     label: 'Cursos',     icon: BookOpen,        plan: 'ESSENCIAL' as PlanName },
       { href: '/minicursos', label: 'Minicursos', icon: GraduationCap,   plan: 'PREMIUM' as PlanName },
-      { href: '/lives',    label: 'Lives',     icon: Radio,           plan: 'ESSENCIAL' as PlanName },
+      { href: '/lives',    label: 'Lives',     icon: Radio,           plan: 'PREMIUM' as PlanName },
       { href: '/podcasts', label: 'Podcasts',  icon: Mic2,            plan: 'ESSENCIAL' as PlanName },
       { href: '/chat',     label: 'Chat IA',   icon: MessageCircle,   plan: 'PREMIUM' as PlanName },
     ],
@@ -33,16 +33,16 @@ const navGroups = [
   {
     label: 'Ferramentas',
     items: [
-      { href: '/diagnostico',   label: 'Diagnóstico',   icon: Leaf,     plan: 'PREMIUM' as PlanName },
-      { href: '/gestao',        label: 'Gestão',        icon: BarChart3, plan: 'PREMIUM' as PlanName },
-      { href: '/propriedades',  label: 'Propriedades',  icon: MapPin,   plan: null },
-      { href: '/dias-de-campo', label: 'Dias de Campo', icon: Sun,      plan: 'GOLD' as PlanName },
+      { href: '/diagnostico',   label: 'Diagnóstico',   icon: Leaf,      plan: 'PREMIUM' as PlanName },
+      { href: '/gestao',        label: 'Gestão',        icon: BarChart3, plan: 'ESSENCIAL' as PlanName },
+      { href: '/propriedades',  label: 'Propriedades',  icon: MapPin,    plan: null },
+      { href: '/dias-de-campo', label: 'Dias de Campo', icon: Sun,       plan: 'GOLD' as PlanName },
     ],
   },
   {
     label: 'Suporte',
     items: [
-      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: null },
+      { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: 'GOLD' as PlanName },
       { href: '/tutoring',     label: 'Tutoria',      icon: GraduationCap, plan: 'GOLD' as PlanName },
       { href: '/servicos',     label: 'Serviços',     icon: Wrench,        plan: null },
       { href: '/perfil',       label: 'Perfil',       icon: User,          plan: null },

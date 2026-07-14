@@ -6,10 +6,14 @@ export const PLAN_HIERARCHY: Record<PlanName, number> = {
   GOLD: 3,
 }
 
+// Alinhado ao que cada plano anuncia em /planos (features do banco):
+//  Essencial → cursos, podcasts, gestão (e serviços/suporte)
+//  Premium   → + chat IA, diagnóstico, minicursos, lives, materiais
+//  Gold      → + visita técnica/agendamento, dias de campo, tutoria
 export const PLAN_FEATURES = {
-  ESSENCIAL: ['courses', 'chat', 'diagnostic'] as const,
-  PREMIUM: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams'] as const,
-  GOLD: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams', 'field_days', 'tutoring'] as const,
+  ESSENCIAL: ['courses', 'podcasts', 'management', 'services'] as const,
+  PREMIUM: ['courses', 'podcasts', 'management', 'services', 'chat', 'diagnostic', 'minicourses', 'live_streams'] as const,
+  GOLD: ['courses', 'podcasts', 'management', 'services', 'chat', 'diagnostic', 'minicourses', 'live_streams', 'visits', 'field_days', 'tutoring'] as const,
 } as const satisfies Record<PlanName, readonly string[]>
 
 export type Feature = typeof PLAN_FEATURES[PlanName][number]
