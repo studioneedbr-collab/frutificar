@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, BookOpen, MessageCircle, Radio,
   Leaf, Mic2, Calendar, Wrench, BarChart3, MapPin, Sun, User, Menu,
-  GraduationCap,
+  GraduationCap, Sprout,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { FrutificarLogo } from '@/components/shared/logo'
@@ -37,6 +37,7 @@ const navGroups = [
       { href: '/gestao',        label: 'Gestão',        icon: BarChart3, plan: 'PREMIUM' as PlanName },
       { href: '/propriedades',  label: 'Propriedades',  icon: MapPin,    plan: null },
       { href: '/dias-de-campo', label: 'Dias de Campo', icon: Sun,       plan: 'GOLD' as PlanName },
+      { href: '/estagio',       label: 'Estágio',       icon: Sprout,    plan: 'GOLD' as PlanName },
     ],
   },
   {

@@ -13,7 +13,7 @@ export const PLAN_HIERARCHY: Record<PlanName, number> = {
 export const PLAN_FEATURES = {
   ESSENCIAL: ['courses', 'chat', 'diagnostic'] as const,
   PREMIUM: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams'] as const,
-  GOLD: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams', 'field_days', 'tutoring'] as const,
+  GOLD: ['courses', 'chat', 'diagnostic', 'minicourses', 'visits', 'management', 'services', 'podcasts', 'live_streams', 'field_days', 'tutoring', 'internship'] as const,
 } as const satisfies Record<PlanName, readonly string[]>
 
 export type Feature = typeof PLAN_FEATURES[PlanName][number]
@@ -31,6 +31,7 @@ export const ROUTE_FEATURE_MAP: Record<string, Feature> = {
   '/lives': 'live_streams',
   '/dias-de-campo': 'field_days',
   '/tutoring': 'tutoring',
+  '/estagio': 'internship',
 }
 
 export const ROUTES = {
