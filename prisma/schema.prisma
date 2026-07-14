@@ -420,6 +420,26 @@ model Property {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plots           Plot[]
   technicalVisits TechnicalVisit[]
+  documents       PropertyDocument[]
+}
+
+// Gestão da propriedade: licenças ambientais, documentos e histórico (spec Premium).
+model PropertyDocument {
+  id          String    @id @default(cuid())
+  propertyId  String
+  type        String    // LICENCA | DOCUMENTO | HISTORICO
+  title       String
+  description String?
+  fileUrl     String?
+  issuer      String?   // órgão emissor (licenças)
+  issuedAt    DateTime? // data de emissão / do evento (histórico)
+  expiresAt   DateTime? // validade (licenças)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, type])
 }
 
 model Plot {

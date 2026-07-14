@@ -1,18 +1,37 @@
-// Tipos + mock da central de downloads da Gestão (planilhas e materiais).
-// A página server lê DownloadableResource (o que o admin cadastra em Materiais).
+// Tipos + mock da Gestão da Propriedade (licenças ambientais, documentos e histórico).
+// A página server lê PropertyDocument por propriedade do aluno.
 
-export type Download = {
+export type DocType = 'LICENCA' | 'DOCUMENTO' | 'HISTORICO'
+
+export type PropDoc = {
   id: string
+  type: DocType
   title: string
-  description: string
-  category: string
-  plan: string
-  url: string
+  description: string | null
+  fileUrl: string | null
+  issuer: string | null
+  issuedAt: string | null   // ISO
+  expiresAt: string | null  // ISO
+  createdAt: string         // ISO
 }
 
-export const mockDownloads: Download[] = [
-  { id: '1', title: 'Planilha de Fluxo de Caixa Agrícola', description: 'Controle de entradas e saídas da safra, com resumo mensal automático.', category: 'SPREADSHEET', plan: 'PREMIUM', url: '' },
-  { id: '2', title: 'Modelo de Contrato de Parceria Rural', description: 'Documento base para formalizar parcerias de produção.', category: 'DOC', plan: 'PREMIUM', url: '' },
-  { id: '3', title: 'Guia de Custos de Produção por Hectare', description: 'Referência de custos para planejar a lavoura de café.', category: 'PDF', plan: 'GOLD', url: '' },
-  { id: '4', title: 'Planilha de Controle de Estoque de Insumos', description: 'Acompanhe fertilizantes, defensivos e demais insumos.', category: 'SPREADSHEET', plan: 'PREMIUM', url: '' },
+export type GestaoProperty = {
+  id: string
+  name: string
+  location: string
+  docs: PropDoc[]
+}
+
+export const mockProperties: GestaoProperty[] = [
+  {
+    id: 'mock-1',
+    name: 'Fazenda Santa Clara',
+    location: 'Patrocínio/MG',
+    docs: [
+      { id: 'd1', type: 'LICENCA', title: 'Licença de Operação (LO)', description: 'Emitida pelo órgão ambiental estadual.', fileUrl: null, issuer: 'SEMAD/MG', issuedAt: '2024-03-10', expiresAt: '2026-03-10', createdAt: '2024-03-10' },
+      { id: 'd2', type: 'LICENCA', title: 'Outorga de uso da água', description: null, fileUrl: null, issuer: 'IGAM', issuedAt: '2023-08-01', expiresAt: '2025-08-01', createdAt: '2023-08-01' },
+      { id: 'd3', type: 'DOCUMENTO', title: 'CAR — Cadastro Ambiental Rural', description: 'Comprovante de inscrição.', fileUrl: null, issuer: null, issuedAt: null, expiresAt: null, createdAt: '2024-01-15' },
+      { id: 'd4', type: 'HISTORICO', title: 'Renovação da adubação de cobertura', description: 'Aplicação de NPK 20-05-20 em todos os talhões.', fileUrl: null, issuer: null, issuedAt: '2026-05-20', expiresAt: null, createdAt: '2026-05-20' },
+    ],
+  },
 ]

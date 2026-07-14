@@ -1,39 +1,44 @@
-// Server Component: central de downloads da Gestão. Lê DownloadableResource (o que o
-// admin publica em Materiais) e mostra o que o plano do aluno permite baixar.
+// Server Component: Gestão da Propriedade (licenças, documentos, histórico).
+// Lê PropertyDocument por propriedade do aluno; em preview usa mock.
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
-import { PLAN_HIERARCHY } from '@/lib/constants'
-import { listResources } from '@/server/repositories/materials.repository'
-import type { PlanName } from '@prisma/client'
-import { mockDownloads, type Download } from './data'
+import { listPropertiesWithDocuments } from '@/server/repositories/properties.repository'
+import { mockProperties, type GestaoProperty, type DocType } from './data'
 import { GestaoView } from './gestao-view'
+
+const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null)
 
 export default async function GestaoPage() {
   if (PREVIEW_MODE) {
-    return <GestaoView downloads={mockDownloads} />
+    return <GestaoView properties={mockProperties} preview />
   }
 
   try {
     const session = await auth()
-    const userPlan = (session?.user?.plan ?? 'ESSENCIAL') as PlanName
-    const userRank = PLAN_HIERARCHY[userPlan]
+    if (!session?.user?.id) return <GestaoView properties={mockProperties} preview />
 
-    const rows = await listResources()
-    const downloads: Download[] = rows
-      .filter((r) => PLAN_HIERARCHY[r.requiredPlan] <= userRank)
-      .map((r) => ({
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        category: r.category,
-        plan: r.requiredPlan,
-        url: r.fileUrl,
-      }))
+    const rows = await listPropertiesWithDocuments(session.user.id)
+    const properties: GestaoProperty[] = rows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      location: p.location ?? '—',
+      docs: p.documents.map((d) => ({
+        id: d.id,
+        type: d.type as DocType,
+        title: d.title,
+        description: d.description,
+        fileUrl: d.fileUrl,
+        issuer: d.issuer,
+        issuedAt: iso(d.issuedAt),
+        expiresAt: iso(d.expiresAt),
+        createdAt: d.createdAt.toISOString(),
+      })),
+    }))
 
-    return <GestaoView downloads={downloads} />
+    return <GestaoView properties={properties} preview={false} />
   } catch {
-    return <GestaoView downloads={mockDownloads} />
+    return <GestaoView properties={mockProperties} preview />
   }
 }
