@@ -423,6 +423,19 @@ model Property {
   documents       PropertyDocument[]
 }
 
+// Catálogo de serviços oferecidos (gerenciado em /admin/servicos).
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  type        String   @default("AVULSO") // INCLUDED | AVULSO
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // Configurações globais da plataforma (chave-valor), editáveis no /admin/configuracoes.
 model AppSetting {
   key       String   @id
