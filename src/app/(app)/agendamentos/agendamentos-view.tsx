@@ -18,7 +18,7 @@ import {
 import type { Appointment, HistoryItem } from './data'
 
 const services = [
-  { icon: Leaf, title: 'Visita Técnica', desc: 'Agrônomo na sua lavoura com relatório digital.' },
+  { icon: Leaf, title: 'Visita Técnica', desc: 'Técnico na sua lavoura com relatório digital.' },
   { icon: Microscope, title: 'Diagnóstico de Solo', desc: 'Coleta de amostras e análise laboratorial.' },
   { icon: User, title: 'Consultoria Agronômica', desc: 'Plano de manejo personalizado por safra.' },
 ]
@@ -202,7 +202,7 @@ export function AgendamentosView({
               1 visita técnica restante este mês
             </h2>
             <p className="text-sm max-w-xl" style={{ color: 'oklch(1 0 0 / 0.6)', lineHeight: 1.6 }}>
-              Agende um agrônomo na sua propriedade — relatório digital em até <strong style={{ color: 'white' }}>48h</strong>.
+              Agende um técnico na sua propriedade — relatório digital em até <strong style={{ color: 'white' }}>48h</strong>.
             </p>
           </div>
           <button
@@ -498,7 +498,7 @@ export function AgendamentosView({
                 <span className="text-sm font-bold text-right" style={{ color: 'var(--color-frutificar-deep)' }}>{detailTarget.title}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'oklch(0.55 0.04 144)' }}><User size={12} /> Agrônomo</span>
+                <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'oklch(0.55 0.04 144)' }}><User size={12} /> Técnico</span>
                 <span className="text-sm font-medium text-right" style={{ color: 'var(--color-frutificar-deep)' }}>{detailTarget.agro}</span>
               </div>
               <div className="flex items-center justify-between gap-3">

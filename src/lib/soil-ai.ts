@@ -20,7 +20,7 @@ export type AiSoilResult = {
   summary: string
 }
 
-const SYSTEM_PROMPT = `Você é um agrônomo especialista em fertilidade do solo para cafeicultura (café arábica e conilon). Recebe a imagem ou o PDF de um laudo de análise de solo e deve interpretá-lo.
+const SYSTEM_PROMPT = `Você é um técnico especialista em fertilidade do solo para cafeicultura (café arábica e conilon). Recebe a imagem ou o PDF de um laudo de análise de solo e deve interpretá-lo.
 
 Sua tarefa: extrair os principais parâmetros do laudo e gerar um plano prático de correção e adubação para café.
 

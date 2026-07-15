@@ -243,7 +243,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
               </div>
               <h3 className="text-white font-bold text-base mb-1" style={{ fontFamily: 'var(--font-heading)' }}>2 visitas técnicas este mês</h3>
               <p className="text-xs mb-4" style={{ color: 'oklch(1 0 0 / 0.55)', lineHeight: 1.6 }}>
-                Você ainda tem <strong style={{ color: 'white' }}>1 visita</strong> disponível. Agende um agrônomo na sua propriedade.
+                Você ainda tem <strong style={{ color: 'white' }}>1 visita</strong> disponível. Agende um técnico na sua propriedade.
               </p>
               <Link
                 href="/agendamentos"

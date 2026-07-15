@@ -385,7 +385,7 @@ export function LivesView({
               />
             </div>
             <div>
-              <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Agrônomo</label>
+              <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Técnico</label>
               <input
                 value={createForm.agronomist}
                 onChange={(e) => setCreateForm((f) => ({ ...f, agronomist: e.target.value }))}
@@ -479,7 +479,7 @@ export function LivesView({
                 />
               </div>
               <div>
-                <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Agrônomo</label>
+                <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Técnico</label>
                 <input
                   value={editForm.agronomist}
                   onChange={(e) => setEditForm((f) => ({ ...f, agronomist: e.target.value }))}

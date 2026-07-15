@@ -17,7 +17,7 @@ const inclusos = [
     icon: Leaf,
     title: 'Visita Técnica',
     badge: '2/mês inclusas',
-    desc: 'Um agrônomo na sua propriedade para avaliação de campo, manejo e recomendações práticas na lavoura.',
+    desc: 'Um técnico na sua propriedade para avaliação de campo, manejo e recomendações práticas na lavoura.',
     bullets: ['Agendamento em até 48h', 'Relatório fotográfico da visita', 'Sem custo adicional no Gold'],
   },
   {
@@ -31,7 +31,7 @@ const inclusos = [
     icon: FileText,
     title: 'Laudo Técnico',
     badge: '1/mês',
-    desc: 'Documento assinado por agrônomo responsável, válido para crédito rural, certificações e seguros.',
+    desc: 'Documento assinado por técnico responsável, válido para crédito rural, certificações e seguros.',
     bullets: ['Assinatura de profissional CREA', 'Pronto para banco e seguradora', 'Entrega digital em PDF'],
   },
 ]
@@ -128,14 +128,14 @@ export function ServicosView({ preview }: { preview: boolean }) {
 
     if (preview) {
       setContactOpen(false)
-      toast.success('Mensagem enviada', { description: 'Um agrônomo responde em até 24h.' })
+      toast.success('Mensagem enviada', { description: 'Um técnico responde em até 24h.' })
       return
     }
 
     setSaving(true)
     const res = await requestService({
-      serviceType: assunto || 'Contato com agrônomo',
-      description: mensagem || assunto || 'Contato com agrônomo',
+      serviceType: assunto || 'Contato com técnico',
+      description: mensagem || assunto || 'Contato com técnico',
     })
     setSaving(false)
     if (!res.ok) {
@@ -143,7 +143,7 @@ export function ServicosView({ preview }: { preview: boolean }) {
       return
     }
     setContactOpen(false)
-    toast.success('Mensagem enviada', { description: 'Um agrônomo responde em até 24h.' })
+    toast.success('Mensagem enviada', { description: 'Um técnico responde em até 24h.' })
   }
 
   return (
@@ -307,7 +307,7 @@ export function ServicosView({ preview }: { preview: boolean }) {
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm shrink-0 transition-all hover:scale-[1.03] active:scale-[0.98]"
             style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.4)' }}
           >
-            <Users size={16} /> Falar com um agrônomo
+            <Users size={16} /> Falar com um técnico
           </button>
         </div>
       </section>
@@ -371,7 +371,7 @@ export function ServicosView({ preview }: { preview: boolean }) {
               <textarea
                 name="observacoes"
                 rows={3}
-                placeholder="Conte detalhes que ajudem o agrônomo a se preparar…"
+                placeholder="Conte detalhes que ajudem o técnico a se preparar…"
                 className="w-full rounded-lg px-3 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[oklch(0.48_0.13_144_/_0.3)]"
                 style={inputStyle}
               />
@@ -393,12 +393,12 @@ export function ServicosView({ preview }: { preview: boolean }) {
         </DialogContent>
       </Dialog>
 
-      {/* Falar com um agrônomo */}
+      {/* Falar com um técnico */}
       <Dialog open={contactOpen} onOpenChange={setContactOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>
-              <Users size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Falar com um agrônomo
+              <Users size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Falar com um técnico
             </DialogTitle>
             <DialogDescription>Conte o que você precisa e nosso time responde em até 24h.</DialogDescription>
           </DialogHeader>

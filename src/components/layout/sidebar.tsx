@@ -46,6 +46,7 @@ const navGroups = [
       { href: '/agendamentos', label: 'Agendamentos', icon: Calendar,      plan: 'PREMIUM' as PlanName },
       { href: '/tutoring',     label: 'Tutoria',      icon: GraduationCap, plan: 'GOLD' as PlanName },
       { href: '/servicos',     label: 'Serviços',     icon: Wrench,        plan: 'PREMIUM' as PlanName },
+      { href: '/feedback',     label: 'Feedback',     icon: MessageCircle, plan: null },
       { href: '/perfil',       label: 'Perfil',       icon: User,          plan: null },
     ],
   },

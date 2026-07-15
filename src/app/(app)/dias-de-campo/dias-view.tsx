@@ -54,7 +54,7 @@ export function DiasView({ data }: { data: FieldDaysData }) {
           </span>
         </h1>
         <p className="mt-1.5 text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>
-          Encontros presenciais com agrônomos, demonstrações e networking no campo.
+          Encontros presenciais com técnicos, demonstrações e networking no campo.
         </p>
       </header>
 

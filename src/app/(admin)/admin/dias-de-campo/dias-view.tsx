@@ -365,7 +365,7 @@ export function DiasDeCampoView({
                 />
               </div>
               <div>
-                <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Agrônomos</label>
+                <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Técnicos</label>
                 <input
                   value={createDraft.instructor}
                   onChange={(e) => setCreateDraft((d) => ({ ...d, instructor: e.target.value }))}
@@ -452,7 +452,7 @@ export function DiasDeCampoView({
                   />
                 </div>
                 <div>
-                  <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Agrônomos</label>
+                  <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Técnicos</label>
                   <input
                     value={editDraft.instructor}
                     onChange={(e) => setEditDraft((d) => ({ ...d, instructor: e.target.value }))}

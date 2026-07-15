@@ -60,7 +60,7 @@ export function LivesView({ data }: { data: LivesData }) {
           Lives
         </h1>
         <p className="text-sm mt-1.5" style={{ color: 'oklch(0.52 0.04 144)' }}>
-          Aulas e tira-dúvidas ao vivo com agrônomos toda semana.
+          Aulas e tira-dúvidas ao vivo com técnicos toda semana.
         </p>
       </header>
 

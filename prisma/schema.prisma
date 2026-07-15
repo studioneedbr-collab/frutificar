@@ -423,6 +423,19 @@ model Property {
   documents       PropertyDocument[]
 }
 
+// Feedback dos alunos sobre a plataforma (cai no /admin/feedbacks).
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String
+  userEmail String
+  rating    Int? // 1 a 5 estrelas (opcional)
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // Catálogo de serviços oferecidos (gerenciado em /admin/servicos).
 model Service {
   id          String   @id @default(cuid())

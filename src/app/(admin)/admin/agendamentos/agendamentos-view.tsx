@@ -58,7 +58,7 @@ export function AgendamentosView({
   // Cancelar/Recusar
   const [cancelTarget, setCancelTarget] = useState<Visit | null>(null)
 
-  // Atribuir agrônomo
+  // Atribuir técnico
   const [assignTarget, setAssignTarget] = useState<Visit | null>(null)
   const [assignAgro, setAssignAgro] = useState<string>('')
   const [assignDate, setAssignDate] = useState<string>('')
@@ -123,7 +123,7 @@ export function AgendamentosView({
     setVisits((cur) =>
       cur.map((v) => (v.id === target.id ? { ...v, agronomist: assignAgro, date: newDate, status: 'CONFIRMED' } : v)),
     )
-    toast.success('Agrônomo atribuído', { description: `${assignAgro} · ${target.user}` })
+    toast.success('Técnico atribuído', { description: `${assignAgro} · ${target.user}` })
     setAssignTarget(null)
     if (!preview) {
       const res = await assignVisitAction(target.id, { agronomist: assignAgro, date: assignDate || undefined })
@@ -209,7 +209,7 @@ export function AgendamentosView({
                   )}
                   {(v.status === 'REQUESTED' || v.status === 'CONFIRMED') && (
                     <>
-                      <button onClick={() => openAssign(v)} title="Atribuir agrônomo"
+                      <button onClick={() => openAssign(v)} title="Atribuir técnico"
                         className={`${iconBtnBase} hover:bg-gray-100`} style={{ color: 'oklch(0.6 0.02 144)' }}>
                         <UserCog size={14} />
                       </button>
@@ -263,24 +263,24 @@ export function AgendamentosView({
         </DialogContent>
       </Dialog>
 
-      {/* Atribuir agrônomo */}
+      {/* Atribuir técnico */}
       <Dialog open={assignTarget !== null} onOpenChange={(o) => !o && setAssignTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>
-              <UserCog size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Atribuir agrônomo
+              <UserCog size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Atribuir técnico
             </DialogTitle>
             <DialogDescription>{assignTarget?.user} · {assignTarget?.property}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAssign} className="space-y-3.5">
             <div>
-              <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Agrônomo</label>
+              <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Técnico</label>
               <SelectField
                 id="assign-agro"
                 value={assignAgro}
                 onValueChange={setAssignAgro}
                 options={agronomistOptions}
-                placeholder="Selecione o agrônomo"
+                placeholder="Selecione o técnico"
               />
             </div>
             <div>

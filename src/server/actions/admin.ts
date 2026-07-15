@@ -58,7 +58,7 @@ export async function completeVisit(id: string): Promise<ActionResult> {
 }
 
 const assignVisitSchema = z.object({
-  agronomist: z.string().min(2, 'Selecione um agrônomo.'),
+  agronomist: z.string().min(2, 'Selecione um técnico.'),
   date: z.string().optional(), // ISO yyyy-mm-dd; vazio = mantém a data atual
 })
 
@@ -81,13 +81,13 @@ export async function assignVisitAction(
       agronomist: parsed.data.agronomist,
       requestedDate: parsed.data.date ? new Date(parsed.data.date) : undefined,
     })
-    // Atribuir um agrônomo confirma a visita, se ainda estava só solicitada.
+    // Atribuir um técnico confirma a visita, se ainda estava só solicitada.
     await adminRepository.setVisitStatus(id, VisitStatus.CONFIRMED)
     revalidatePath('/admin')
     revalidatePath('/agendamentos')
     return { ok: true, data: undefined }
   } catch {
-    return { ok: false, error: 'Erro ao atribuir agrônomo.' }
+    return { ok: false, error: 'Erro ao atribuir técnico.' }
   }
 }
 

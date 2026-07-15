@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
   LayoutDashboard, Users, CreditCard, BookOpen, Video,
   Mic2, Download, Calendar, Wrench, Sun, FileText,
-  Settings, ChevronRight, Inbox, Menu,
+  Settings, ChevronRight, Inbox, Menu, MessageSquare,
 } from 'lucide-react'
 
 const navGroups = [
@@ -39,6 +39,7 @@ const navGroups = [
     label: 'Operação',
     items: [
       { href: '/admin/solicitacoes',  label: 'Solicitações',    icon: Inbox },
+      { href: '/admin/feedbacks',     label: 'Feedbacks',       icon: MessageSquare },
       { href: '/admin/agendamentos',  label: 'Agendamentos',    icon: Calendar },
       { href: '/admin/servicos',      label: 'Serviços',        icon: Wrench },
       { href: '/admin/dias-de-campo', label: 'Dias de Campo',   icon: Sun },

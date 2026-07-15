@@ -1,6 +1,6 @@
 // Tipos + mock das lives (área do aluno). A página server mapeia listLives() real.
 // O schema Live tem: title, youtubeVideoId, scheduledAt, status, requiredPlan.
-// Campos como agrônomo/tema/duração/views não existem no banco → ficam vazios em modo real.
+// Campos como técnico/tema/duração/views não existem no banco → ficam vazios em modo real.
 
 export type Featured = {
   title: string
