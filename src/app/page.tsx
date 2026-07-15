@@ -761,12 +761,12 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5 items-start">
+          <div className="grid md:grid-cols-3 gap-5 items-stretch">
             {plans.map((p, idx) => (
               <div
                 key={p.name}
                 data-reveal
-                className="lift rounded-2xl p-7 relative"
+                className="lift rounded-2xl p-7 relative flex flex-col"
                 style={{
                   transitionDelay: `${idx * 100}ms`,
                   ...(p.highlight
@@ -809,7 +809,7 @@ export default function LandingPage() {
                 <div className="flex items-end gap-1 mb-6">
                   <span
                     className="text-4xl font-bold"
-                    style={{ color: p.highlight ? 'white' : 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}
+                    style={{ color: p.highlight ? 'white' : 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)', fontVariantNumeric: 'tabular-nums' }}
                   >
                     {p.price}
                   </span>
@@ -819,17 +819,17 @@ export default function LandingPage() {
                 </div>
 
                 <ul className="space-y-2.5 mb-7">
-                  {p.items.map(item => (
+                  {p.items.map((item, i) => (
                     <li key={item} className="flex items-center gap-2.5 text-sm">
                       <CheckCircle2 size={14} style={{ color: p.highlight ? 'oklch(0.78 0.14 75)' : 'var(--color-frutificar-green)', flexShrink: 0 }} />
-                      <span style={{ color: p.highlight ? 'oklch(1 0 0 / 0.75)' : 'oklch(0.42 0.04 144)' }}>{item}</span>
+                      <span style={{ color: p.highlight ? 'oklch(1 0 0 / 0.75)' : 'oklch(0.42 0.04 144)', fontWeight: i === 0 ? 600 : 400 }}>{item}</span>
                     </li>
                   ))}
                 </ul>
 
                 <ShineButton
                   href="/cadastro"
-                  className="block text-center py-3 rounded-xl font-bold text-sm w-full"
+                  className="mt-auto block text-center py-3 rounded-xl font-bold text-sm w-full"
                   style={p.highlight
                     ? { background: 'linear-gradient(130deg, oklch(0.55 0.14 75), oklch(0.62 0.12 55))', color: 'white' }
                     : { background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
