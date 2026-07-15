@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server'
 import { PLAN_FEATURES, ROUTE_FEATURE_MAP, type Feature } from '@/lib/constants'
 import type { PlanName } from '@prisma/client'
 
-// DEV PREVIEW — auth/plan-gating desligado enquanto não há banco.
-// Defina PREVIEW_MODE=false no ambiente (Vercel/Supabase) para ativar o controle real.
-const PREVIEW_MODE = process.env.PREVIEW_MODE !== 'false'
+// Real é o padrão: auth + plan-gating ligados. O modo demo (sem banco) é OPT-IN
+// via PREVIEW_MODE="true" — assim a produção nunca fica sem controle por engano.
+const PREVIEW_MODE = process.env.PREVIEW_MODE === 'true'
 
 // Inline pure helpers — no DB/Prisma dependency in middleware
 function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
