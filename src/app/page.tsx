@@ -12,59 +12,59 @@ import { FrutificarLogo } from '@/components/shared/logo'
 
 /* ── Animated ticker ── */
 const tickerItems = [
-  '✦ Cursos Especializados',
-  '✦ Chat IA Agrícola',
-  '✦ Lives ao Vivo',
-  '✦ Visitas Técnicas',
-  '✦ Gestão Rural',
-  '✦ Dias de Campo',
+  '✦ Cursos de Cafeicultura',
+  '✦ Chat IA Especialista em Café',
   '✦ Diagnóstico de Solo',
-  '✦ Laudos Técnicos',
-  '✦ Podcasts Exclusivos',
-  '✦ Suporte Agronômico',
+  '✦ Lives ao Vivo',
+  '✦ Gestão da Propriedade',
+  '✦ Dias de Campo',
+  '✦ Manejo de Pragas',
+  '✦ Suporte Técnico',
+  '✦ Podcasts do Agro',
+  '✦ Preço da Saca',
 ]
 
 /* ── Features ── */
 const features = [
   {
     icon: Video,
-    title: 'Cursos em Vídeo',
-    desc: 'Biblioteca com centenas de horas de conteúdo com especialistas em agronomia — culturas, manejo, pragas e muito mais.',
+    title: 'Cursos de Café',
+    desc: 'Curso em 8 módulos + minicursos: nutrição, pragas, clones e comercialização — com progresso por aula.',
     color: 'oklch(0.48 0.13 144)',
     bg: 'oklch(0.48 0.13 144 / 0.08)',
   },
   {
     icon: MessageSquare,
-    title: 'Chat IA Agrícola',
-    desc: 'Nossa IA treinada com dados do agro responde perguntas técnicas, sugere manejo e analisa imagens da sua lavoura.',
+    title: 'Chat IA Especialista',
+    desc: 'Tira dúvidas de manejo, pragas, irrigação e preço da saca — e analisa fotos da sua lavoura.',
     color: 'oklch(0.62 0.12 55)',
     bg: 'oklch(0.62 0.12 55 / 0.08)',
   },
   {
     icon: Microscope,
     title: 'Diagnóstico de Solo',
-    desc: 'Envie os dados da análise do seu solo e receba um plano completo de adubação e correção para cada talhão.',
+    desc: 'Envie a foto do laudo e receba, na hora, o plano de correção e adubação de cada talhão.',
     color: 'oklch(0.55 0.1 220)',
     bg: 'oklch(0.55 0.1 220 / 0.08)',
   },
   {
     icon: Headphones,
-    title: 'Podcasts & Lives',
-    desc: 'Conteúdo em áudio para ouvir na roça, no caminhão ou em casa. Lives exclusivas com técnicos ao vivo toda semana.',
+    title: 'Lives & Podcasts',
+    desc: 'Transmissões ao vivo com técnicos toda semana e podcasts para ouvir na roça.',
     color: 'oklch(0.55 0.12 290)',
     bg: 'oklch(0.55 0.12 290 / 0.08)',
   },
   {
     icon: CalendarCheck,
-    title: 'Visitas Técnicas',
-    desc: 'Agende um técnico para visitar sua propriedade. Relatório técnico digital entregue em até 48 horas.',
+    title: 'Suporte Técnico',
+    desc: 'Agende um técnico para visitar sua propriedade. Relatório digital em até 48 horas.',
     color: 'oklch(0.62 0.12 55)',
     bg: 'oklch(0.62 0.12 55 / 0.08)',
   },
   {
     icon: BarChart3,
     title: 'Gestão da Propriedade',
-    desc: 'Registre atividades, acompanhe custos, compare safras e tome decisões com base em dados reais do campo.',
+    desc: 'Licenças com alerta de validade, documentos e histórico da fazenda em um só lugar.',
     color: 'oklch(0.48 0.13 144)',
     bg: 'oklch(0.48 0.13 144 / 0.08)',
   },
@@ -529,18 +529,18 @@ export default function LandingPage() {
           }}
         >
           <Sprout size={12} />
-          PLATAFORMA PARA O AGRONEGÓCIO BRASILEIRO
+          EDUCAÇÃO &amp; GESTÃO PARA A CAFEICULTURA
         </div>
 
         {/* Headline */}
         <h1
-          className="hero-anim text-5xl md:text-7xl font-bold text-white leading-[1.05] max-w-4xl relative mb-6"
-          style={{ fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em', animationDelay: '0.15s' }}
+          className="hero-anim text-5xl md:text-7xl font-bold text-white leading-[1.04] max-w-4xl relative mb-6"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', animationDelay: '0.15s' }}
         >
-          O campo merece
+          Do plantio à xícara,
           <span
             className="block italic relative"
-            style={{ color: 'oklch(0.78 0.14 75)', fontFamily: 'var(--font-display)' }}
+            style={{ color: 'oklch(0.78 0.14 75)' }}
           >
             conhecimento de ponta.
           </span>
@@ -550,7 +550,7 @@ export default function LandingPage() {
           className="hero-anim text-lg md:text-xl max-w-2xl mx-auto mb-10 relative"
           style={{ color: 'oklch(1 0 0 / 0.62)', lineHeight: 1.7, animationDelay: '0.28s' }}
         >
-          Educação técnica, diagnóstico de solo com IA, visitas agronômicas e gestão rural — tudo em uma plataforma feita para o produtor que quer crescer.
+          Cursos, IA especialista em café, diagnóstico de solo e gestão da propriedade — tudo em um só lugar, em três planos que crescem com você.
         </p>
 
         {/* CTAs */}
@@ -609,8 +609,35 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── INTRO EDITORIAL (o que é) ── */}
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <p
+            data-reveal
+            className="text-2xl md:text-[1.9rem] leading-snug"
+            style={{ color: 'var(--color-frutificar-forest)', fontFamily: 'var(--font-display)' }}
+          >
+            Ensino e gestão em um só lugar, feitos para o dia a dia da lavoura de café.
+          </p>
+          <div data-reveal style={{ transitionDelay: '90ms' }}>
+            <p className="text-base md:text-[17px] mb-6" style={{ color: 'oklch(0.38 0.04 144)', lineHeight: 1.7 }}>
+              Une <strong style={{ color: 'var(--color-frutificar-deep)' }}>capacitação técnica</strong> e{' '}
+              <strong style={{ color: 'var(--color-frutificar-deep)' }}>ferramentas de gestão</strong> — do iniciante ao estudante de agronomia, cada plano entrega o nível certo de conteúdo e prática.
+            </p>
+            <ul className="space-y-2.5">
+              {['Aprende com cursos em vídeo e IA especialista', 'Envia o laudo e recebe o plano de adubação na hora', 'Organiza licenças, documentos e histórico da fazenda'].map((t) => (
+                <li key={t} className="flex items-start gap-2.5 text-[15px]" style={{ color: 'oklch(0.42 0.04 144)' }}>
+                  <CheckCircle2 size={16} style={{ color: 'var(--color-frutificar-green)', flexShrink: 0, marginTop: 2 }} />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ── RECURSOS ── */}
-      <section id="recursos" className="py-24 px-6">
+      <section id="recursos" className="pb-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16" data-reveal>
             <span className="text-xs font-bold tracking-widest mb-3 block" style={{ color: 'var(--color-earth)' }}>
@@ -618,10 +645,10 @@ export default function LandingPage() {
             </span>
             <h2
               className="text-4xl md:text-5xl font-bold mb-4"
-              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em' }}
+              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}
             >
-              Ferramentas que o campo
-              <span className="italic block" style={{ color: 'var(--color-frutificar-green)', fontFamily: 'var(--font-display)' }}>
+              Ferramentas que o café
+              <span className="italic block" style={{ color: 'var(--color-frutificar-green)' }}>
                 sempre precisou.
               </span>
             </h2>
@@ -672,7 +699,7 @@ export default function LandingPage() {
             <span className="text-xs font-bold tracking-widest mb-3 block" style={{ color: 'oklch(0.83 0.08 144)' }}>
               COMO FUNCIONA
             </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em' }}>
+            <h2 className="text-4xl md:text-5xl font-bold text-white" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
               Simples como deve ser.
             </h2>
           </div>
@@ -752,9 +779,9 @@ export default function LandingPage() {
             </span>
             <h2
               className="text-4xl md:text-5xl font-bold"
-              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em' }}
+              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}
             >
-              Invista no seu campo.
+              Invista no seu cafezal.
             </h2>
             <p className="mt-3 text-base" style={{ color: 'oklch(0.52 0.04 144)' }}>
               Cancele quando quiser. Sem fidelidade.
@@ -851,10 +878,10 @@ export default function LandingPage() {
             </span>
             <h2
               className="text-4xl md:text-5xl font-bold"
-              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em' }}
+              style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}
             >
               O campo já fala
-              <span className="italic" style={{ color: 'var(--color-frutificar-green)', fontFamily: 'var(--font-display)' }}> por si.</span>
+              <span className="italic" style={{ color: 'var(--color-frutificar-green)' }}> por si.</span>
             </h2>
           </div>
 
@@ -908,14 +935,14 @@ export default function LandingPage() {
           >
             <Wheat size={28} style={{ color: 'oklch(0.78 0.14 75)' }} />
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-heading)', letterSpacing: '-0.03em' }}>
-            Sua propriedade merece
-            <span className="italic block" style={{ color: 'oklch(0.78 0.14 75)', fontFamily: 'var(--font-display)' }}>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+            Seu cafezal merece
+            <span className="italic block" style={{ color: 'oklch(0.78 0.14 75)' }}>
               o melhor suporte.
             </span>
           </h2>
           <p className="text-base mb-10" style={{ color: 'oklch(1 0 0 / 0.55)', lineHeight: 1.7 }}>
-            Junte-se a 4.200 produtores rurais que já estão crescendo com o Frutificar Digital. Comece hoje, sem risco.
+            Junte-se a 4.200 cafeicultores que já estão crescendo com o Frutificar Digital. Comece hoje, sem risco.
           </p>
           <ShineButton
             href="/cadastro"
