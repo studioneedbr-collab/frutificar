@@ -24,6 +24,7 @@ enum PlanName {
 }
 
 enum SubscriptionStatus {
+  PENDING
   ACTIVE
   PAST_DUE
   CANCELED
@@ -86,6 +87,8 @@ model User {
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  cpfCnpj      String?
+  phone        String?
 
   subscription      Subscription?
   payments          Payment[]
@@ -167,7 +170,8 @@ model Subscription {
 }
 
 model Payment {
-  id             String        @id @default(cuid())
+  id               String        @id @default(cuid())
+  gatewayPaymentId String? @unique
   userId         String
   subscriptionId String?
   amount         Decimal       @db.Decimal(10, 2)
