@@ -34,6 +34,7 @@ export default auth((req) => {
     pathname === '/verificar-email' ||
     pathname.startsWith('/planos') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
 
