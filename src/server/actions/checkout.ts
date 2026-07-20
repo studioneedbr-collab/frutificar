@@ -41,7 +41,7 @@ export async function payWithCard(creditCardToken: string): Promise<ActionResult
   const sub = await currentSub()
   if (!sub?.gatewayCustomerId) return { ok: false, error: 'Assinatura não encontrada.' }
   try {
-    if (sub.gatewaySubscriptionId) await asaas.cancelSubscription(sub.gatewaySubscriptionId)
+    const oldSubId = sub.gatewaySubscriptionId
     const newSub = await asaas.createSubscription({
       customer: sub.gatewayCustomerId, billingType: 'CREDIT_CARD',
       value: Number(sub.plan.priceMonthly),
@@ -51,6 +51,9 @@ export async function payWithCard(creditCardToken: string): Promise<ActionResult
     await prisma.subscription.update({
       where: { id: sub.id }, data: { gatewaySubscriptionId: newSub.id },
     })
+    if (oldSubId && oldSubId !== newSub.id) {
+      await asaas.cancelSubscription(oldSubId).catch(() => {})
+    }
     return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: (e as Error).message }

@@ -25,7 +25,10 @@ export async function createPendingSubscription(params: {
 }
 
 export async function getSubscriptionByGatewaySub(gatewaySubscriptionId: string) {
-  return prisma.subscription.findFirst({ where: { gatewaySubscriptionId } })
+  return prisma.subscription.findFirst({
+    where: { gatewaySubscriptionId },
+    include: { plan: { select: { priceMonthly: true } } },
+  })
 }
 
 export async function recordPaymentAndActivate(params: {

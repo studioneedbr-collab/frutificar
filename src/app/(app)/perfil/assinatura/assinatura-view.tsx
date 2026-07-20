@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Crown, Sun, CheckCircle2, CreditCard, FileText, Download,
-  ArrowRight, Calendar, ShieldAlert, X, RotateCcw, AlertTriangle,
+  ArrowRight, Calendar, ShieldAlert, X, AlertTriangle, Headset,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { gerarRecibo } from '@/lib/reports'
-import { changePlan, reactivateSubscription } from '@/server/actions/subscription'
 import { cancelMySubscription } from '@/server/actions/checkout'
 
 // Status reais vindos do banco (enum SubscriptionStatus) + estado sintético "NONE" (sem assinatura).
@@ -80,7 +79,6 @@ const otherPlans = [
 
 type ToastKind = 'success' | 'info' | 'danger'
 type Toast = { id: number; title: string; desc?: string; kind: ToastKind }
-type ChangeTarget = { name: string; price: string; tag: string; tagColor: string }
 
 const inputStyle: React.CSSProperties = {
   border: '1px solid oklch(0.91 0.01 144)',
@@ -114,7 +112,6 @@ export function AssinaturaView({
 
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
-  const [changeTarget, setChangeTarget] = useState<ChangeTarget | null>(null)
 
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -163,45 +160,6 @@ export function AssinaturaView({
       router.refresh()
     } else {
       notify('Erro ao cancelar', res.error, 'danger')
-    }
-  }
-
-  async function handleReactivate() {
-    if (preview) {
-      setStatus('ACTIVE')
-      notify('Assinatura reativada', 'Sua renovação automática voltou a ficar ativa.')
-      return
-    }
-
-    const res = await reactivateSubscription()
-    if (res.ok) {
-      setStatus('ACTIVE')
-      notify('Assinatura reativada', 'Sua renovação automática voltou a ficar ativa.')
-      router.refresh()
-    } else {
-      notify('Erro ao reativar', res.error, 'danger')
-    }
-  }
-
-  async function handleChangePlan() {
-    if (!changeTarget) return
-    const target = changeTarget
-    const name = target.name
-    setChangeTarget(null)
-
-    if (preview) {
-      notify(`Mudança para o ${name} agendada`, `Entra em vigor no próximo ciclo, em ${initialPeriodEnd}.`, 'info')
-      return
-    }
-
-    const res = await changePlan({
-      plan: target.name.toUpperCase() as 'ESSENCIAL' | 'PREMIUM' | 'GOLD',
-    })
-    if (res.ok) {
-      notify(`Mudança para o ${name} agendada`, `Entra em vigor no próximo ciclo, em ${initialPeriodEnd}.`, 'info')
-      router.refresh()
-    } else {
-      notify('Erro ao mudar de plano', res.error, 'danger')
     }
   }
 
@@ -340,13 +298,12 @@ export function AssinaturaView({
               </button>
             )}
             {cancelled ? (
-              <button
-                onClick={handleReactivate}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-white/10"
-                style={{ color: 'oklch(0.83 0.08 144)', border: '1px solid oklch(0.48 0.13 144 / 0.4)' }}
+              <div
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm"
+                style={{ color: 'oklch(1 0 0 / 0.6)', border: '1px solid oklch(1 0 0 / 0.15)' }}
               >
-                <RotateCcw size={15} /> Reativar plano
-              </button>
+                <Headset size={15} /> Para reativar, fale com o suporte
+              </div>
             ) : status === 'ACTIVE' ? (
               <button
                 onClick={() => setCancelOpen(true)}
@@ -455,9 +412,12 @@ export function AssinaturaView({
 
       {/* ── Mudar de plano ── */}
       <section className="dash-anim" style={{ animationDelay: '0.32s' }}>
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-5" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-2" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
           <ArrowRight size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Mudar de plano
         </h2>
+        <p className="text-sm mb-5 flex items-center gap-1.5" style={{ color: 'oklch(0.52 0.04 144)' }}>
+          <Headset size={14} /> Para mudar de plano, fale com o suporte.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           {plans.map((p) => (
             <div
@@ -528,13 +488,12 @@ export function AssinaturaView({
                   Seu plano atual
                 </div>
               ) : (
-                <button
-                  onClick={() => setChangeTarget({ name: p.name, price: p.price, tag: p.tag, tagColor: p.tagColor })}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm w-full transition-opacity hover:opacity-85"
-                  style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
+                <div
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm w-full"
+                  style={{ background: 'oklch(0.98 0.008 144)', color: 'oklch(0.55 0.04 144)', border: '1px dashed oklch(0.88 0.01 144)' }}
                 >
-                  Mudar para <ArrowRight size={14} />
-                </button>
+                  <Headset size={13} /> Fale com o suporte
+                </div>
               )}
             </div>
           ))}
@@ -620,43 +579,6 @@ export function AssinaturaView({
               className="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-[oklch(0.6_0.18_25_/_0.06)]"
               style={{ color: 'oklch(0.6 0.18 25)', border: '1px solid oklch(0.6 0.18 25 / 0.35)' }}>
               Confirmar cancelamento
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Mudar de plano */}
-      <Dialog open={changeTarget !== null} onOpenChange={(o) => !o && setChangeTarget(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>
-              Mudar para o plano {changeTarget?.name}?
-            </DialogTitle>
-            <DialogDescription>A alteração entra em vigor no próximo ciclo de cobrança.</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-between rounded-xl p-4" style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}>
-            <div className="text-center flex-1">
-              <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(0.55 0.04 144)' }}>ATUAL</div>
-              <div className="font-bold" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{initialPlan}</div>
-              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{initialPrice}/mês</div>
-            </div>
-            <ArrowRight size={18} style={{ color: 'var(--color-earth)' }} />
-            <div className="text-center flex-1">
-              <div className="text-[10px] font-bold mb-1" style={{ color: changeTarget?.tagColor }}>NOVO</div>
-              <div className="font-bold" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{changeTarget?.name}</div>
-              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{changeTarget?.price}/mês</div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-2 pt-1">
-            <button onClick={() => setChangeTarget(null)}
-              className="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-[oklch(0.96_0.01_144)]"
-              style={{ color: 'oklch(0.45 0.04 144)', border: '1px solid oklch(0.91 0.01 144)' }}>
-              Voltar
-            </button>
-            <button onClick={handleChangePlan}
-              className="px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-              style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.35)' }}>
-              Confirmar mudança
             </button>
           </DialogFooter>
         </DialogContent>

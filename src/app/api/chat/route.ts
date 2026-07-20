@@ -79,6 +79,10 @@ export async function POST(request: Request) {
     return new Response('Não autorizado', { status: 401 })
   }
 
+  if (!session.user.plan) {
+    return new Response('Assinatura inativa. Finalize seu pagamento para usar o assistente.', { status: 403 })
+  }
+
   let body: unknown
   try {
     body = await request.json()

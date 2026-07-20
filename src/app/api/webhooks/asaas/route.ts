@@ -4,7 +4,7 @@ import * as billing from '@/server/repositories/billing.repository'
 
 export async function POST(request: Request) {
   const token = request.headers.get('asaas-access-token')
-  if (env.ASAAS_WEBHOOK_TOKEN && token !== env.ASAAS_WEBHOOK_TOKEN) {
+  if (!env.ASAAS_WEBHOOK_TOKEN || token !== env.ASAAS_WEBHOOK_TOKEN) {
     return new Response('Unauthorized', { status: 401 })
   }
   const body = await request.json().catch(() => null)
@@ -20,6 +20,11 @@ export async function POST(request: Request) {
 
   try {
     if (intent.kind === 'activate') {
+      const planPrice = Number(sub.plan.priceMonthly)
+      if (typeof payment.value === 'number' && payment.value + 0.01 < planPrice) {
+        console.warn('[asaas webhook] valor abaixo do plano, ativação ignorada', { paymentId: payment.id, value: payment.value, planPrice })
+        return new Response('ok', { status: 200 })
+      }
       await billing.recordPaymentAndActivate({
         gatewayPaymentId: payment.id, userId: sub.userId, subscriptionId: sub.id,
         amount: payment.value, method: payment.billingType, status: 'ACTIVE',
