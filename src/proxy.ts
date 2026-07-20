@@ -54,19 +54,25 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  // App route plan check
+  const userPlan = session?.user?.plan ?? null
+
+  // Trava de pagamento: aluno sem assinatura ATIVA (plan nulo, pois o JWT só expõe
+  // o plano quando a assinatura está ACTIVE) só pode acessar o checkout. Bloqueia
+  // TODO o app, não só as rotas com feature. ADMIN é isento; rotas /api não são
+  // redirecionadas (quebraria o polling do checkout e o webhook).
+  if (
+    session.user.role !== 'ADMIN' &&
+    !userPlan &&
+    !pathname.startsWith('/api') &&
+    pathname !== '/checkout'
+  ) {
+    return NextResponse.redirect(new URL('/checkout', req.url))
+  }
+
+  // App route plan check (para quem tem plano ativo, mas o recurso exige plano superior)
   const requiredFeature = getRouteRequiredFeature(pathname)
 
   if (requiredFeature) {
-    const userPlan = session?.user?.plan ?? null
-
-    if (!userPlan) {
-      // No subscription at all → redirect to plans
-      const url = new URL('/planos', req.url)
-      url.searchParams.set('reason', 'no_subscription')
-      return NextResponse.redirect(url)
-    }
-
     if (!canAccessFeature(userPlan, requiredFeature)) {
       // Has subscription but plan doesn't cover this feature
       const url = new URL('/perfil/assinatura', req.url)
