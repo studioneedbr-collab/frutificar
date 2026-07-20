@@ -2,17 +2,45 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Crown, Sun, CheckCircle2, CreditCard, FileText, Download,
-  ArrowRight, Calendar, ShieldAlert, X, RotateCcw,
+  ArrowRight, Calendar, ShieldAlert, X, RotateCcw, AlertTriangle,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { gerarRecibo } from '@/lib/reports'
-import {
-  changePlan, cancelSubscription, reactivateSubscription,
-} from '@/server/actions/subscription'
+import { changePlan, reactivateSubscription } from '@/server/actions/subscription'
+import { cancelMySubscription } from '@/server/actions/checkout'
+
+// Status reais vindos do banco (enum SubscriptionStatus) + estado sintético "NONE" (sem assinatura).
+export type SubStatus = 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'NONE'
+// Status reais de pagamento (enum PaymentStatus).
+export type PaymentStatusKind = 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED'
+
+export type PaymentRow = {
+  date: string
+  desc: string
+  value: string
+  method: string
+  status: PaymentStatusKind
+}
+
+const STATUS_BADGE: Record<SubStatus, { label: string; bg: string; fg: string; dot: string }> = {
+  ACTIVE: { label: 'Ativa', bg: 'oklch(0.48 0.13 144 / 0.25)', fg: 'oklch(0.83 0.08 144)', dot: 'oklch(0.78 0.14 144)' },
+  PENDING: { label: 'Pagamento pendente', bg: 'oklch(0.75 0.15 75 / 0.22)', fg: 'oklch(0.85 0.1 75)', dot: 'oklch(0.78 0.17 75)' },
+  PAST_DUE: { label: 'Em atraso', bg: 'oklch(0.6 0.18 25 / 0.2)', fg: 'oklch(0.78 0.12 25)', dot: 'oklch(0.7 0.18 25)' },
+  CANCELED: { label: 'Cancelada', bg: 'oklch(1 0 0 / 0.12)', fg: 'oklch(1 0 0 / 0.6)', dot: 'oklch(1 0 0 / 0.45)' },
+  NONE: { label: 'Sem assinatura', bg: 'oklch(1 0 0 / 0.12)', fg: 'oklch(1 0 0 / 0.6)', dot: 'oklch(1 0 0 / 0.45)' },
+}
+
+const PAYMENT_BADGE: Record<PaymentStatusKind, { label: string; bg: string; fg: string }> = {
+  PAID: { label: 'Pago', bg: 'oklch(0.48 0.13 144 / 0.1)', fg: 'var(--color-frutificar-green)' },
+  PENDING: { label: 'Pendente', bg: 'oklch(0.75 0.15 75 / 0.14)', fg: 'oklch(0.55 0.13 75)' },
+  FAILED: { label: 'Falhou', bg: 'oklch(0.6 0.18 25 / 0.12)', fg: 'oklch(0.55 0.16 25)' },
+  REFUNDED: { label: 'Reembolsado', bg: 'oklch(0.9 0.005 144)', fg: 'oklch(0.5 0.02 144)' },
+}
 
 /* Plano atual + status + ações são reais (Server Actions) quando !preview.
    Histórico de pagamentos e forma de pagamento (cartão) permanecem mock (local). */
@@ -61,19 +89,23 @@ const inputStyle: React.CSSProperties = {
 
 export function AssinaturaView({
   initialPlan, initialPrice, initialStatus, initialPeriodEnd, initialPayments, preview,
+  hasSubscription, bloqueado,
 }: {
   initialPlan: string
   initialPrice: string
-  initialStatus: 'Ativo' | 'Cancelado'
+  initialStatus: SubStatus
   initialPeriodEnd: string
-  initialPayments: { date: string; desc: string; value: string }[]
+  initialPayments: PaymentRow[]
   preview: boolean
+  hasSubscription: boolean
+  bloqueado?: string
 }) {
   const router = useRouter()
 
-  const [status, setStatus] = useState<'Ativo' | 'Cancelado'>(initialStatus)
+  const [status, setStatus] = useState<SubStatus>(initialStatus)
   const [payments, setPayments] = useState(initialPayments)
   const [card, setCard] = useState({ last4: '4242', exp: '09/28' })
+  const [canceling, setCanceling] = useState(false)
 
   // Reconcilia o status com o servidor após cada router.refresh() (modo real).
   useEffect(() => { setStatus(initialStatus) }, [initialStatus])
@@ -117,14 +149,16 @@ export function AssinaturaView({
     setCancelOpen(false)
 
     if (preview) {
-      setStatus('Cancelado')
+      setStatus('CANCELED')
       notify('Assinatura cancelada', `Você mantém o acesso ${initialPlan} até ${initialPeriodEnd}.`, 'danger')
       return
     }
 
-    const res = await cancelSubscription()
+    setCanceling(true)
+    const res = await cancelMySubscription()
+    setCanceling(false)
     if (res.ok) {
-      setStatus('Cancelado')
+      setStatus('CANCELED')
       notify('Assinatura cancelada', `Você mantém o acesso ${initialPlan} até ${initialPeriodEnd}.`, 'danger')
       router.refresh()
     } else {
@@ -134,14 +168,14 @@ export function AssinaturaView({
 
   async function handleReactivate() {
     if (preview) {
-      setStatus('Ativo')
+      setStatus('ACTIVE')
       notify('Assinatura reativada', 'Sua renovação automática voltou a ficar ativa.')
       return
     }
 
     const res = await reactivateSubscription()
     if (res.ok) {
-      setStatus('Ativo')
+      setStatus('ACTIVE')
       notify('Assinatura reativada', 'Sua renovação automática voltou a ficar ativa.')
       router.refresh()
     } else {
@@ -171,18 +205,20 @@ export function AssinaturaView({
     }
   }
 
-  function handleReceipt(p: { date: string; desc: string; value: string }) {
+  function handleReceipt(p: PaymentRow) {
     gerarRecibo({
       plano: initialPlan,
       valor: p.value,
       data: p.date,
-      metodo: `Cartão de crédito •••• ${card.last4} · Asaas`,
+      metodo: `${p.method} · Asaas`,
       pagador: 'Douglas Vargas',
     })
     notify('Recibo gerado', `Comprovante de ${p.date} (PDF) baixado.`, 'success')
   }
 
-  const cancelled = status === 'Cancelado'
+  const cancelled = status === 'CANCELED'
+  const needsPayment = status === 'PENDING' || status === 'PAST_DUE'
+  const badge = STATUS_BADGE[status]
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-4">
@@ -213,6 +249,18 @@ export function AssinaturaView({
           Gerencie seu plano, pagamento e histórico.
         </p>
       </header>
+
+      {bloqueado && (
+        <div
+          className="dash-anim flex items-start gap-3 rounded-xl px-4 py-3.5"
+          style={{ background: 'oklch(0.75 0.15 75 / 0.1)', border: '1px solid oklch(0.75 0.15 75 / 0.3)', animationDelay: '0.04s' }}
+        >
+          <AlertTriangle size={17} style={{ color: 'oklch(0.6 0.14 75)', flexShrink: 0, marginTop: 2 }} />
+          <p className="text-sm" style={{ color: 'oklch(0.4 0.06 75)' }}>
+            Seu plano atual não inclui <strong>{bloqueado}</strong>. Faça upgrade para desbloquear esse recurso.
+          </p>
+        </div>
+      )}
 
       {/* ── Current plan banner ── */}
       <section
@@ -245,23 +293,20 @@ export function AssinaturaView({
               </span>
               <span
                 className="text-[11px] font-bold px-2.5 py-1 rounded-full mb-1 inline-flex items-center gap-1.5"
-                style={
-                  cancelled
-                    ? { background: 'oklch(0.6 0.18 25 / 0.2)', color: 'oklch(0.78 0.12 25)' }
-                    : { background: 'oklch(0.48 0.13 144 / 0.25)', color: 'oklch(0.83 0.08 144)' }
-                }
+                style={{ background: badge.bg, color: badge.fg }}
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: cancelled ? 'oklch(0.7 0.18 25)' : 'oklch(0.78 0.14 144)' }}
-                />
-                {cancelled ? 'Cancelado' : 'Ativo'}
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: badge.dot }} />
+                {badge.label}
               </span>
             </div>
             <p className="text-xs flex items-center gap-1.5" style={{ color: 'oklch(1 0 0 / 0.55)' }}>
               <Calendar size={13} />
-              {cancelled ? (
+              {status === 'NONE' ? (
+                <>Você ainda não tem uma assinatura ativa.</>
+              ) : cancelled ? (
                 <>Acesso até <strong style={{ color: 'oklch(1 0 0 / 0.8)' }}>{initialPeriodEnd}</strong> · sem renovação</>
+              ) : needsPayment ? (
+                <>Vencimento: <strong style={{ color: 'oklch(1 0 0 / 0.8)' }}>{initialPeriodEnd}</strong></>
               ) : (
                 <>Próxima cobrança: <strong style={{ color: 'oklch(1 0 0 / 0.8)' }}>{initialPeriodEnd}</strong></>
               )}
@@ -269,13 +314,31 @@ export function AssinaturaView({
           </div>
 
           <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
-            <button
-              onClick={() => setPaymentOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all hover:scale-[1.03] active:scale-[0.98]"
-              style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.4)' }}
-            >
-              <CreditCard size={16} /> Gerenciar pagamento
-            </button>
+            {status === 'NONE' ? (
+              <Link
+                href="/planos"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all hover:scale-[1.03] active:scale-[0.98]"
+                style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.4)' }}
+              >
+                Ver planos <ArrowRight size={16} />
+              </Link>
+            ) : needsPayment ? (
+              <Link
+                href="/checkout"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all hover:scale-[1.03] active:scale-[0.98]"
+                style={{ background: 'oklch(0.6 0.18 25)', boxShadow: '0 8px 24px oklch(0.6 0.18 25 / 0.4)' }}
+              >
+                <AlertTriangle size={16} /> Finalizar pagamento
+              </Link>
+            ) : (
+              <button
+                onClick={() => setPaymentOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all hover:scale-[1.03] active:scale-[0.98]"
+                style={{ background: 'var(--color-earth)', boxShadow: '0 8px 24px oklch(0.62 0.12 55 / 0.4)' }}
+              >
+                <CreditCard size={16} /> Gerenciar pagamento
+              </button>
+            )}
             {cancelled ? (
               <button
                 onClick={handleReactivate}
@@ -284,15 +347,16 @@ export function AssinaturaView({
               >
                 <RotateCcw size={15} /> Reativar plano
               </button>
-            ) : (
+            ) : status === 'ACTIVE' ? (
               <button
                 onClick={() => setCancelOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-white/5"
+                disabled={canceling}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors hover:bg-white/5 disabled:opacity-50"
                 style={{ color: 'oklch(0.72 0.12 25)', border: '1px solid oklch(0.6 0.18 25 / 0.35)' }}
               >
-                Cancelar plano
+                {canceling ? 'Cancelando…' : 'Cancelar assinatura'}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
@@ -342,38 +406,51 @@ export function AssinaturaView({
         <h2 className="text-lg font-bold flex items-center gap-2 mb-5" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
           <FileText size={18} style={{ color: 'var(--color-earth)' }} /> Histórico de pagamentos
         </h2>
-        <div className="space-y-2">
-          {payments.map((p, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 sm:gap-4 rounded-xl px-3 sm:px-4 py-3"
-              style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}
-            >
-              <div className="w-[88px] shrink-0 text-sm font-semibold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>
-                {p.date}
-              </div>
-              <div className="min-w-0 flex-1 text-sm truncate" style={{ color: 'oklch(0.5 0.04 144)' }}>
-                {p.desc}
-              </div>
-              <div className="w-[80px] shrink-0 text-right text-sm font-bold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>
-                {p.value}
-              </div>
-              <span
-                className="hidden sm:inline-flex text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 items-center justify-center w-14"
-                style={{ background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }}
-              >
-                Pago
-              </span>
-              <button
-                onClick={() => handleReceipt(p)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-opacity hover:opacity-70"
-                style={{ color: 'var(--color-earth)' }}
-              >
-                <Download size={13} /> <span className="hidden sm:inline">Recibo</span>
-              </button>
-            </div>
-          ))}
-        </div>
+        {payments.length === 0 ? (
+          <div
+            className="rounded-xl px-4 py-8 text-center text-sm"
+            style={{ background: 'oklch(0.98 0.008 144)', border: '1px dashed oklch(0.88 0.01 144)', color: 'oklch(0.55 0.04 144)' }}
+          >
+            Nenhum pagamento registrado ainda.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payments.map((p, i) => {
+              const pb = PAYMENT_BADGE[p.status]
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 sm:gap-4 rounded-xl px-3 sm:px-4 py-3"
+                  style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}
+                >
+                  <div className="w-[88px] shrink-0 text-sm font-semibold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>
+                    {p.date}
+                  </div>
+                  <div className="min-w-0 flex-1 text-sm truncate" style={{ color: 'oklch(0.5 0.04 144)' }}>
+                    {p.desc}
+                    <span className="hidden md:inline" style={{ color: 'oklch(0.75 0.02 144)' }}> · {p.method}</span>
+                  </div>
+                  <div className="w-[80px] shrink-0 text-right text-sm font-bold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>
+                    {p.value}
+                  </div>
+                  <span
+                    className="hidden sm:inline-flex text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 items-center justify-center w-[76px]"
+                    style={{ background: pb.bg, color: pb.fg }}
+                  >
+                    {pb.label}
+                  </span>
+                  <button
+                    onClick={() => handleReceipt(p)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-opacity hover:opacity-70"
+                    style={{ color: 'var(--color-earth)' }}
+                  >
+                    <Download size={13} /> <span className="hidden sm:inline">Recibo</span>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       {/* ── Mudar de plano ── */}

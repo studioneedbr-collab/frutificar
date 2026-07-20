@@ -1,6 +1,7 @@
 'use server'
 
 import { headers } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { ActionResult } from '@/lib/action-types'
@@ -75,6 +76,20 @@ export async function tokenizeCard(input: {
       remoteIp: ip,
     })
     return { ok: true, data: { token: creditCardToken } }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// Cancela a assinatura de verdade: encerra no gateway (Asaas) e marca CANCELED no banco.
+export async function cancelMySubscription(): Promise<ActionResult> {
+  const sub = await currentSub()
+  if (!sub) return { ok: false, error: 'Sem assinatura.' }
+  try {
+    if (sub.gatewaySubscriptionId) await asaas.cancelSubscription(sub.gatewaySubscriptionId)
+    await prisma.subscription.update({ where: { id: sub.id }, data: { status: 'CANCELED' } })
+    revalidatePath('/perfil/assinatura')
+    return { ok: true, data: undefined }
   } catch (e) {
     return { ok: false, error: (e as Error).message }
   }
