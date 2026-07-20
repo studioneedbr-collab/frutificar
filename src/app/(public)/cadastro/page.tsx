@@ -22,6 +22,9 @@ const cadastroSchema = z
     email: z.string().email('Email inválido'),
     password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
     confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória'),
+    cpfCnpj: z.string().min(11, 'Informe um CPF ou CNPJ válido.').max(18),
+    phone: z.string().min(10, 'Informe um telefone com DDD.').max(15),
+    plan: z.enum(['ESSENCIAL', 'PREMIUM', 'GOLD']),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'As senhas não conferem',
@@ -31,9 +34,9 @@ const cadastroSchema = z
 type CadastroForm = z.infer<typeof cadastroSchema>
 
 const plans = [
-  { name: 'Essencial', desc: 'Cursos e conteúdo base', color: 'oklch(0.55 0.1 220)' },
-  { name: 'Premium', desc: 'Tudo + IA e gestão', color: 'oklch(0.62 0.12 55)' },
-  { name: 'Gold', desc: 'Acesso total + tutoria', color: 'oklch(0.75 0.15 75)' },
+  { id: 'ESSENCIAL' as const, name: 'Essencial', desc: 'Cursos e conteúdo base', color: 'oklch(0.55 0.1 220)' },
+  { id: 'PREMIUM' as const, name: 'Premium', desc: 'Tudo + IA e gestão', color: 'oklch(0.62 0.12 55)' },
+  { id: 'GOLD' as const, name: 'Gold', desc: 'Acesso total + tutoria', color: 'oklch(0.75 0.15 75)' },
 ]
 
 export default function CadastroPage() {
@@ -44,8 +47,13 @@ export default function CadastroPage() {
 
   const form = useForm<CadastroForm>({
     resolver: zodResolver(cadastroSchema),
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: {
+      name: '', email: '', password: '', confirmPassword: '',
+      cpfCnpj: '', phone: '', plan: 'ESSENCIAL',
+    },
   })
+
+  const selectedPlan = form.watch('plan')
 
   async function onSubmit(data: CadastroForm) {
     setLoading(true)
@@ -73,7 +81,7 @@ export default function CadastroPage() {
     }
 
     setSuccess(true)
-    setTimeout(() => router.push('/dashboard'), 1500)
+    setTimeout(() => router.push('/checkout'), 1500)
   }
 
   if (success) {
@@ -102,7 +110,7 @@ export default function CadastroPage() {
             Conta criada!
           </h2>
           <p style={{ color: 'oklch(0.5 0.04 144)', fontSize: '0.9rem' }}>
-            Redirecionando para o login...
+            Redirecionando para o pagamento...
           </p>
         </div>
       </div>
@@ -157,26 +165,34 @@ export default function CadastroPage() {
 
           {/* Planos */}
           <div className="space-y-3">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className="flex items-center gap-3 rounded-xl px-4 py-3"
-                style={{ background: 'oklch(1 0 0 / 0.06)', border: '1px solid oklch(1 0 0 / 0.1)' }}
-              >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: plan.color }}
-                />
-                <div>
-                  <p className="text-white text-sm font-semibold leading-none mb-0.5">
-                    {plan.name}
-                  </p>
-                  <p className="text-[12px]" style={{ color: 'oklch(0.72 0.04 144)' }}>
-                    {plan.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+            {plans.map((plan) => {
+              const isSelected = selectedPlan === plan.id
+              return (
+                <button
+                  type="button"
+                  key={plan.id}
+                  onClick={() => form.setValue('plan', plan.id, { shouldValidate: true })}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-colors"
+                  style={{
+                    background: isSelected ? 'oklch(1 0 0 / 0.12)' : 'oklch(1 0 0 / 0.06)',
+                    border: isSelected ? '1px solid oklch(1 0 0 / 0.35)' : '1px solid oklch(1 0 0 / 0.1)',
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: plan.color }}
+                  />
+                  <div>
+                    <p className="text-white text-sm font-semibold leading-none mb-0.5">
+                      {plan.name}
+                    </p>
+                    <p className="text-[12px]" style={{ color: 'oklch(0.72 0.04 144)' }}>
+                      {plan.desc}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -322,6 +338,48 @@ export default function CadastroPage() {
                   </FormItem>
                 )}
               />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cpfCnpj"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold" style={{ color: 'oklch(0.32 0.05 144)' }}>
+                        CPF ou CNPJ
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="000.000.000-00"
+                          className="h-12 bg-white rounded-lg text-sm"
+                          style={{ borderColor: 'oklch(0.88 0.03 144)' }}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[13px] font-semibold" style={{ color: 'oklch(0.32 0.05 144)' }}>
+                        Telefone
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="(00) 00000-0000"
+                          className="h-12 bg-white rounded-lg text-sm"
+                          style={{ borderColor: 'oklch(0.88 0.03 144)' }}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {error && (
                 <div
