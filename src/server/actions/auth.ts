@@ -68,29 +68,37 @@ export async function registerUser(input: unknown): Promise<ActionResult<{ userI
       },
     })
 
-    let gatewayCustomerId = ''
-    let gatewaySubscriptionId = ''
-    if (asaasConfigured()) {
-      const customer = await createCustomer({ name, email, cpfCnpj, mobilePhone: phone })
-      const nextDueDate = new Date().toISOString().slice(0, 10)
-      const subscription = await createSubscription({
-        customer: customer.id,
-        billingType: 'UNDEFINED',
-        value: Number(plan.priceMonthly),
-        nextDueDate,
-        description: `Assinatura ${planName}`,
-      })
-      gatewayCustomerId = customer.id
-      gatewaySubscriptionId = subscription.id
-    }
+    try {
+      let gatewayCustomerId = ''
+      let gatewaySubscriptionId = ''
+      if (asaasConfigured()) {
+        const customer = await createCustomer({ name, email, cpfCnpj, mobilePhone: phone })
+        const nextDueDate = new Date().toISOString().slice(0, 10)
+        const subscription = await createSubscription({
+          customer: customer.id,
+          billingType: 'UNDEFINED',
+          value: Number(plan.priceMonthly),
+          nextDueDate,
+          description: `Assinatura ${planName}`,
+        })
+        gatewayCustomerId = customer.id
+        gatewaySubscriptionId = subscription.id
+      }
 
-    await createPendingSubscription({
-      userId: user.id,
-      planId: plan.id,
-      gatewayCustomerId,
-      gatewaySubscriptionId,
-      periodEnd: new Date(Date.now() + PENDING_PERIOD_DAYS * 24 * 60 * 60 * 1000),
-    })
+      await createPendingSubscription({
+        userId: user.id,
+        planId: plan.id,
+        gatewayCustomerId,
+        gatewaySubscriptionId,
+        periodEnd: new Date(Date.now() + PENDING_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+      })
+    } catch (billingErr) {
+      // Não podemos deixar um usuário órfão (sem assinatura) e com o e-mail
+      // "queimado" impedindo um novo cadastro — reverte a criação do usuário.
+      console.error('[registerUser] falha no billing, revertendo usuário:', billingErr)
+      await prisma.user.delete({ where: { id: user.id } }).catch(() => {})
+      return { ok: false, error: 'Não foi possível iniciar sua assinatura. Tente novamente.' }
+    }
 
     const token = randomBytes(32).toString('hex')
     const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
