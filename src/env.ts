@@ -14,9 +14,10 @@ const envSchema = z.object({
   // YouTube
   YOUTUBE_API_KEY: z.string().optional(),
 
-  // Payment gateway
-  GATEWAY_API_KEY: z.string().optional(),
-  GATEWAY_WEBHOOK_SECRET: z.string().optional(),
+  // Asaas (pagamentos)
+  ASAAS_API_KEY: z.string().optional(),
+  ASAAS_API_URL: z.string().url().default('https://sandbox.asaas.com/api/v3'),
+  ASAAS_WEBHOOK_TOKEN: z.string().optional(),
 
   // Email (Brevo transacional)
   RESEND_API_KEY: z.string().optional(),
