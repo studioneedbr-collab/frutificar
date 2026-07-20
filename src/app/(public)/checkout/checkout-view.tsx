@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useSession } from 'next-auth/react'
 import {
   CreditCard, QrCode, FileText, Copy, Check, Loader2, ShieldCheck, Clock, ExternalLink,
 } from 'lucide-react'
@@ -37,15 +38,26 @@ type Tab = 'CARTAO' | 'PIX' | 'BOLETO'
 const brl = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 
-/* ── Hook: fica de olho na sessão e redireciona quando o plano ativa ──── */
-function useSessionPoll(active: boolean) {
+/* ── Hook: fica de olho no status real da assinatura (DB) e redireciona ──
+   quando o webhook do Asaas ativa a assinatura. A sessão JWT só é atualizada
+   no sign-in, então pollamos a verdade do banco via /api/checkout/status e,
+   ao detectar ativação, forçamos um refresh do JWT com update() antes de
+   navegar — senão o middleware ainda veria o plano antigo (null) e
+   devolveria o usuário para o checkout. */
+function useActivationPoll(active: boolean) {
+  const { update } = useSession()
   useEffect(() => {
     if (!active) return
+    let redirected = false
     const interval = setInterval(async () => {
+      if (redirected) return
       try {
-        const res = await fetch('/api/auth/session', { cache: 'no-store' })
+        const res = await fetch('/api/checkout/status', { cache: 'no-store' })
         const data = await res.json().catch(() => null)
-        if (data?.user?.plan) {
+        if (data?.active) {
+          redirected = true
+          clearInterval(interval)
+          await update()
           window.location.href = '/dashboard'
         }
       } catch {
@@ -53,7 +65,7 @@ function useSessionPoll(active: boolean) {
       }
     }, 3000)
     return () => clearInterval(interval)
-  }, [active])
+  }, [active, update])
 }
 
 /* ── Página ───────────────────────────────────────────────────────────── */
@@ -69,7 +81,7 @@ export function CheckoutView({
   const [tab, setTab] = useState<Tab>('CARTAO')
   const [waitingConfirmation, setWaitingConfirmation] = useState(false)
 
-  useSessionPoll(waitingConfirmation)
+  useActivationPoll(waitingConfirmation)
 
   const tabs: { id: Tab; label: string; icon: typeof CreditCard }[] = [
     { id: 'CARTAO', label: 'Cartão', icon: CreditCard },

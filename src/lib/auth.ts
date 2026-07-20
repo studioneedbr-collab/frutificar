@@ -41,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -52,6 +52,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Fetch plan and cache in JWT (refreshed on each sign-in)
         const subscription = await prisma.subscription.findUnique({
           where: { userId: user.id },
+          select: { status: true, plan: { select: { name: true } } },
+        })
+        token.plan = subscription?.status === 'ACTIVE' ? subscription.plan.name : null
+      } else if (trigger === 'update' && token.id) {
+        // Refresh sob demanda (ex.: após o webhook do Asaas ativar a assinatura),
+        // disparado pelo client via useSession().update().
+        const subscription = await prisma.subscription.findUnique({
+          where: { userId: token.id as string },
           select: { status: true, plan: { select: { name: true } } },
         })
         token.plan = subscription?.status === 'ACTIVE' ? subscription.plan.name : null
