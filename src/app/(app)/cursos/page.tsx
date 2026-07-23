@@ -99,7 +99,8 @@ export default async function CursosPage() {
     })
 
     return <CursosView data={{ main: mainData, modules, minis }} />
-  } catch {
-    return <CursosView data={mockData} />
+  } catch (err) {
+    console.error('[app/cursos] falha ao carregar cursos:', err)
+    return <CursosView data={{ main: null, modules: [], minis: [] }} />
   }
 }

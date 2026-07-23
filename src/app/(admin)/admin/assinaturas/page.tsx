@@ -47,7 +47,8 @@ export default async function AdminAssinaturasPage() {
     })
 
     return <AssinaturasView initialSubscriptions={subscriptions} preview={false} />
-  } catch {
-    return <AssinaturasView initialSubscriptions={mockSubscriptions} preview />
+  } catch (err) {
+    console.error('[admin/assinaturas] falha ao carregar assinaturas:', err)
+    return <AssinaturasView initialSubscriptions={[]} preview={false} />
   }
 }

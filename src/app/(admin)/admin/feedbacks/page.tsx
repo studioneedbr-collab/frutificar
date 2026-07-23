@@ -33,7 +33,10 @@ export default async function AdminFeedbacksPage() {
         message: f.message,
         date: f.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
-    } catch { rows = mockRows }
+    } catch (err) {
+      console.error('[admin/feedbacks] falha ao carregar feedbacks:', err)
+      rows = []
+    }
   }
 
   const withRating = rows.filter((r) => r.rating != null)

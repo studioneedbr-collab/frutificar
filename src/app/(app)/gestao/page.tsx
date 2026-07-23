@@ -38,7 +38,8 @@ export default async function GestaoPage() {
     }))
 
     return <GestaoView properties={properties} preview={false} />
-  } catch {
-    return <GestaoView properties={mockProperties} preview />
+  } catch (err) {
+    console.error('[app/gestao] falha ao carregar propriedades:', err)
+    return <GestaoView properties={[]} preview={false} />
   }
 }

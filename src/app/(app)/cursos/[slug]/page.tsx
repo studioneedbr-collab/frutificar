@@ -33,8 +33,8 @@ export default async function CourseDetailPage({
 
   // Find first incomplete lesson for continue button
   let firstIncompleteHref: string | null = null
-  outer: for (const module of course.modules) {
-    for (const lesson of module.lessons) {
+  outer: for (const mod of course.modules) {
+    for (const lesson of mod.lessons) {
       if (!progress.completedIds.has(lesson.id)) {
         firstIncompleteHref = `/cursos/${slug}/${lesson.id}`
         break outer

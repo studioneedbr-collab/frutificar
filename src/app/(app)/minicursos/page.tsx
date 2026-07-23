@@ -46,7 +46,8 @@ export default async function MinicursosPage() {
     })
 
     return <MinicursosView minicursos={minicursos} />
-  } catch {
-    return <MinicursosView minicursos={mockMinicursos} />
+  } catch (err) {
+    console.error('[app/minicursos] falha ao carregar minicursos:', err)
+    return <MinicursosView minicursos={[]} />
   }
 }

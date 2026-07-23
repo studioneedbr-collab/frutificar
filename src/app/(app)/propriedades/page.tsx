@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade fica em PropriedadesView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listPropertiesByUser } from '@/server/repositories/properties.repository'
@@ -14,10 +15,10 @@ export default async function PropriedadesPage() {
     return <PropriedadesView initialProperties={mockProperties} preview />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
-    return <PropriedadesView initialProperties={mockProperties} preview />
+    redirect('/login')
   }
 
   const rows = await listPropertiesByUser(session.user.id)

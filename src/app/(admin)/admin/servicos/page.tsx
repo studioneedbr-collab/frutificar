@@ -21,7 +21,8 @@ export default async function AdminServicosPage() {
       active: s.active,
     }))
     return <ServicosAdminView initial={services} preview={false} />
-  } catch {
-    return <ServicosAdminView initial={mockServices} preview />
+  } catch (err) {
+    console.error('[admin/servicos] falha ao carregar serviços:', err)
+    return <ServicosAdminView initial={[]} preview={false} />
   }
 }

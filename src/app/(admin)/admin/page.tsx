@@ -79,7 +79,8 @@ export default async function AdminPage() {
         recentCourses={recentCourses}
       />
     )
-  } catch {
-    return <AdminDashboardView initialSolicitations={mockSolicitations} preview={false} />
+  } catch (err) {
+    console.error('[admin] falha ao carregar dashboard:', err)
+    return <AdminDashboardView initialSolicitations={[]} preview={false} />
   }
 }

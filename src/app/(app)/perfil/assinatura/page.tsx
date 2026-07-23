@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade fica em AssinaturaView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { getSubscriptionByUser } from '@/server/repositories/subscription.repository'
@@ -53,10 +54,10 @@ export default async function AssinaturaPage({
     return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview bloqueado={bloqueado} />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
-    return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview bloqueado={bloqueado} />
+    redirect('/login')
   }
 
   const [sub, rows] = await Promise.all([

@@ -33,7 +33,10 @@ export default async function AdminUsuariosPage() {
     }))
 
     return <UsuariosView initialUsers={users} preview={false} />
-  } catch {
-    return <UsuariosView initialUsers={mockUsers} preview />
+  } catch (err) {
+    // Modo real: NUNCA mostrar usuários fake de demonstração ao admin (levaria a
+    // decisões sobre dados inexistentes). Loga o erro e renderiza lista vazia.
+    console.error('[admin/usuarios] falha ao carregar usuários:', err)
+    return <UsuariosView initialUsers={[]} preview={false} />
   }
 }

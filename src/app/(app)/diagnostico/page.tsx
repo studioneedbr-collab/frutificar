@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade + análise por IA ficam em DiagnosticoView.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listSoilAnalysesByUser, listPlotsByUser } from '@/server/repositories/diagnostics.repository'
@@ -41,17 +42,10 @@ export default async function DiagnosticoPage() {
     )
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
-    return (
-      <DiagnosticoView
-        initialHistorico={mockHistorico}
-        talhaoOptions={mockTalhaoOptions}
-        initialResult={mockResult}
-        preview
-      />
-    )
+    redirect('/login')
   }
 
   const userId = session.user.id

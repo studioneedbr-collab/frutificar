@@ -35,7 +35,8 @@ export default async function AdminLivesPage() {
     })
 
     return <LivesView initialLives={lives} preview={false} />
-  } catch {
-    return <LivesView initialLives={mockLives} preview />
+  } catch (err) {
+    console.error('[admin/lives] falha ao carregar lives:', err)
+    return <LivesView initialLives={[]} preview={false} />
   }
 }

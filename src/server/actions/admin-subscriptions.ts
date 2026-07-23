@@ -3,7 +3,7 @@
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { SubscriptionStatus, PlanName } from '@prisma/client'
+import { SubscriptionStatus } from '@prisma/client'
 import type { ActionResult } from '@/lib/action-types'
 import * as adminSubscriptionsRepository from '@/server/repositories/admin-subscriptions.repository'
 

@@ -39,7 +39,8 @@ export default async function AdminPlanosPage() {
     }))
 
     return <PlanosView initialPlans={plans} preview={false} />
-  } catch {
-    return <PlanosView initialPlans={mockPlans} preview />
+  } catch (err) {
+    console.error('[admin/planos] falha ao carregar planos:', err)
+    return <PlanosView initialPlans={[]} preview={false} />
   }
 }

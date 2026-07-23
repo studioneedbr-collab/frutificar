@@ -32,7 +32,8 @@ export default async function AdminAgendamentosPage() {
       agronomist: v.agronomist ?? undefined,
     }))
     return <AgendamentosView initialVisits={visits} preview={false} />
-  } catch {
-    return <AgendamentosView initialVisits={mockVisits} preview={false} />
+  } catch (err) {
+    console.error('[admin/agendamentos] falha ao carregar visitas:', err)
+    return <AgendamentosView initialVisits={[]} preview={false} />
   }
 }

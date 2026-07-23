@@ -24,7 +24,8 @@ export default async function AdminSolicitacoesPage() {
       date: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
     }))
     return <SolicitacoesView initial={items} preview={false} />
-  } catch {
-    return <SolicitacoesView initial={mockSolicitacoes} preview />
+  } catch (err) {
+    console.error('[admin/solicitacoes] falha ao carregar solicitações:', err)
+    return <SolicitacoesView initial={[]} preview={false} />
   }
 }

@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade fica em PerfilView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -16,10 +17,10 @@ export default async function PerfilPage() {
     return <PerfilView initialName={MOCK_NAME} initialEmail={MOCK_EMAIL} preview />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
-    return <PerfilView initialName={MOCK_NAME} initialEmail={MOCK_EMAIL} preview />
+    redirect('/login')
   }
 
   const user = await prisma.user.findUnique({
@@ -27,7 +28,7 @@ export default async function PerfilPage() {
     select: { name: true, email: true },
   })
   if (!user) {
-    return <PerfilView initialName={MOCK_NAME} initialEmail={MOCK_EMAIL} preview />
+    redirect('/login')
   }
 
   return (

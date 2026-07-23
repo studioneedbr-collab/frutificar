@@ -2,6 +2,7 @@
 // PREVIEW_MODE=false, senão renderiza o mock. A interatividade fica em AgendamentosView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import {
@@ -45,10 +46,10 @@ export default async function AgendamentosPage() {
     return <AgendamentosView initialUpcoming={mockUpcoming} initialHistory={mockHistory} preview />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
-    return <AgendamentosView initialUpcoming={mockUpcoming} initialHistory={mockHistory} preview />
+    redirect('/login')
   }
 
   const userId = session.user.id

@@ -39,7 +39,12 @@ export default async function DashboardPage() {
     }
 
     return <DashboardView data={data} />
-  } catch {
-    return <DashboardView data={mockDashboard} />
+  } catch (err) {
+    console.error('[app/dashboard] falha ao carregar dashboard:', err)
+    return (
+      <DashboardView
+        data={{ propertyName: '—', propertyLocation: '—', plotsCount: 0, nextLiveTitle: '—', nextLiveWhen: '—' }}
+      />
+    )
   }
 }

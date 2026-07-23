@@ -70,7 +70,8 @@ export default async function LivesPage() {
 
     const data: LivesData = { featured, proximas, gravadas, temas: ['Todos'] }
     return <LivesView data={data} />
-  } catch {
-    return <LivesView data={mockData} />
+  } catch (err) {
+    console.error('[app/lives] falha ao carregar lives:', err)
+    return <LivesView data={{ featured: null, proximas: [], gravadas: [], temas: ['Todos'] }} />
   }
 }

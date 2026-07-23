@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Script de deploy local (contém segredos preenchidos)
 deploy-vercel.sh
+
+# Quarentena de arquivos não usados (ver _lixo/README.md)
+/_lixo

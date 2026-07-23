@@ -41,7 +41,8 @@ export default async function AdminMateriaisPage() {
     }))
 
     return <MateriaisView initialMaterials={materials} preview={false} />
-  } catch {
-    return <MateriaisView initialMaterials={mockMaterials} preview />
+  } catch (err) {
+    console.error('[admin/materiais] falha ao carregar materiais:', err)
+    return <MateriaisView initialMaterials={[]} preview={false} />
   }
 }
