@@ -29,9 +29,19 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
   }
 
   try {
+    const current = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true },
+    })
+    const emailChanged = current?.email !== parsed.data.email
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { name: parsed.data.name, email: parsed.data.email },
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        // Trocou o e-mail → o novo endereço ainda não foi confirmado.
+        ...(emailChanged ? { emailVerified: null } : {}),
+      },
     })
     revalidatePath('/perfil')
     return { ok: true, data: undefined }

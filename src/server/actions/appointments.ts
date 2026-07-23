@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { VisitStatus, ServiceStatus } from '@prisma/client'
 import type { ActionResult } from '@/lib/action-types'
+import { userHasFeature } from '@/lib/access-control'
 import * as appointmentsRepository from '@/server/repositories/appointments.repository'
 
 const requestVisitSchema = z.object({
@@ -25,6 +26,10 @@ export async function requestVisit(
   const session = await auth()
   if (!session) {
     return { ok: false, error: 'Não autenticado.' }
+  }
+
+  if (!(await userHasFeature(session.user.id, 'visits'))) {
+    return { ok: false, error: 'Seu plano não inclui visitas técnicas.' }
   }
 
   const parsed = requestVisitSchema.safeParse(input)
@@ -53,6 +58,10 @@ export async function requestService(
   const session = await auth()
   if (!session) {
     return { ok: false, error: 'Não autenticado.' }
+  }
+
+  if (!(await userHasFeature(session.user.id, 'services'))) {
+    return { ok: false, error: 'Seu plano não inclui solicitação de serviços.' }
   }
 
   const parsed = requestServiceSchema.safeParse(input)

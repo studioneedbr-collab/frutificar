@@ -22,3 +22,14 @@ export async function getUserActivePlan(userId: string): Promise<PlanName | null
   if (!subscription || subscription.status !== 'ACTIVE') return null
   return subscription.plan.name
 }
+
+/**
+ * Checagem de entitlement no servidor (defesa em profundidade). O proxy
+ * (src/proxy.ts) só protege a NAVEGAÇÃO; mutações via Server Action precisam
+ * revalidar o plano por conta própria — senão um usuário de plano inferior
+ * consegue disparar a action a partir de uma página que ele pode acessar.
+ */
+export async function userHasFeature(userId: string, feature: Feature): Promise<boolean> {
+  const plan = await getUserActivePlan(userId)
+  return canAccessFeature(plan, feature)
+}

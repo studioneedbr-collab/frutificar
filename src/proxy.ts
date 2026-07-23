@@ -36,6 +36,11 @@ export default auth((req) => {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/_next') ||
+    // Arquivos de metadata gerados (SEO) — devem ser públicos para crawlers.
+    pathname === '/opengraph-image' ||
+    pathname === '/twitter-image' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
     pathname.includes('.')
 
   if (isPublicPath) return NextResponse.next()

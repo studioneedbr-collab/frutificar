@@ -122,7 +122,26 @@ export async function POST(request: Request) {
     return new Response('Mensagem inválida', { status: 400 })
   }
 
-  // Find or create chat session
+  // Rate limiting POR USUÁRIO (não por sessão): conta as mensagens do usuário na
+  // última hora em TODAS as sessões dele. Antes contava só a sessão atual, então
+  // bastava omitir o sessionId a cada request para burlar e estourar custo de API.
+  const oneHourAgo = Date.now() - 60 * 60 * 1000
+  const recentSessions = await prisma.chatSession.findMany({
+    where: { userId, lastMessageAt: { gt: new Date(oneHourAgo) } },
+    select: { messages: true },
+  })
+  const recentUserCount = recentSessions.reduce((total, s) => {
+    const msgs = (s.messages as StoredMessage[]) ?? []
+    return total + msgs.filter((m) => m.role === 'user' && m.ts != null && m.ts > oneHourAgo).length
+  }, 0)
+  if (recentUserCount >= rateLimit) {
+    return new Response(
+      JSON.stringify({ error: `Limite de ${rateLimit} mensagens por hora atingido.` }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Só agora resolve/cria a sessão — evita criar sessões vazias quando limitado.
   let chatSession = sessionId
     ? await prisma.chatSession.findFirst({ where: { id: sessionId, userId } })
     : null
@@ -133,18 +152,7 @@ export async function POST(request: Request) {
     })
   }
 
-  // Rate limiting: count user messages in last hour
   const storedMessages = (chatSession.messages as StoredMessage[]) ?? []
-  const oneHourAgo = Date.now() - 60 * 60 * 1000
-  const recentUserMessages = storedMessages.filter(
-    (m) => m.role === 'user' && m.ts != null && m.ts > oneHourAgo
-  )
-  if (recentUserMessages.length >= rateLimit) {
-    return new Response(
-      JSON.stringify({ error: `Limite de ${rateLimit} mensagens por hora atingido.` }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
 
   // Build context: last 16 stored messages + new user message (mais memória de conversa)
   const contextMessages = storedMessages.slice(-16).map((m) => ({

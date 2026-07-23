@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/lib/action-types'
 import { uploadToStorage } from '@/lib/storage'
+import { userHasFeature } from '@/lib/access-control'
 import * as properties from '@/server/repositories/properties.repository'
 
 const TYPES = ['LICENCA', 'DOCUMENTO', 'HISTORICO']
@@ -25,6 +26,10 @@ export async function createPropertyDocumentAction(
 ): Promise<ActionResult<{ id: string }>> {
   const session = await auth()
   if (!session?.user?.id) return { ok: false, error: 'Não autenticado.' }
+
+  if (!(await userHasFeature(session.user.id, 'management'))) {
+    return { ok: false, error: 'Seu plano não inclui a gestão da propriedade.' }
+  }
 
   const propertyId = String(formData.get('propertyId') ?? '')
   const type = String(formData.get('type') ?? '')

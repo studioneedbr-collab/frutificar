@@ -37,15 +37,16 @@ export async function recordPaymentAndActivate(params: {
 }) {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.payment.findUnique({ where: { gatewayPaymentId: params.gatewayPaymentId } })
-    if (!existing) {
-      await tx.payment.create({
-        data: {
-          gatewayPaymentId: params.gatewayPaymentId, userId: params.userId,
-          subscriptionId: params.subscriptionId, amount: params.amount,
-          status: 'PAID', method: params.method,
-        },
-      })
-    }
+    // Idempotência: o Asaas dispara PAYMENT_CONFIRMED e PAYMENT_RECEIVED para o mesmo
+    // pagamento. Se já processamos este gatewayPaymentId, não estende o período de novo.
+    if (existing) return
+    await tx.payment.create({
+      data: {
+        gatewayPaymentId: params.gatewayPaymentId, userId: params.userId,
+        subscriptionId: params.subscriptionId, amount: params.amount,
+        status: 'PAID', method: params.method,
+      },
+    })
     await tx.subscription.update({
       where: { id: params.subscriptionId },
       data: { status: params.status, ...(params.periodEnd ? { currentPeriodEnd: params.periodEnd } : {}) },

@@ -32,6 +32,16 @@ export type UploadResult =
   | { ok: true; url: string }
   | { ok: false; error: string }
 
+// Tipos que, servidos inline de um bucket público, permitem XSS armazenado
+// (SVG com <script>, HTML, XML). Bloqueados independentemente do caller.
+const BLOCKED_MIME = new Set([
+  'image/svg+xml',
+  'text/html',
+  'application/xhtml+xml',
+  'application/xml',
+  'text/xml',
+])
+
 // Sobe um arquivo e devolve a URL pública. `prefix` organiza em pastas (ex.: "materiais").
 export async function uploadToStorage(
   file: File,
@@ -49,6 +59,14 @@ export async function uploadToStorage(
     }
   }
 
+  const declaredType = (file.type || '').toLowerCase()
+  if (BLOCKED_MIME.has(declaredType)) {
+    return { ok: false, error: 'Tipo de arquivo não permitido.' }
+  }
+  // Nunca deixa o navegador interpretar o arquivo como SVG/HTML/XML pela extensão.
+  const contentType =
+    declaredType && !declaredType.startsWith('text/') ? declaredType : 'application/octet-stream'
+
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'arquivo'
   const folder = opts.prefix ? `${opts.prefix.replace(/\/+$/, '')}/` : ''
   const path = `${folder}${Date.now()}-${safeName}`
@@ -58,7 +76,7 @@ export async function uploadToStorage(
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
-      'Content-Type': file.type || 'application/octet-stream',
+      'Content-Type': contentType,
       'x-upsert': 'true',
     },
     body: file,

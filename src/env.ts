@@ -4,9 +4,15 @@ const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url('DATABASE_URL deve ser uma URL válida'),
 
-  // NextAuth
-  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET deve ter ao menos 32 caracteres'),
+  // NextAuth / Auth.js v5 — o runtime lê AUTH_SECRET; NEXTAUTH_SECRET é aceito por
+  // compatibilidade. Exigimos ao menos um com >=32 chars (ver superRefine abaixo).
+  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET deve ter ao menos 32 caracteres').optional(),
+  NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET deve ter ao menos 32 caracteres').optional(),
   NEXTAUTH_URL: z.string().url().optional(),
+  AUTH_URL: z.string().url().optional(),
+
+  // URL pública do site (SEO / OpenGraph / sitemap)
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
   // OpenAI
   OPENAI_API_KEY: z.string().startsWith('sk-', 'OPENAI_API_KEY inválida').optional(),
@@ -45,6 +51,14 @@ const envSchema = z.object({
 
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+}).superRefine((data, ctx) => {
+  if (!data.AUTH_SECRET && !data.NEXTAUTH_SECRET) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['AUTH_SECRET'],
+      message: 'Defina AUTH_SECRET (ou NEXTAUTH_SECRET) com ao menos 32 caracteres.',
+    })
+  }
 })
 
 export type Env = z.infer<typeof envSchema>

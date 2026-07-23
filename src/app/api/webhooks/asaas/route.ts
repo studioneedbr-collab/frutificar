@@ -1,10 +1,20 @@
+import { timingSafeEqual } from 'crypto'
 import { env } from '@/env'
 import { interpretAsaasEvent } from '@/lib/asaas-webhook'
 import * as billing from '@/server/repositories/billing.repository'
 
+// Comparação de tokens em tempo constante (evita timing attack). Só compara
+// buffers de mesmo tamanho — tamanhos diferentes já falham cedo.
+function tokensMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
+}
+
 export async function POST(request: Request) {
   const token = request.headers.get('asaas-access-token')
-  if (!env.ASAAS_WEBHOOK_TOKEN || token !== env.ASAAS_WEBHOOK_TOKEN) {
+  if (!env.ASAAS_WEBHOOK_TOKEN || !token || !tokensMatch(token, env.ASAAS_WEBHOOK_TOKEN)) {
     return new Response('Unauthorized', { status: 401 })
   }
   const body = await request.json().catch(() => null)
