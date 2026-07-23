@@ -3,7 +3,8 @@
 export const dynamic = 'force-dynamic'
 
 import { PREVIEW_MODE } from '@/lib/preview'
-import { listFieldDays } from '@/server/repositories/fielddays.repository'
+import { auth } from '@/lib/auth'
+import { listFieldDays, getUserRegistrationIds } from '@/server/repositories/fielddays.repository'
 import { mockData, type FieldDaysData, type FieldEvent, type PastEvent } from './data'
 import { DiasView } from './dias-view'
 
@@ -30,7 +31,11 @@ export default async function DiasDeCampoPage() {
   }
 
   try {
+    const session = await auth()
     const rows = await listFieldDays()
+    const interestedIds = session?.user?.id
+      ? await getUserRegistrationIds(session.user.id)
+      : []
     const now = Date.now()
 
     const future = rows
@@ -46,8 +51,9 @@ export default async function DiasDeCampoPage() {
     })
 
     const data: FieldDaysData = { featured, upcoming, past }
-    return <DiasView data={data} />
-  } catch {
-    return <DiasView data={mockData} />
+    return <DiasView data={data} initialInterested={interestedIds} />
+  } catch (err) {
+    console.error('[app/dias-de-campo] falha ao carregar dias de campo:', err)
+    return <DiasView data={{ featured: null, upcoming: [], past: [] }} initialInterested={[]} />
   }
 }

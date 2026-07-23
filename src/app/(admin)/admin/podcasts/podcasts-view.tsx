@@ -200,11 +200,21 @@ export function PodcastsView({
     }
   }
 
-  function togglePublished(ep: Episode) {
+  async function togglePublished(ep: Episode) {
     const next = !ep.published
+    const previous = episodes
     setEpisodes((cur) => cur.map((e) => (e.id === ep.id ? { ...e, published: next } : e)))
     toast.success(next ? 'Episódio publicado' : 'Episódio despublicado', { description: ep.title })
-    // TODO: sem campo published no schema — alteração permanece apenas otimista (sem persistência).
+
+    if (!preview) {
+      const result = await updateEpisodeAction(ep.id, { published: next })
+      if (!result.ok) {
+        setEpisodes(previous)
+        toast.error(result.error)
+        return
+      }
+      router.refresh()
+    }
   }
 
   async function handleRemove() {

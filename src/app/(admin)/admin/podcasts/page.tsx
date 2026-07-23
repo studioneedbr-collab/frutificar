@@ -26,13 +26,14 @@ export default async function AdminPodcastsPage() {
       dur: '—',
       date: e.publishedAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       url: e.audioUrl ?? '',
-      // Sem campos "plays"/"published" no schema — valores de exibição padrão.
+      // Sem campo "plays" no schema — exibição padrão.
       plays: 0,
-      published: true,
+      published: e.published,
     }))
 
     return <PodcastsView initialEpisodes={episodes} preview={false} />
-  } catch {
-    return <PodcastsView initialEpisodes={mockEpisodes} preview />
+  } catch (err) {
+    console.error('[admin/podcasts] falha ao carregar episódios:', err)
+    return <PodcastsView initialEpisodes={[]} preview={false} />
   }
 }

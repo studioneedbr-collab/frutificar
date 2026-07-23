@@ -51,6 +51,7 @@ const updateEpisodeSchema = z.object({
   title: z.string().min(3, 'Título deve ter ao menos 3 caracteres').optional(),
   audioUrl: z.string().optional(),
   publishedAt: z.coerce.date().optional(),
+  published: z.boolean().optional(),
 })
 
 export async function updateEpisodeAction(

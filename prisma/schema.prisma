@@ -102,6 +102,7 @@ model User {
   instructedCourses Course[]         @relation("CourseInstructor")
   accounts          Account[]
   sessions          Session[]
+  fieldDayRegistrations FieldDayRegistration[]
 }
 
 model Account {
@@ -349,6 +350,7 @@ model PodcastEpisode {
   embedUrl    String?
   audioUrl    String?
   publishedAt DateTime
+  published   Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -406,6 +408,22 @@ model FieldDay {
   description String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  registrations FieldDayRegistration[]
+}
+
+// Inscrição / "Interesse" de um aluno num Dia de Campo. Aparece no admin como
+// contagem de inscritos por evento.
+model FieldDayRegistration {
+  id         String   @id @default(cuid())
+  userId     String
+  fieldDayId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fieldDay FieldDay @relation(fields: [fieldDayId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fieldDayId])
 }
 
 // ─── Gestão da propriedade rural ──────────────────────────

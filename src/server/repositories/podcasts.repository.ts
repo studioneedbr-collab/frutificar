@@ -39,7 +39,7 @@ export async function createEpisode(data: {
 
 export async function updateEpisode(
   id: string,
-  data: { title?: string; audioUrl?: string; publishedAt?: Date },
+  data: { title?: string; audioUrl?: string; publishedAt?: Date; published?: boolean },
 ) {
   return prisma.podcastEpisode.update({
     where: { id },
@@ -47,6 +47,7 @@ export async function updateEpisode(
       title: data.title,
       audioUrl: data.audioUrl,
       publishedAt: data.publishedAt,
+      published: data.published,
     },
   })
 }

@@ -6,23 +6,38 @@ import {
   Sun, MapPin, Calendar, Users, Clock, ArrowUpRight,
   CheckCircle2, Camera, Ticket,
 } from 'lucide-react'
+import { toggleFieldDayInterest } from '@/server/actions/fielddays'
 import type { FieldDaysData, FieldEvent } from './data'
 
-export function DiasView({ data }: { data: FieldDaysData }) {
+export function DiasView({
+  data,
+  initialInterested = [],
+}: {
+  data: FieldDaysData
+  initialInterested?: string[]
+}) {
   const { featured, upcoming, past } = data
-  // "Interesse" é informativo (não há inscrição no banco) — apenas feedback local.
-  const [interested, setInterested] = useState<Record<string, boolean>>({})
+  // "Interesse" grava de verdade no banco (aparece no admin). Estado otimista
+  // inicializado com as inscrições já existentes do aluno.
+  const [interested, setInterested] = useState<Record<string, boolean>>(
+    Object.fromEntries(initialInterested.map((id) => [id, true])),
+  )
 
-  function toggleInterest(e: FieldEvent) {
-    setInterested((cur) => {
-      const next = { ...cur, [e.id]: !cur[e.id] }
-      if (next[e.id]) {
-        toast.success('Interesse registrado!', { description: `${e.title} — ${e.date}. A equipe entrará em contato com os detalhes.` })
-      } else {
-        toast.info('Interesse removido')
-      }
-      return next
-    })
+  async function toggleInterest(e: FieldEvent) {
+    const next = !interested[e.id]
+    setInterested((cur) => ({ ...cur, [e.id]: next }))
+    if (next) {
+      toast.success('Interesse registrado!', { description: `${e.title} — ${e.date}. A equipe entrará em contato com os detalhes.` })
+    } else {
+      toast.info('Interesse removido')
+    }
+
+    const result = await toggleFieldDayInterest(e.id, next)
+    if (!result.ok) {
+      // Reverte em caso de erro (ex.: plano sem acesso).
+      setInterested((cur) => ({ ...cur, [e.id]: !next }))
+      toast.error(result.error)
+    }
   }
 
   return (

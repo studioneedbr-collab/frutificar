@@ -29,18 +29,22 @@ export default async function PodcastsPage() {
 
   try {
     const rows = await listEpisodes()
-    const episodes: Episode[] = rows.map((e, i) => ({
-      id: e.id,
-      title: e.title,
-      host: e.podcast?.title ?? 'Frutificar no Campo',
-      meta: timeAgo(new Date(e.publishedAt)),
-      category: 'Todos', // schema não tem categoria por episódio
-      cover: COVERS[i % COVERS.length],
-      url: e.audioUrl ?? '',
-    }))
+    // Aluno só vê episódios publicados (despublicados ficam ocultos).
+    const episodes: Episode[] = rows
+      .filter((e) => e.published)
+      .map((e, i) => ({
+        id: e.id,
+        title: e.title,
+        host: e.podcast?.title ?? 'Frutificar no Campo',
+        meta: timeAgo(new Date(e.publishedAt)),
+        category: 'Todos', // schema não tem categoria por episódio
+        cover: COVERS[i % COVERS.length],
+        url: e.audioUrl ?? '',
+      }))
     // Em modo real mostramos o que existe (mesmo vazio → estado vazio na view).
     return <PodcastsView initialEpisodes={episodes} />
-  } catch {
-    return <PodcastsView initialEpisodes={mockEpisodes} />
+  } catch (err) {
+    console.error('[app/podcasts] falha ao carregar episódios:', err)
+    return <PodcastsView initialEpisodes={[]} />
   }
 }
