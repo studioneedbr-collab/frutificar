@@ -1,5 +1,7 @@
-// DEV PREVIEW: renderiza em request-time (depende de banco/sessão); evita prerender sem DB.
-export const dynamic = 'force-dynamic'
+// Página de marketing: os planos mudam raramente. ISR gera HTML estático e o
+// revalida de hora em hora — bom para SEO e velocidade (o build de produção tem
+// acesso ao banco para prerenderizar).
+export const revalidate = 3600
 
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
