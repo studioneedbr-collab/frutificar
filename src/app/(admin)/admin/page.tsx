@@ -1,13 +1,12 @@
-// Server Component: busca solicitações reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em AdminDashboardView (client).
+// Server Component: busca solicitações reais (Supabase).
+// A interatividade fica em AdminDashboardView (client).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import {
   listPendingVisits, listOpenServiceRequests,
   getDashboardStats, listRecentUsers, listRecentCourses,
 } from '@/server/repositories/admin.repository'
-import { mockSolicitations, type Solicitation } from './data'
+import type { Solicitation } from './data'
 import {
   AdminDashboardView, type DashboardUser, type DashboardCourse,
 } from './admin-dashboard-view'
@@ -20,13 +19,8 @@ function formatWhen(date: Date): string {
 }
 
 export default async function AdminPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <AdminDashboardView initialSolicitations={mockSolicitations} preview />
-  }
-
-  // Modo real: busca tudo do banco em paralelo.
-  // Em caso de erro, cai no mock para não quebrar a tela.
+  // Busca tudo do banco em paralelo.
+  // Em caso de erro, cai em listas vazias para não quebrar a tela.
   try {
     const [visits, services, stats, users, courses] = await Promise.all([
       listPendingVisits(),
@@ -73,7 +67,6 @@ export default async function AdminPage() {
     return (
       <AdminDashboardView
         initialSolicitations={solicitations}
-        preview={false}
         metrics={stats}
         recentUsers={recentUsers}
         recentCourses={recentCourses}
@@ -81,6 +74,6 @@ export default async function AdminPage() {
     )
   } catch (err) {
     console.error('[admin] falha ao carregar dashboard:', err)
-    return <AdminDashboardView initialSolicitations={[]} preview={false} />
+    return <AdminDashboardView initialSolicitations={[]} />
   }
 }

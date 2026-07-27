@@ -107,15 +107,14 @@ const emptyForm: FormState = {
 }
 
 export function LivesView({
-  initialLives, preview,
+  initialLives,
 }: {
   initialLives: Live[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [lives, setLives] = useState<Live[]>(initialLives)
 
-  // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
+  // Reconcilia com os dados do servidor após cada router.refresh().
   useEffect(() => { setLives(initialLives) }, [initialLives])
 
   const [filter, setFilter] = useState<'TODAS' | Status>('TODAS')
@@ -136,7 +135,7 @@ export function LivesView({
 
   const visibleLives = lives.filter((l) => (filter === 'TODAS' ? true : l.status === filter))
 
-  /* ── Ações (otimista + Server Action quando !preview) ── */
+  /* ── Ações (otimista + Server Action) ── */
   function openCreate() {
     setCreateForm(emptyForm)
     setCreateOpen(true)
@@ -163,17 +162,15 @@ export function LivesView({
     setCreateOpen(false)
     toast.success('Live agendada', { description: title })
 
-    if (!preview) {
-      const res = await createLiveAction({
-        title,
-        scheduledAt: toScheduledAt(createForm.date, createForm.time),
-        status: createForm.status,
-        requiredPlan: createForm.plan,
-        youtubeVideoId: ytId,
-      })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createLiveAction({
+      title,
+      scheduledAt: toScheduledAt(createForm.date, createForm.time),
+      status: createForm.status,
+      requiredPlan: createForm.plan,
+      youtubeVideoId: ytId,
+    })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function openEdit(live: Live) {
@@ -214,28 +211,24 @@ export function LivesView({
     setEditTarget(null)
     toast.success('Live atualizada', { description: title })
 
-    if (!preview) {
-      const res = await updateLiveAction(target.id, {
-        title,
-        youtubeVideoId: ytId,
-        scheduledAt: toScheduledAt(editForm.date, editForm.time),
-        status: editForm.status,
-        requiredPlan: editForm.plan,
-      })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await updateLiveAction(target.id, {
+      title,
+      youtubeVideoId: ytId,
+      scheduledAt: toScheduledAt(editForm.date, editForm.time),
+      status: editForm.status,
+      requiredPlan: editForm.plan,
+    })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function changeStatus(live: Live, status: Status, message: string) {
     setLives((cur) => cur.map((l) => (l.id === live.id ? { ...l, status } : l)))
     toast.success(message, { description: live.title })
 
-    if (!preview) {
-      const res = await setLiveStatusAction(live.id, status)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await setLiveStatusAction(live.id, status)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleRemove() {
@@ -246,11 +239,9 @@ export function LivesView({
     setRemoveTarget(null)
     toast.success('Live removida', { description: title })
 
-    if (!preview) {
-      const res = await deleteLiveAction(target.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteLiveAction(target.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const iconBtnStyle: React.CSSProperties = { color: 'oklch(0.6 0.02 144)' }

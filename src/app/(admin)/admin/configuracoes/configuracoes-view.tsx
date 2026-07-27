@@ -80,7 +80,7 @@ function SectionCard({
   )
 }
 
-export function ConfiguracoesView({ initial, preview }: { initial: Record<string, string>; preview: boolean }) {
+export function ConfiguracoesView({ initial }: { initial: Record<string, string> }) {
   const g = (k: string, d: string) => initial[k] ?? d
   const b = (k: string, d: boolean) => (initial[k] != null ? initial[k] === 'true' : d)
 
@@ -122,7 +122,6 @@ export function ConfiguracoesView({ initial, preview }: { initial: Record<string
   async function save(keys?: string[]) {
     const all = allValues()
     const payload = keys ? Object.fromEntries(keys.map((k) => [k, all[k]])) : all
-    if (preview) { toast.success('Configurações salvas (demo)'); return }
     setSaving(true)
     const res = await saveSettingsAction(payload)
     setSaving(false)

@@ -39,10 +39,9 @@ let tmp = 0
 const tmpId = () => `tmp-${++tmp}`
 
 export function CursosAdminView({
-  initialCourses, preview,
+  initialCourses,
 }: {
   initialCourses: AdminCourse[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [courses, setCourses] = useState<AdminCourse[]>(initialCourses)
@@ -86,11 +85,9 @@ export function CursosAdminView({
     setCourses((cur) => [optimistic, ...cur])
     setCreateOpen(false)
     toast.success('Curso criado', { description: title })
-    if (!preview) {
-      const res = await createCourseAction({ title, type: createType, instructor })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createCourseAction({ title, type: createType, instructor })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
@@ -103,22 +100,18 @@ export function CursosAdminView({
     patchCourse(t.id, (c) => ({ ...c, title, type: editType, instructor }))
     setEditTarget(null)
     toast.success('Curso atualizado', { description: title })
-    if (!preview) {
-      const res = await updateCourseAction(t.id, { title, type: editType, instructor })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await updateCourseAction(t.id, { title, type: editType, instructor })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function togglePublished(c: AdminCourse) {
     const next = !c.published
     patchCourse(c.id, (x) => ({ ...x, published: next }))
     toast.success(next ? 'Curso publicado' : 'Curso despublicado', { description: c.title })
-    if (!preview) {
-      const res = await togglePublishedAction(c.id, next)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await togglePublishedAction(c.id, next)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleRemove() {
@@ -127,11 +120,9 @@ export function CursosAdminView({
     setCourses((cur) => cur.filter((c) => c.id !== t.id))
     setRemoveTarget(null)
     toast.success('Curso removido', { description: t.title })
-    if (!preview) {
-      const res = await deleteCourseAction(t.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteCourseAction(t.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   /* ── Módulo ── */
@@ -142,30 +133,24 @@ export function CursosAdminView({
     const mod: AdminModule = { id: tmpId(), title, lessons: [] }
     patchCourse(contentCourse.id, (c) => ({ ...c, modules: [...c.modules, mod] }))
     setNewModuleTitle('')
-    if (!preview) {
-      const res = await createModuleAction(contentCourse.id, title)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createModuleAction(contentCourse.id, title)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function renameModule(moduleId: string, title: string, original: string) {
     if (title.trim() === original || !title.trim()) return
-    if (!preview) {
-      const res = await updateModuleAction(moduleId, title.trim())
-      if (!res.ok) { toast.error(res.error); return }
-      router.refresh()
-    }
+    const res = await updateModuleAction(moduleId, title.trim())
+    if (!res.ok) { toast.error(res.error); return }
+    router.refresh()
   }
 
   async function removeModule(moduleId: string) {
     if (!contentCourse) return
     patchCourse(contentCourse.id, (c) => ({ ...c, modules: c.modules.filter((m) => m.id !== moduleId) }))
-    if (!preview) {
-      const res = await deleteModuleAction(moduleId)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteModuleAction(moduleId)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   /* ── Aula ── */
@@ -197,12 +182,10 @@ export function CursosAdminView({
     }
     setLessonDialog(null)
     toast.success(lesson ? 'Aula atualizada' : 'Aula adicionada', { description: title })
-    if (!preview) {
-      const payload = { title, videoUrl, minutes: minutes ?? undefined }
-      const res = lesson ? await updateLessonAction(lesson.id, payload) : await createLessonAction(moduleId, payload)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const payload = { title, videoUrl, minutes: minutes ?? undefined }
+    const res = lesson ? await updateLessonAction(lesson.id, payload) : await createLessonAction(moduleId, payload)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function removeLesson(moduleId: string, lessonId: string) {
@@ -211,11 +194,9 @@ export function CursosAdminView({
       ...c,
       modules: c.modules.map((m) => m.id === moduleId ? { ...m, lessons: m.lessons.filter((l) => l.id !== lessonId) } : m),
     }))
-    if (!preview) {
-      const res = await deleteLessonAction(lessonId)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteLessonAction(lessonId)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const totalLessons = (c: AdminCourse) => c.modules.reduce((a, m) => a + m.lessons.length, 0)

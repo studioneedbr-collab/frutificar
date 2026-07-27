@@ -1,22 +1,16 @@
-// Server Component: busca lives reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em LivesView (client).
-// O layout admin não tem auth(); buscamos direto — as Server Actions exigem ADMIN.
+// Server Component: busca lives reais (Supabase). A interatividade fica em
+// LivesView (client). O layout admin não tem auth(); buscamos direto — as
+// Server Actions exigem ADMIN.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listLives } from '@/server/repositories/lives.repository'
-import { mockLives, type Live, type Plan, type Status } from './data'
+import type { Live, Plan, Status } from './data'
 import { LivesView } from './lives-view'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export default async function AdminLivesPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <LivesView initialLives={mockLives} preview />
-  }
-
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Lê do banco; em caso de erro, renderiza vazio (nunca dados fictícios).
   try {
     const rows = await listLives()
     const lives: Live[] = rows.map((l) => {
@@ -34,9 +28,9 @@ export default async function AdminLivesPage() {
       }
     })
 
-    return <LivesView initialLives={lives} preview={false} />
+    return <LivesView initialLives={lives} />
   } catch (err) {
     console.error('[admin/lives] falha ao carregar lives:', err)
-    return <LivesView initialLives={[]} preview={false} />
+    return <LivesView initialLives={[]} />
   }
 }

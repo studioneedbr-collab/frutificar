@@ -1,10 +1,8 @@
-// Server Component: busca os planos reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em PlanosView (client).
+// Server Component: busca os planos reais (Supabase). A interatividade fica em PlanosView (client).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listPlans } from '@/server/repositories/plans.repository'
-import { mockPlans, type Plan } from './data'
+import type { Plan } from './data'
 import { PlanosView } from './planos-view'
 
 // Campos visuais que o banco não fornece (cor, assinantes, MRR): mapeados por nome.
@@ -19,12 +17,6 @@ function capitalize(name: string) {
 }
 
 export default async function AdminPlanosPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <PlanosView initialPlans={mockPlans} preview />
-  }
-
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
   try {
     const rows = await listPlans()
     const plans: Plan[] = rows.map((p) => ({
@@ -38,9 +30,9 @@ export default async function AdminPlanosPage() {
       features: Array.isArray(p.features) ? (p.features as string[]) : [],
     }))
 
-    return <PlanosView initialPlans={plans} preview={false} />
+    return <PlanosView initialPlans={plans} />
   } catch (err) {
     console.error('[admin/planos] falha ao carregar planos:', err)
-    return <PlanosView initialPlans={[]} preview={false} />
+    return <PlanosView initialPlans={[]} />
   }
 }

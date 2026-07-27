@@ -63,10 +63,9 @@ const emptyDraft: DraftForm = {
 }
 
 export function DiasDeCampoView({
-  initialEvents, preview,
+  initialEvents,
 }: {
   initialEvents: FieldDayRow[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [days, setDays] = useState<FieldDayRow[]>(initialEvents)
@@ -98,7 +97,7 @@ export function DiasDeCampoView({
     return !isUpcoming(d.date)
   })
 
-  /* ── Ações (otimista + Server Action quando !preview) ── */
+  /* ── Ações (otimista + Server Action) ── */
   function openCreate() {
     setCreateDraft(emptyDraft)
     setCreateOpen(true)
@@ -125,17 +124,15 @@ export function DiasDeCampoView({
     setCreateOpen(false)
     toast.success('Evento criado', { description: title })
 
-    if (!preview) {
-      const res = await createFieldDayAction({
-        title,
-        location,
-        date: toDate(createDraft.date, createDraft.time),
-        instructor,
-        description: '',
-      })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createFieldDayAction({
+      title,
+      location,
+      date: toDate(createDraft.date, createDraft.time),
+      instructor,
+      description: '',
+    })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function openEdit(d: FieldDayRow) {
@@ -175,16 +172,14 @@ export function DiasDeCampoView({
     setEditTarget(null)
     toast.success('Evento atualizado', { description: title })
 
-    if (!preview) {
-      const res = await updateFieldDayAction(target.id, {
-        title,
-        location,
-        date: toDate(editDraft.date, editDraft.time),
-        instructor,
-      })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await updateFieldDayAction(target.id, {
+      title,
+      location,
+      date: toDate(editDraft.date, editDraft.time),
+      instructor,
+    })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleRemove() {
@@ -194,11 +189,9 @@ export function DiasDeCampoView({
     setRemoveTarget(null)
     toast.success('Evento encerrado', { description: target.title })
 
-    if (!preview) {
-      const res = await deleteFieldDayAction(target.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteFieldDayAction(target.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const iconBtnStyle: React.CSSProperties = { color: 'oklch(0.6 0.02 144)' }

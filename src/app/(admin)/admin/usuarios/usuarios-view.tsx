@@ -65,10 +65,9 @@ function todayBR() {
 }
 
 export function UsuariosView({
-  initialUsers, preview,
+  initialUsers,
 }: {
   initialUsers: User[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [users, setUsers] = useState<User[]>(initialUsers)
@@ -109,7 +108,7 @@ export function UsuariosView({
     return true
   })
 
-  /* ── Ações (otimista + Server Action quando !preview) ── */
+  /* ── Ações (otimista + Server Action) ── */
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const data = new FormData(e.currentTarget)
@@ -131,11 +130,9 @@ export function UsuariosView({
     setCreateOpen(false)
     toast.success('Usuário criado', { description: name })
 
-    if (!preview) {
-      const res = await createUserAction({ name, email, role: createRole })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createUserAction({ name, email, role: createRole })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
@@ -154,16 +151,14 @@ export function UsuariosView({
     setEditTarget(null)
     toast.success('Usuário atualizado', { description: name })
 
-    if (!preview) {
-      const res = await updateUserAction(target.id, { name, email, role: editRole })
-      if (!res.ok) toast.error(res.error)
-      // O plano fica na assinatura, não no User — grava separadamente.
-      if (planChanged) {
-        const planRes = await changeUserPlanAction(target.id, { plan: editPlan })
-        if (!planRes.ok) toast.error(planRes.error)
-      }
-      router.refresh()
+    const res = await updateUserAction(target.id, { name, email, role: editRole })
+    if (!res.ok) toast.error(res.error)
+    // O plano fica na assinatura, não no User — grava separadamente.
+    if (planChanged) {
+      const planRes = await changeUserPlanAction(target.id, { plan: editPlan })
+      if (!planRes.ok) toast.error(planRes.error)
     }
+    router.refresh()
   }
 
   async function toggleStatus(user: User) {
@@ -171,11 +166,9 @@ export function UsuariosView({
     setUsers((cur) => cur.map((u) => (u.id === user.id ? { ...u, status: next } : u)))
     toast.success(next === 'ACTIVE' ? 'Usuário ativado' : 'Usuário suspenso', { description: user.name })
 
-    if (!preview) {
-      const res = await toggleUserSuspended(user.id, next !== 'ACTIVE')
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await toggleUserSuspended(user.id, next !== 'ACTIVE')
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function openReset(user: User) {
@@ -186,11 +179,6 @@ export function UsuariosView({
 
   async function handleTempPassword() {
     if (!resetTarget) return
-    if (preview) {
-      setTempPassword('Exemplo123x') // demo: sem banco não grava
-      toast.success('Senha temporária gerada (demo)')
-      return
-    }
     setResetBusy(true)
     const res = await setTemporaryPasswordAction(resetTarget.id)
     setResetBusy(false)
@@ -204,11 +192,6 @@ export function UsuariosView({
 
   async function handleSendReset() {
     if (!resetTarget) return
-    if (preview) {
-      toast.success('Link de redefinição enviado (demo)', { description: resetTarget.email })
-      setResetTarget(null)
-      return
-    }
     setResetBusy(true)
     const res = await sendPasswordResetAction(resetTarget.id)
     setResetBusy(false)
@@ -238,11 +221,9 @@ export function UsuariosView({
     setRemoveTarget(null)
     toast.success('Usuário removido', { description: target.name })
 
-    if (!preview) {
-      const res = await deleteUserAction(target.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteUserAction(target.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   return (

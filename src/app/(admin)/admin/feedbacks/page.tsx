@@ -2,15 +2,9 @@
 export const dynamic = 'force-dynamic'
 
 import { Star, MessageSquareHeart } from 'lucide-react'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listFeedbacks } from '@/server/repositories/feedback.repository'
 
 type Row = { id: string; userName: string; userEmail: string; rating: number | null; message: string; date: string }
-
-const mockRows: Row[] = [
-  { id: '1', userName: 'Maria Aparecida', userEmail: 'maria@exemplo.com', rating: 5, message: 'Os cursos são ótimos e o diagnóstico por foto me salvou na safra. Recomendo!', date: '14 jul 2026' },
-  { id: '2', userName: 'Pedro Henrique', userEmail: 'pedro@exemplo.com', rating: 4, message: 'Muito bom, só senti falta de mais conteúdo sobre irrigação.', date: '12 jul 2026' },
-]
 
 function Stars({ n }: { n: number | null }) {
   if (!n) return <span className="text-xs" style={{ color: 'oklch(0.6 0.03 144)' }}>sem nota</span>
@@ -24,19 +18,17 @@ function Stars({ n }: { n: number | null }) {
 }
 
 export default async function AdminFeedbacksPage() {
-  let rows: Row[] = mockRows
-  if (!PREVIEW_MODE) {
-    try {
-      const data = await listFeedbacks()
-      rows = data.map((f) => ({
-        id: f.id, userName: f.userName, userEmail: f.userEmail, rating: f.rating,
-        message: f.message,
-        date: f.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-      }))
-    } catch (err) {
-      console.error('[admin/feedbacks] falha ao carregar feedbacks:', err)
-      rows = []
-    }
+  let rows: Row[] = []
+  try {
+    const data = await listFeedbacks()
+    rows = data.map((f) => ({
+      id: f.id, userName: f.userName, userEmail: f.userEmail, rating: f.rating,
+      message: f.message,
+      date: f.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+    }))
+  } catch (err) {
+    console.error('[admin/feedbacks] falha ao carregar feedbacks:', err)
+    rows = []
   }
 
   const withRating = rows.filter((r) => r.rating != null)

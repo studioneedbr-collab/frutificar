@@ -11,7 +11,7 @@ import { SelectField } from '@/components/ui/field-controls'
 import {
   createResourceAction, updateResourceAction, deleteResourceAction,
 } from '@/server/actions/admin-materials'
-import { uploadFile, formatFileSize } from '@/lib/upload-client'
+import { uploadFile } from '@/lib/upload-client'
 import type { Material, MaterialType, MaterialPlan } from './data'
 
 const typeIcon: Record<string, { icon: typeof FileText; color: string; bg: string }> = {
@@ -51,19 +51,12 @@ const filterOptions = [
   { value: 'DOC', label: 'Documento' },
 ]
 
-function todayBR() {
-  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-  const d = new Date()
-  return `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`
-}
-
 const gridCols = '2.5fr 0.8fr 0.8fr 1fr 0.8fr auto'
 
 export function MateriaisView({
-  initialMaterials, preview,
+  initialMaterials,
 }: {
   initialMaterials: Material[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [materials, setMaterials] = useState<Material[]>(initialMaterials)
@@ -107,51 +100,33 @@ export function MateriaisView({
     if (!title) return
     const file = createFile
 
-    // Modo real: sobe o arquivo (se houver) ANTES de fechar o modal, para capturar erro.
-    if (!preview) {
-      setSaving(true)
-      let fileUrl = ''
-      if (file) {
-        const up = await uploadFile(file, 'materiais')
-        if (!up.ok) {
-          setSaving(false)
-          toast.error(up.error)
-          return
-        }
-        fileUrl = up.url
-      }
-      const res = await createResourceAction({
-        title,
-        description: '',
-        fileUrl,
-        category: createType,
-        requiredPlan: createPlan,
-      })
-      setSaving(false)
-      if (!res.ok) {
-        toast.error(res.error)
+    // Sobe o arquivo (se houver) ANTES de fechar o modal, para capturar erro.
+    setSaving(true)
+    let fileUrl = ''
+    if (file) {
+      const up = await uploadFile(file, 'materiais')
+      if (!up.ok) {
+        setSaving(false)
+        toast.error(up.error)
         return
       }
-      setCreateOpen(false)
-      toast.success('Material enviado', { description: title })
-      router.refresh()
+      fileUrl = up.url
+    }
+    const res = await createResourceAction({
+      title,
+      description: '',
+      fileUrl,
+      category: createType,
+      requiredPlan: createPlan,
+    })
+    setSaving(false)
+    if (!res.ok) {
+      toast.error(res.error)
       return
     }
-
-    // Modo preview (sem banco): apenas otimista.
-    const tmpId = `tmp-${Date.now()}`
-    const material: Material = {
-      id: tmpId,
-      title,
-      type: createType,
-      plan: createPlan,
-      downloads: 0,
-      size: file ? formatFileSize(file.size) : '— MB',
-      date: todayBR(),
-    }
-    setMaterials((cur) => [material, ...cur])
     setCreateOpen(false)
     toast.success('Material enviado', { description: title })
+    router.refresh()
   }
 
   function openEdit(m: Material) {
@@ -169,43 +144,34 @@ export function MateriaisView({
     const title = String(data.get('title') ?? '').trim() || target.title
     const file = editFile
 
-    if (!preview) {
-      setSaving(true)
-      let fileUrl: string | undefined
-      if (file) {
-        const up = await uploadFile(file, 'materiais')
-        if (!up.ok) {
-          setSaving(false)
-          toast.error(up.error)
-          return
-        }
-        fileUrl = up.url
-      }
-      const res = await updateResourceAction(target.id, {
-        title,
-        category: editType,
-        requiredPlan: editPlan,
-        ...(fileUrl ? { fileUrl } : {}),
-      })
-      setSaving(false)
-      if (!res.ok) {
-        toast.error(res.error)
+    setSaving(true)
+    let fileUrl: string | undefined
+    if (file) {
+      const up = await uploadFile(file, 'materiais')
+      if (!up.ok) {
+        setSaving(false)
+        toast.error(up.error)
         return
       }
-      setMaterials((cur) =>
-        cur.map((m) => (m.id === target.id ? { ...m, title, type: editType, plan: editPlan } : m)),
-      )
-      setEditTarget(null)
-      toast.success('Material atualizado', { description: title })
-      router.refresh()
+      fileUrl = up.url
+    }
+    const res = await updateResourceAction(target.id, {
+      title,
+      category: editType,
+      requiredPlan: editPlan,
+      ...(fileUrl ? { fileUrl } : {}),
+    })
+    setSaving(false)
+    if (!res.ok) {
+      toast.error(res.error)
       return
     }
-
     setMaterials((cur) =>
       cur.map((m) => (m.id === target.id ? { ...m, title, type: editType, plan: editPlan } : m)),
     )
     setEditTarget(null)
     toast.success('Material atualizado', { description: title })
+    router.refresh()
   }
 
   function handleDownload(m: Material) {
@@ -220,11 +186,9 @@ export function MateriaisView({
     setRemoveTarget(null)
     toast.success('Material removido', { description: title })
 
-    if (!preview) {
-      const res = await deleteResourceAction(target.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteResourceAction(target.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const iconBtnStyle: React.CSSProperties = { color: 'oklch(0.6 0.02 144)' }

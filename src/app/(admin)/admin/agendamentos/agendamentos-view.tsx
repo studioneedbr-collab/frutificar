@@ -43,10 +43,9 @@ function isoToDisplay(iso: string): string {
 }
 
 export function AgendamentosView({
-  initialVisits, preview,
+  initialVisits,
 }: {
   initialVisits: Visit[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [visits, setVisits] = useState<Visit[]>(initialVisits)
@@ -79,21 +78,17 @@ export function AgendamentosView({
   async function handleConfirm(v: Visit) {
     setStatus(v.id, 'CONFIRMED')
     toast.success('Visita confirmada', { description: `${v.user} · ${v.property}` })
-    if (!preview) {
-      const res = await acceptVisit(v.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await acceptVisit(v.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleComplete(v: Visit) {
     setStatus(v.id, 'COMPLETED')
     toast.success('Visita concluída', { description: `${v.user} · ${v.property}` })
-    if (!preview) {
-      const res = await completeVisit(v.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await completeVisit(v.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleCancel() {
@@ -102,11 +97,9 @@ export function AgendamentosView({
     setStatus(v.id, 'CANCELED')
     setCancelTarget(null)
     toast.success('Visita cancelada', { description: `${v.user} · ${v.property}` })
-    if (!preview) {
-      const res = await rejectVisit(v.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await rejectVisit(v.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function openAssign(v: Visit) {
@@ -125,11 +118,9 @@ export function AgendamentosView({
     )
     toast.success('Técnico atribuído', { description: `${assignAgro} · ${target.user}` })
     setAssignTarget(null)
-    if (!preview) {
-      const res = await assignVisitAction(target.id, { agronomist: assignAgro, date: assignDate || undefined })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await assignVisitAction(target.id, { agronomist: assignAgro, date: assignDate || undefined })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const iconBtnBase = 'p-1.5 rounded-lg transition-colors'

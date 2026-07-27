@@ -31,10 +31,9 @@ function formatPrice(price: number) {
 }
 
 export function PlanosView({
-  initialPlans, preview,
+  initialPlans,
 }: {
   initialPlans: Plan[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>(initialPlans)
@@ -92,11 +91,9 @@ export function PlanosView({
     setEditTarget(null)
     toast.success('Plano atualizado', { description: name })
 
-    if (!preview) {
-      const res = await updatePlanAction(planId, { priceMonthly: Number(price), features })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await updatePlanAction(planId, { priceMonthly: Number(price), features })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function toggleActive(plan: Plan) {
@@ -106,11 +103,9 @@ export function PlanosView({
       description: next ? `${plan.name} visível na landing` : `${plan.name} oculto na landing`,
     })
 
-    if (!preview) {
-      const res = await togglePlanActive(plan.id, next)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await togglePlanActive(plan.id, next)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function addCreateFeature() {
@@ -170,6 +165,11 @@ export function PlanosView({
         </button>
       </div>
 
+      {plans.length === 0 ? (
+        <div className="rounded-2xl px-6 py-8 text-center text-sm" style={{ background: 'white', border: '1px solid oklch(0.91 0.01 144)', color: 'oklch(0.58 0.03 144)' }}>
+          Nenhum plano cadastrado ainda.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {plans.map((p) => (
           <div key={p.id} className="rounded-2xl p-6 flex flex-col" style={{ background: 'white', border: `2px solid ${p.color.replace(')', ' / 0.25)')}`, opacity: p.active ? 1 : 0.6 }}>
@@ -227,6 +227,7 @@ export function PlanosView({
           </div>
         ))}
       </div>
+      )}
 
       <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid oklch(0.91 0.01 144)' }}>
         <h2 className="font-bold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)', letterSpacing: '-0.02em' }}>Resumo de receita</h2>

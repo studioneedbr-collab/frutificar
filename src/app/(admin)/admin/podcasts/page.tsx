@@ -1,20 +1,13 @@
-// Server Component: busca episódios reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em PodcastsView (client).
-// O layout admin não tem auth(); buscamos direto — as Server Actions exigem ADMIN.
+// Server Component: busca episódios reais (Supabase). A interatividade fica em
+// PodcastsView (client). O layout admin não tem auth(); buscamos direto —
+// as Server Actions exigem ADMIN.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listEpisodes } from '@/server/repositories/podcasts.repository'
-import { mockEpisodes, type Episode } from './data'
+import { type Episode } from './data'
 import { PodcastsView } from './podcasts-view'
 
 export default async function AdminPodcastsPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <PodcastsView initialEpisodes={mockEpisodes} preview />
-  }
-
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
   try {
     const rows = await listEpisodes()
     const episodes: Episode[] = rows.map((e) => ({
@@ -31,9 +24,9 @@ export default async function AdminPodcastsPage() {
       published: e.published,
     }))
 
-    return <PodcastsView initialEpisodes={episodes} preview={false} />
+    return <PodcastsView initialEpisodes={episodes} />
   } catch (err) {
     console.error('[admin/podcasts] falha ao carregar episódios:', err)
-    return <PodcastsView initialEpisodes={[]} preview={false} />
+    return <PodcastsView initialEpisodes={[]} />
   }
 }

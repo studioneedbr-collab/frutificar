@@ -1,15 +1,11 @@
 // Server Component: catálogo de serviços (persistido). CRUD em ServicosAdminView.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listServices } from '@/server/repositories/services.repository'
-import { mockServices, type ServiceItem, type ServiceType } from './data'
+import type { ServiceItem, ServiceType } from './data'
 import { ServicosAdminView } from './servicos-view'
 
 export default async function AdminServicosPage() {
-  if (PREVIEW_MODE) {
-    return <ServicosAdminView initial={mockServices} preview />
-  }
   try {
     const rows = await listServices()
     const services: ServiceItem[] = rows.map((s) => ({
@@ -20,9 +16,9 @@ export default async function AdminServicosPage() {
       price: Number(s.price),
       active: s.active,
     }))
-    return <ServicosAdminView initial={services} preview={false} />
+    return <ServicosAdminView initial={services} />
   } catch (err) {
     console.error('[admin/servicos] falha ao carregar serviços:', err)
-    return <ServicosAdminView initial={[]} preview={false} />
+    return <ServicosAdminView initial={[]} />
   }
 }

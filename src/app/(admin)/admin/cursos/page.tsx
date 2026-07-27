@@ -1,17 +1,12 @@
 // Server Component: lista os cursos reais (com módulos e aulas) para o editor do admin.
-// Em preview usa o mock. A interatividade + Server Actions ficam em CursosAdminView.
+// A interatividade + Server Actions ficam em CursosAdminView.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listCoursesForAdmin } from '@/server/repositories/courses.repository'
-import { mockCourses, type AdminCourse } from './data'
+import type { AdminCourse } from './data'
 import { CursosAdminView } from './cursos-view'
 
 export default async function AdminCursosPage() {
-  if (PREVIEW_MODE) {
-    return <CursosAdminView initialCourses={mockCourses} preview />
-  }
-
   try {
     const rows = await listCoursesForAdmin()
     const courses: AdminCourse[] = rows.map((c) => ({
@@ -32,9 +27,9 @@ export default async function AdminCursosPage() {
         })),
       })),
     }))
-    return <CursosAdminView initialCourses={courses} preview={false} />
+    return <CursosAdminView initialCourses={courses} />
   } catch (err) {
     console.error('[admin/cursos] falha ao carregar cursos:', err)
-    return <CursosAdminView initialCourses={[]} preview={false} />
+    return <CursosAdminView initialCourses={[]} />
   }
 }

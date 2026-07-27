@@ -48,10 +48,9 @@ const statusFilterOptions = [
 const labelClass = 'block text-xs font-semibold mb-1.5'
 
 export function AssinaturasView({
-  initialSubscriptions, preview,
+  initialSubscriptions,
 }: {
   initialSubscriptions: Sub[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [subs, setSubs] = useState<Sub[]>(initialSubscriptions)
@@ -92,7 +91,7 @@ export function AssinaturasView({
     { label: 'Churn mensal',  value: '2,4%',      trend: '-0.3%', up: true },
   ]
 
-  /* ── Ações (otimista + Server Action quando !preview) ── */
+  /* ── Ações (otimista + Server Action) ── */
   async function handleChangePlan() {
     if (!planTarget) return
     const id = planTarget.id
@@ -104,11 +103,9 @@ export function AssinaturasView({
     setPlanTarget(null)
     toast.success('Plano alterado', { description: `${name} · ${planValue[plan]}/mês` })
 
-    if (!preview) {
-      const res = await changeSubscriptionPlanAdmin(id, { plan })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await changeSubscriptionPlanAdmin(id, { plan })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleToggleStatus() {
@@ -121,13 +118,11 @@ export function AssinaturasView({
     setToggleTarget(null)
     toast.success(next === 'CANCELED' ? 'Assinatura cancelada' : 'Assinatura reativada', { description: name })
 
-    if (!preview) {
-      const res = wasCanceled
-        ? await reactivateSubscriptionAdmin(id)
-        : await cancelSubscriptionAdmin(id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = wasCanceled
+      ? await reactivateSubscriptionAdmin(id)
+      : await cancelSubscriptionAdmin(id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleMarkPaid() {
@@ -139,11 +134,9 @@ export function AssinaturasView({
     setPayDate('')
     toast.success('Pagamento confirmado', { description: name })
 
-    if (!preview) {
-      const res = await markSubscriptionPaid(id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await markSubscriptionPaid(id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   return (

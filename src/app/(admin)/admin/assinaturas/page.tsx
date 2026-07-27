@@ -1,10 +1,9 @@
-// Server Component: busca assinaturas reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em AssinaturasView (client).
+// Server Component: busca assinaturas reais (Supabase). A interatividade fica
+// em AssinaturasView (client).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listAllSubscriptions } from '@/server/repositories/admin-subscriptions.repository'
-import { mockSubscriptions, type Plan, type Status, type Sub } from './data'
+import type { Plan, Status, Sub } from './data'
 import { AssinaturasView } from './assinaturas-view'
 
 const planValue: Record<Plan, string> = {
@@ -20,12 +19,7 @@ function fmtDate(d: Date): string {
 }
 
 export default async function AdminAssinaturasPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <AssinaturasView initialSubscriptions={mockSubscriptions} preview />
-  }
-
-  // Modo real: tenta o banco; em qualquer falha, cai no mock para não quebrar.
+  // Tenta o banco; em qualquer falha, renderiza a view com lista vazia (sem dados falsos).
   try {
     const rows = await listAllSubscriptions()
     const subscriptions: Sub[] = rows.map((s) => {
@@ -46,9 +40,9 @@ export default async function AdminAssinaturasPage() {
       }
     })
 
-    return <AssinaturasView initialSubscriptions={subscriptions} preview={false} />
+    return <AssinaturasView initialSubscriptions={subscriptions} />
   } catch (err) {
     console.error('[admin/assinaturas] falha ao carregar assinaturas:', err)
-    return <AssinaturasView initialSubscriptions={[]} preview={false} />
+    return <AssinaturasView initialSubscriptions={[]} />
   }
 }

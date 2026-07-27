@@ -22,7 +22,7 @@ const filterToStatus: Record<Exclude<Filter, 'Todas'>, SolStatus> = {
   'Em aberto': 'OPEN', 'Em andamento': 'IN_PROGRESS', 'Concluídas': 'COMPLETED', 'Canceladas': 'CANCELED',
 }
 
-export function SolicitacoesView({ initial, preview }: { initial: SolicitacaoItem[]; preview: boolean }) {
+export function SolicitacoesView({ initial }: { initial: SolicitacaoItem[] }) {
   const router = useRouter()
   const [items, setItems] = useState<SolicitacaoItem[]>(initial)
   useEffect(() => { setItems(initial) }, [initial])
@@ -44,15 +44,11 @@ export function SolicitacoesView({ initial, preview }: { initial: SolicitacaoIte
 
   async function act(id: string, next: SolStatus, fn: (id: string) => Promise<{ ok: boolean; error?: string }>) {
     setItems((cur) => cur.map((i) => (i.id === id ? { ...i, status: next } : i)))
-    if (!preview) {
-      setBusy(id)
-      const res = await fn(id)
-      setBusy(null)
-      if (!res.ok) toast.error(res.error ?? 'Erro')
-      else router.refresh()
-    } else {
-      toast.success('Atualizado (demo)')
-    }
+    setBusy(id)
+    const res = await fn(id)
+    setBusy(null)
+    if (!res.ok) toast.error(res.error ?? 'Erro')
+    else router.refresh()
   }
 
   return (

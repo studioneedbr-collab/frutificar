@@ -30,7 +30,7 @@ const fmtPrice = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`
 let tmp = 0
 const tmpId = () => `tmp-${++tmp}`
 
-export function ServicosAdminView({ initial, preview }: { initial: ServiceItem[]; preview: boolean }) {
+export function ServicosAdminView({ initial }: { initial: ServiceItem[] }) {
   const router = useRouter()
   const [services, setServices] = useState<ServiceItem[]>(initial)
   useEffect(() => { setServices(initial) }, [initial])
@@ -62,11 +62,9 @@ export function ServicosAdminView({ initial, preview }: { initial: ServiceItem[]
     setServices((cur) => [optimistic, ...cur])
     setCreateOpen(false)
     toast.success('Serviço criado', { description: name })
-    if (!preview) {
-      const res = await createServiceAction({ name, description, type: createType, price, active: true })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createServiceAction({ name, description, type: createType, price, active: true })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
@@ -80,21 +78,17 @@ export function ServicosAdminView({ initial, preview }: { initial: ServiceItem[]
     setServices((cur) => cur.map((s) => (s.id === t.id ? { ...s, name, description, type: editType, price } : s)))
     setEditTarget(null)
     toast.success('Serviço atualizado', { description: name })
-    if (!preview) {
-      const res = await updateServiceAction(t.id, { name, description, type: editType, price })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await updateServiceAction(t.id, { name, description, type: editType, price })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function toggleActive(s: ServiceItem) {
     const next = !s.active
     setServices((cur) => cur.map((x) => (x.id === s.id ? { ...x, active: next } : x)))
-    if (!preview) {
-      const res = await toggleServiceActiveAction(s.id, next)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await toggleServiceActiveAction(s.id, next)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleRemove() {
@@ -103,11 +97,9 @@ export function ServicosAdminView({ initial, preview }: { initial: ServiceItem[]
     setServices((cur) => cur.filter((s) => s.id !== t.id))
     setRemoveTarget(null)
     toast.success('Serviço removido', { description: t.name })
-    if (!preview) {
-      const res = await deleteServiceAction(t.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteServiceAction(t.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   return (

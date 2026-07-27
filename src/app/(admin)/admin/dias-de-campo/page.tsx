@@ -1,11 +1,10 @@
-// Server Component: busca dias de campo reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em DiasDeCampoView (client).
+// Server Component: busca dias de campo reais (Supabase).
+// A interatividade fica em DiasDeCampoView (client).
 // O modelo FieldDay não tem vagas/inscritos — esses campos são display-only.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listFieldDaysWithCounts } from '@/server/repositories/fielddays.repository'
-import { mockEvents, type FieldDayRow } from './data'
+import type { FieldDayRow } from './data'
 import { DiasDeCampoView } from './dias-view'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -18,12 +17,7 @@ function toTime(d: Date): string {
 }
 
 export default async function AdminDiasDeCampoPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <DiasDeCampoView initialEvents={mockEvents} preview />
-  }
-
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Lê do banco; em caso de erro, renderiza a lista vazia (sem dados fictícios).
   try {
     const rows = await listFieldDaysWithCounts()
     const events: FieldDayRow[] = rows.map((f) => ({
@@ -38,9 +32,9 @@ export default async function AdminDiasDeCampoPage() {
       registered: f._count.registrations,
     }))
 
-    return <DiasDeCampoView initialEvents={events} preview={false} />
+    return <DiasDeCampoView initialEvents={events} />
   } catch (err) {
     console.error('[admin/dias-de-campo] falha ao carregar dias de campo:', err)
-    return <DiasDeCampoView initialEvents={[]} preview={false} />
+    return <DiasDeCampoView initialEvents={[]} />
   }
 }

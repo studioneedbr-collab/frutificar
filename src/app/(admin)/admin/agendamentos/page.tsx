@@ -1,11 +1,9 @@
-// Server Component: busca todas as visitas (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em AgendamentosView (client).
-// O layout admin já exige ADMIN em modo real; as Server Actions revalidam esta rota.
+// Server Component: busca todas as visitas (Supabase). A interatividade fica em AgendamentosView (client).
+// O layout admin já exige ADMIN; as Server Actions revalidam esta rota.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listAllVisits } from '@/server/repositories/admin.repository'
-import { mockVisits, type Visit, type Status } from './data'
+import { type Visit, type Status } from './data'
 import { AgendamentosView } from './agendamentos-view'
 
 const MONTHS_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -14,12 +12,7 @@ function formatDateBR(date: Date): string {
 }
 
 export default async function AdminAgendamentosPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <AgendamentosView initialVisits={mockVisits} preview />
-  }
-
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Lê do banco; em caso de erro, mostra estado vazio (nunca dados fictícios).
   try {
     const rows = await listAllVisits()
     const visits: Visit[] = rows.map((v) => ({
@@ -31,9 +24,9 @@ export default async function AdminAgendamentosPage() {
       status: v.status as Status,
       agronomist: v.agronomist ?? undefined,
     }))
-    return <AgendamentosView initialVisits={visits} preview={false} />
+    return <AgendamentosView initialVisits={visits} />
   } catch (err) {
     console.error('[admin/agendamentos] falha ao carregar visitas:', err)
-    return <AgendamentosView initialVisits={[]} preview={false} />
+    return <AgendamentosView initialVisits={[]} />
   }
 }

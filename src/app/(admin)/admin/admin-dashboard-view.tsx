@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Users, BookOpen, CreditCard, TrendingUp,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal,
+  MoreHorizontal,
   Circle, Inbox, MapPin, Sprout,
   Check, X, ShieldAlert,
 } from 'lucide-react'
@@ -20,36 +20,24 @@ import type { Solicitation } from './data'
 const stats = [
   {
     label: 'Alunos ativos',
-    value: '1.284',
-    change: '+12%',
-    up: true,
     icon: Users,
     color: 'oklch(0.48 0.13 144)',
     bg: 'oklch(0.48 0.13 144 / 0.08)',
   },
   {
     label: 'Assinaturas ativas',
-    value: '947',
-    change: '+8%',
-    up: true,
     icon: CreditCard,
     color: 'oklch(0.62 0.12 55)',
     bg: 'oklch(0.62 0.12 55 / 0.08)',
   },
   {
     label: 'Cursos publicados',
-    value: '23',
-    change: '+2 este mês',
-    up: true,
     icon: BookOpen,
     color: 'oklch(0.55 0.1 220)',
     bg: 'oklch(0.55 0.1 220 / 0.08)',
   },
   {
     label: 'Receita mensal',
-    value: 'R$ 38.420',
-    change: '-3%',
-    up: false,
     icon: TrendingUp,
     color: 'oklch(0.78 0.17 75)',
     bg: 'oklch(0.78 0.17 75 / 0.08)',
@@ -65,21 +53,9 @@ export type DashboardMetrics = {
   monthlyRevenue: number
 }
 
-const defaultRecentUsers: DashboardUser[] = [
-  { name: 'João Carlos Silva', email: 'joao@exemplo.com', plan: 'GOLD', status: 'ACTIVE', joined: '12 jun 2026' },
-  { name: 'Maria Aparecida Costa', email: 'maria@exemplo.com', plan: 'PREMIUM', status: 'ACTIVE', joined: '11 jun 2026' },
-  { name: 'Pedro Henrique Souza', email: 'pedro@exemplo.com', plan: 'ESSENCIAL', status: 'ACTIVE', joined: '10 jun 2026' },
-  { name: 'Ana Beatriz Lima', email: 'ana@exemplo.com', plan: 'GOLD', status: 'PAST_DUE', joined: '09 jun 2026' },
-  { name: 'Carlos Eduardo Rocha', email: 'carlos@exemplo.com', plan: 'PREMIUM', status: 'ACTIVE', joined: '08 jun 2026' },
-  { name: 'Fernanda Oliveira', email: 'fernanda@exemplo.com', plan: 'ESSENCIAL', status: 'CANCELED', joined: '07 jun 2026' },
-]
+const defaultRecentUsers: DashboardUser[] = []
 
-const defaultRecentCourses: DashboardCourse[] = [
-  { title: 'Manejo do Cafeeiro: Do Plantio à Colheita', lessons: 18, enrolled: 312, published: true },
-  { title: 'Análise de Solo para Produtores Rurais', lessons: 12, enrolled: 198, published: true },
-  { title: 'Gestão Financeira da Propriedade Rural', lessons: 9, enrolled: 87, published: false },
-  { title: 'Irrigação Inteligente com Sensores IoT', lessons: 6, enrolled: 0, published: false },
-]
+const defaultRecentCourses: DashboardCourse[] = []
 
 const planColors: Record<string, { bg: string; text: string }> = {
   GOLD:      { bg: 'oklch(0.78 0.17 75 / 0.12)', text: 'oklch(0.5 0.14 75)' },
@@ -102,10 +78,9 @@ function solicitationVisual(kind: Solicitation['kind']) {
 }
 
 export function AdminDashboardView({
-  initialSolicitations, preview, metrics, recentUsers = defaultRecentUsers, recentCourses = defaultRecentCourses,
+  initialSolicitations, metrics, recentUsers = defaultRecentUsers, recentCourses = defaultRecentCourses,
 }: {
   initialSolicitations: Solicitation[]
-  preview: boolean
   metrics?: DashboardMetrics
   recentUsers?: DashboardUser[]
   recentCourses?: DashboardCourse[]
@@ -114,15 +89,15 @@ export function AdminDashboardView({
   const [requests, setRequests] = useState<Solicitation[]>(initialSolicitations)
   const [rejectTarget, setRejectTarget] = useState<Solicitation | null>(null)
 
-  // Em modo real, os valores dos 4 cards vêm das métricas do banco (sem % de tendência).
-  const metricOverrides = metrics
+  // Os valores dos 4 cards vêm das métricas do banco (sem % de tendência).
+  const metricValues = metrics
     ? [
-        { value: metrics.activeStudents.toLocaleString('pt-BR'), change: '' },
-        { value: metrics.activeSubscriptions.toLocaleString('pt-BR'), change: '' },
-        { value: String(metrics.publishedCourses), change: '' },
-        { value: `R$ ${metrics.monthlyRevenue.toLocaleString('pt-BR')}`, change: '' },
+        metrics.activeStudents.toLocaleString('pt-BR'),
+        metrics.activeSubscriptions.toLocaleString('pt-BR'),
+        String(metrics.publishedCourses),
+        `R$ ${metrics.monthlyRevenue.toLocaleString('pt-BR')}`,
       ]
-    : null
+    : ['—', '—', '—', '—']
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
   useEffect(() => { setRequests(initialSolicitations) }, [initialSolicitations])
@@ -131,13 +106,11 @@ export function AdminDashboardView({
     setRequests((cur) => cur.filter((r) => r.id !== req.id))
     toast.success('Solicitação aceita', { description: `${req.type} de ${req.user}` })
 
-    if (!preview) {
-      const res = req.kind === 'visit'
-        ? await acceptVisit(req.id)
-        : await acceptServiceRequest(req.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = req.kind === 'visit'
+      ? await acceptVisit(req.id)
+      : await acceptServiceRequest(req.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function confirmReject() {
@@ -147,13 +120,11 @@ export function AdminDashboardView({
     setRejectTarget(null)
     toast.info('Solicitação recusada')
 
-    if (!preview) {
-      const res = req.kind === 'visit'
-        ? await rejectVisit(req.id)
-        : await rejectServiceRequest(req.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = req.kind === 'visit'
+      ? await rejectVisit(req.id)
+      : await rejectServiceRequest(req.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   return (
@@ -179,8 +150,7 @@ export function AdminDashboardView({
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {stats.map((s, i) => {
           const Icon = s.icon
-          const value = metricOverrides ? metricOverrides[i].value : s.value
-          const change = metricOverrides ? metricOverrides[i].change : s.change
+          const value = metricValues[i]
           return (
             <div
               key={s.label}
@@ -194,15 +164,6 @@ export function AdminDashboardView({
                 >
                   <Icon size={18} style={{ color: s.color }} strokeWidth={2} />
                 </div>
-                {change && (
-                  <span
-                    className="flex items-center gap-1 text-xs font-semibold"
-                    style={{ color: s.up ? 'oklch(0.48 0.13 144)' : 'oklch(0.52 0.18 27)' }}
-                  >
-                    {s.up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                    {change}
-                  </span>
-                )}
               </div>
               <p
                 className="text-2xl font-bold leading-none mb-1"

@@ -57,10 +57,8 @@ const emptyForm: EpisodeForm = { title: '', series: podcasts[0].name, dur: '', d
 
 export function PodcastsView({
   initialEpisodes,
-  preview,
 }: {
   initialEpisodes: Episode[]
-  preview: boolean
 }) {
   const router = useRouter()
 
@@ -90,10 +88,6 @@ export function PodcastsView({
 
   async function uploadAudio(file: File | undefined, target: 'create' | 'edit') {
     if (!file) return
-    if (preview) {
-      toast.info('Upload de arquivo disponível apenas com o banco conectado. Use a URL por enquanto.')
-      return
-    }
     setUploading(true)
     const up = await uploadFile(file, 'podcasts')
     setUploading(false)
@@ -140,19 +134,17 @@ export function PodcastsView({
     setCreateOpen(false)
     toast.success('Episódio publicado', { description: title })
 
-    if (!preview) {
-      const result = await createEpisodeAction({
-        title,
-        audioUrl: episode.url || undefined,
-        publishedAt: episode.date ? new Date(episode.date) : new Date(),
-      })
-      if (!result.ok) {
-        setEpisodes((cur) => cur.filter((ep) => ep.id !== tempId))
-        toast.error(result.error)
-        return
-      }
-      router.refresh()
+    const result = await createEpisodeAction({
+      title,
+      audioUrl: episode.url || undefined,
+      publishedAt: episode.date ? new Date(episode.date) : new Date(),
+    })
+    if (!result.ok) {
+      setEpisodes((cur) => cur.filter((ep) => ep.id !== tempId))
+      toast.error(result.error)
+      return
     }
+    router.refresh()
   }
 
   function openEdit(ep: Episode) {
@@ -185,19 +177,17 @@ export function PodcastsView({
     setEditTarget(null)
     toast.success('Episódio atualizado', { description: title })
 
-    if (!preview) {
-      const result = await updateEpisodeAction(target.id, {
-        title,
-        audioUrl: nextUrl || undefined,
-        publishedAt: nextDate ? new Date(nextDate) : undefined,
-      })
-      if (!result.ok) {
-        setEpisodes(previous)
-        toast.error(result.error)
-        return
-      }
-      router.refresh()
+    const result = await updateEpisodeAction(target.id, {
+      title,
+      audioUrl: nextUrl || undefined,
+      publishedAt: nextDate ? new Date(nextDate) : undefined,
+    })
+    if (!result.ok) {
+      setEpisodes(previous)
+      toast.error(result.error)
+      return
     }
+    router.refresh()
   }
 
   async function togglePublished(ep: Episode) {
@@ -206,15 +196,13 @@ export function PodcastsView({
     setEpisodes((cur) => cur.map((e) => (e.id === ep.id ? { ...e, published: next } : e)))
     toast.success(next ? 'Episódio publicado' : 'Episódio despublicado', { description: ep.title })
 
-    if (!preview) {
-      const result = await updateEpisodeAction(ep.id, { published: next })
-      if (!result.ok) {
-        setEpisodes(previous)
-        toast.error(result.error)
-        return
-      }
-      router.refresh()
+    const result = await updateEpisodeAction(ep.id, { published: next })
+    if (!result.ok) {
+      setEpisodes(previous)
+      toast.error(result.error)
+      return
     }
+    router.refresh()
   }
 
   async function handleRemove() {
@@ -226,15 +214,13 @@ export function PodcastsView({
     setRemoveTarget(null)
     toast.success('Episódio removido', { description: title })
 
-    if (!preview) {
-      const result = await deleteEpisodeAction(target.id)
-      if (!result.ok) {
-        setEpisodes(previous)
-        toast.error(result.error)
-        return
-      }
-      router.refresh()
+    const result = await deleteEpisodeAction(target.id)
+    if (!result.ok) {
+      setEpisodes(previous)
+      toast.error(result.error)
+      return
     }
+    router.refresh()
   }
 
   const iconBtnStyle: React.CSSProperties = { color: 'oklch(0.6 0.02 144)' }
