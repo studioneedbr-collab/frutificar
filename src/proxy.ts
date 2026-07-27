@@ -3,10 +3,6 @@ import { NextResponse } from 'next/server'
 import { PLAN_FEATURES, ROUTE_FEATURE_MAP, type Feature } from '@/lib/constants'
 import type { PlanName } from '@prisma/client'
 
-// Real é o padrão: auth + plan-gating ligados. O modo demo (sem banco) é OPT-IN
-// via PREVIEW_MODE="true" — assim a produção nunca fica sem controle por engano.
-const PREVIEW_MODE = process.env.PREVIEW_MODE === 'true'
-
 // Inline pure helpers — no DB/Prisma dependency in middleware
 function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
   if (!plan) return false
@@ -44,9 +40,6 @@ export default auth((req) => {
     pathname.includes('.')
 
   if (isPublicPath) return NextResponse.next()
-
-  // DEV PREVIEW — libera tudo sem banco. Ative o controle real com PREVIEW_MODE=false.
-  if (PREVIEW_MODE) return NextResponse.next()
 
   // Rotas não autenticadas → login
   if (!session?.user) {

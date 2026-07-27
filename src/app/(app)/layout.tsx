@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { getSetting } from '@/server/repositories/settings.repository'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
@@ -21,24 +20,21 @@ function MaintenanceScreen() {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // Modo demo (sem banco): não exige login — renderiza com um aluno fictício
-  // para que o botão "Entrar como aluno (sem banco)" funcione.
-  const session = PREVIEW_MODE ? null : await auth()
-  if (!PREVIEW_MODE && !session) {
+  const session = await auth()
+  if (!session) {
     redirect('/login')
   }
 
   // Modo de manutenção (admin /configuracoes): bloqueia produtores, admin passa.
-  if (!PREVIEW_MODE && session && session.user.role !== 'ADMIN') {
+  if (session.user.role !== 'ADMIN') {
     try {
       if ((await getSetting('maintenance_mode')) === 'true') return <MaintenanceScreen />
     } catch { /* sem settings — segue normal */ }
   }
 
-  const userPlan = session?.user.plan ?? 'GOLD'
-  const userName = session?.user.name ?? 'Aluno Demo'
-  // Em preview não há e-mail a verificar; fora dele, respeita a sessão.
-  const emailVerified = PREVIEW_MODE ? true : session?.user.emailVerified
+  const userPlan = session.user.plan ?? 'GOLD'
+  const userName = session.user.name
+  const emailVerified = session.user.emailVerified
 
   return (
     <div className="flex h-screen overflow-hidden">
