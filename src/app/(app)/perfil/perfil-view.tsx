@@ -57,11 +57,10 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: () => void; la
 }
 
 export function PerfilView({
-  initialName, initialEmail, preview,
+  initialName, initialEmail,
 }: {
   initialName: string
   initialEmail: string
-  preview: boolean
 }) {
   const router = useRouter()
 
@@ -97,10 +96,6 @@ export function PerfilView({
   /* ── Dados pessoais (salvar) ── */
   async function handleSaveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (preview) {
-      toast.success('Dados salvos', { description: 'Suas informações foram atualizadas.' })
-      return
-    }
     const res = await updateProfile({ name, email })
     if (res.ok) {
       toast.success('Dados salvos', { description: 'Suas informações foram atualizadas.' })
@@ -121,11 +116,6 @@ export function PerfilView({
     const confirmar = String(data.get('confirmar') ?? '')
     if (nova !== confirmar) {
       toast.error('As senhas não coincidem')
-      return
-    }
-    if (preview) {
-      setPasswordOpen(false)
-      toast.success('Senha alterada', { description: 'Use a nova senha no próximo login.' })
       return
     }
     const res = await changePassword({ currentPassword: atual, newPassword: nova })

@@ -20,8 +20,3 @@ export const temaOptions = [
   { value: 'Comercialização e preço', label: 'Comercialização e preço' },
   { value: 'Outro assunto', label: 'Outro assunto' },
 ]
-
-export const mockTutorias: TutoriaRequest[] = [
-  { id: '1', tema: 'Controle de pragas e doenças', description: 'Ferrugem persistente no talhão A2, mesmo após aplicação.', status: 'Em andamento', data: '02 jul 2026' },
-  { id: '2', tema: 'Gestão e custos da lavoura', description: 'Montar planilha de custo por saca beneficiada.', status: 'Concluído', data: '20 jun 2026' },
-]

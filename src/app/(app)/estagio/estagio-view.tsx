@@ -22,7 +22,7 @@ const statusStyle: Record<string, { bg: string; text: string }> = {
   'Encerrado':           { bg: 'oklch(0.6 0.1 27 / 0.12)',   text: 'oklch(0.45 0.1 27)' },
 }
 
-export function EstagioView({ initial, preview }: { initial: EstagioItem[]; preview: boolean }) {
+export function EstagioView({ initial }: { initial: EstagioItem[] }) {
   const router = useRouter()
   const [items, setItems] = useState<EstagioItem[]>(initial)
   useEffect(() => { setItems(initial) }, [initial])
@@ -39,13 +39,6 @@ export function EstagioView({ initial, preview }: { initial: EstagioItem[]; prev
       return
     }
     const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-
-    if (preview) {
-      setItems((cur) => [{ id: `tmp-${cur.length}`, area, description, status: 'Candidatura enviada', data: hoje }, ...cur])
-      if (descRef.current) descRef.current.value = ''
-      toast.success('Candidatura enviada (demo)')
-      return
-    }
 
     setSending(true)
     const res = await requestService({ serviceType: `${ESTAGIO_PREFIX} — ${area}`, description })

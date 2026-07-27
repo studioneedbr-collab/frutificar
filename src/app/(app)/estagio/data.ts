@@ -19,7 +19,3 @@ export const areaOptions = [
   { value: 'Pós-colheita e qualidade', label: 'Pós-colheita e qualidade' },
   { value: 'Outra área', label: 'Outra área' },
 ]
-
-export const mockEstagios: EstagioItem[] = [
-  { id: '1', area: 'Produção e manejo de café', description: 'Tenho interesse em acompanhar a implantação de lavoura.', status: 'Em análise', data: '10 jul 2026' },
-]

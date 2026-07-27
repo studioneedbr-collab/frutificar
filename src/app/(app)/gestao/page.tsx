@@ -1,24 +1,22 @@
 // Server Component: Gestão da Propriedade (licenças, documentos, histórico).
-// Lê PropertyDocument por propriedade do aluno; em preview usa mock.
+// Lê PropertyDocument por propriedade do aluno.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listPropertiesWithDocuments } from '@/server/repositories/properties.repository'
-import { mockProperties, type GestaoProperty, type DocType } from './data'
+import { type GestaoProperty, type DocType } from './data'
 import { GestaoView } from './gestao-view'
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null)
 
 export default async function GestaoPage() {
-  if (PREVIEW_MODE) {
-    return <GestaoView properties={mockProperties} preview />
+  const session = await auth()
+  if (!session?.user?.id) {
+    redirect('/login')
   }
 
   try {
-    const session = await auth()
-    if (!session?.user?.id) return <GestaoView properties={mockProperties} preview />
-
     const rows = await listPropertiesWithDocuments(session.user.id)
     const properties: GestaoProperty[] = rows.map((p) => ({
       id: p.id,
@@ -37,9 +35,9 @@ export default async function GestaoPage() {
       })),
     }))
 
-    return <GestaoView properties={properties} preview={false} />
+    return <GestaoView properties={properties} />
   } catch (err) {
     console.error('[app/gestao] falha ao carregar propriedades:', err)
-    return <GestaoView properties={[]} preview={false} />
+    return <GestaoView properties={[]} />
   }
 }

@@ -1,21 +1,15 @@
-// Server Component: busca propriedades reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em PropriedadesView (client).
+// Server Component: busca propriedades reais (Supabase). A interatividade
+// fica em PropriedadesView (client).
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listPropertiesByUser } from '@/server/repositories/properties.repository'
-import { mockProperties, type Property, type Status } from './data'
+import { type Property, type Status } from './data'
 import { PropriedadesView } from './propriedades-view'
 
 export default async function PropriedadesPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <PropriedadesView initialProperties={mockProperties} preview />
-  }
-
-  // Modo real: sem sessão → login (nunca dados fake).
+  // Sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
     redirect('/login')
@@ -39,5 +33,5 @@ export default async function PropriedadesPage() {
     })),
   }))
 
-  return <PropriedadesView initialProperties={properties} preview={false} />
+  return <PropriedadesView initialProperties={properties} />
 }

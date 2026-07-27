@@ -1,12 +1,11 @@
-// Server Component: monta a lista de cursos a partir do banco quando PREVIEW_MODE=false.
+// Server Component: monta a lista de cursos a partir do banco.
 // O curso PRINCIPAL vira a trilha em destaque (com accordion de módulos/aulas) e os
 // MINICOURSE viram cards. Cada aula leva ao player /cursos/[slug]/[lessonId].
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { PREVIEW_MODE } from '@/lib/preview'
-import { mockData, type CoursesData, type ModuleRow, type MiniRow } from './data'
+import { type CoursesData, type ModuleRow, type MiniRow } from './data'
 import { CursosView } from './cursos-view'
 
 function minutes(totalSec: number): string {
@@ -15,10 +14,6 @@ function minutes(totalSec: number): string {
 }
 
 export default async function CursosPage() {
-  if (PREVIEW_MODE) {
-    return <CursosView data={mockData} />
-  }
-
   try {
     const session = await auth()
 

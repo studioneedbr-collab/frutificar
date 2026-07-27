@@ -1,8 +1,6 @@
-// Server Component: lê alguns valores reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A UI fica em DashboardView (client).
+// Server Component: lê alguns valores reais (Supabase). A UI fica em DashboardView (client).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listPropertiesByUser } from '@/server/repositories/properties.repository'
 import { listLives } from '@/server/repositories/lives.repository'
@@ -10,15 +8,14 @@ import { mockDashboard, type DashboardData } from './data'
 import { DashboardView } from './dashboard-view'
 
 export default async function DashboardPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <DashboardView data={mockDashboard} />
-  }
-
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Exige sessão; sem ela, mostra estado vazio.
   const session = await auth()
   if (!session?.user?.id) {
-    return <DashboardView data={mockDashboard} />
+    return (
+      <DashboardView
+        data={{ propertyName: '—', propertyLocation: '—', plotsCount: 0, nextLiveTitle: '—', nextLiveWhen: '—' }}
+      />
+    )
   }
 
   try {

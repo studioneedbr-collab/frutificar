@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { FormEvent } from 'react'
-import { Sprout, Bot, Send, Sparkles, User } from 'lucide-react'
+import { Sprout, Bot, Send, User } from 'lucide-react'
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
 const T = {
@@ -24,70 +24,6 @@ interface Msg {
   content: string
 }
 
-/* ── Base de respostas agronômicas (café) — usada só no modo PREVIEW ── */
-interface Answer {
-  keys: string[]
-  text: string
-}
-
-const ANSWERS: Answer[] = [
-  {
-    keys: ['ferrugem', 'praga', 'pragas', 'broca', 'bicho', 'fungo', 'doença', 'doenca'],
-    text:
-      'A ferrugem (Hemileia vastatrix) é favorecida por alta umidade e temperaturas entre 21 e 25 °C. ' +
-      'Monitore a incidência foliar e faça aplicações preventivas de fungicidas cúpricos ou triazóis/estrobilurinas a partir de dezembro, alternando os modos de ação para evitar resistência. ' +
-      'Lavouras bem nutridas (com potássio adequado) e arejadas resistem melhor — evite excesso de sombreamento e adensamento.',
-  },
-  {
-    keys: ['calagem', 'calcário', 'calcario', 'solo', 'ph', 'acidez', 'gesso', 'corrigir'],
-    text:
-      'A calagem ideal parte da análise de solo: corrija para elevar a saturação por bases (V%) a cerca de 60% e neutralizar o alumínio tóxico. ' +
-      'Aplique o calcário 60 a 90 dias antes do plantio ou na entressafra, incorporando quando possível, e considere o gesso agrícola para corrigir a acidez em subsuperfície. ' +
-      'O pH em água em torno de 5,5 a 6,0 favorece a disponibilidade de nutrientes para o café.',
-  },
-  {
-    keys: ['npk', 'adubação', 'adubacao', 'adubo', 'nutrição', 'nutricao', 'florada', 'nitrogênio', 'nitrogenio', 'potássio', 'potassio', 'fósforo', 'fosforo', 'fertilizante'],
-    text:
-      'Na florada o cafeeiro tem alta demanda por nitrogênio e potássio para sustentar a granação. ' +
-      'Parcele a adubação em 3 a 4 vezes ao longo das chuvas (out–mar), ajustando as doses à análise de solo e à expectativa de carga pendente — em geral algo na faixa de 300 a 400 kg/ha de N e K2O para lavouras produtivas. ' +
-      'Não esqueça dos micronutrientes (boro e zinco), que pegam fixação dos chumbinhos e o pegamento da florada.',
-  },
-  {
-    keys: ['preço', 'preco', 'precificar', 'saca', 'comercial', 'comercialização', 'comercializacao', 'vender', 'venda', 'mercado', 'custo'],
-    text:
-      'Para precificar a saca, parta do seu custo de produção por saca beneficiada e some a margem desejada — só assim você sabe seu preço mínimo de venda. ' +
-      'Acompanhe o indicador CEPEA/ESALQ e o mercado de bolsa (ICE) como referência, e considere travar parte da safra via contratos futuros ou barter para reduzir risco. ' +
-      'Qualidade de bebida e classificação por peneira agregam ágio relevante: vale investir em colheita e secagem bem feitas.',
-  },
-  {
-    keys: ['irrigação', 'irrigacao', 'água', 'agua', 'gotejamento', 'pivô', 'pivo', 'hídrico', 'hidrico', 'seca'],
-    text:
-      'No café, o manejo da irrigação deve respeitar o estresse hídrico controlado pré-florada para uniformizar a abertura das flores. ' +
-      'Use o balanço hídrico (ETc e capacidade de água disponível do solo) para definir a lâmina, priorizando gotejamento pela eficiência. ' +
-      'Após o florescimento, mantenha a umidade estável na fase de chumbinho e granação, que são os períodos mais sensíveis a déficit.',
-  },
-  {
-    keys: ['colheita', 'colher', 'secagem', 'secar', 'terreiro', 'maturação', 'maturacao', 'pós-colheita', 'pos-colheita', 'beneficiamento'],
-    text:
-      'Colha com a maior proporção possível de frutos cereja maduros — o ideal é acima de 80% — para garantir qualidade de bebida. ' +
-      'Logo após a colheita, lave para separar boia e leve à secagem rápida, mantendo camadas finas no terreiro e revolvendo com frequência, ou use secador a baixa temperatura (até ~40 °C na massa). ' +
-      'Seque até cerca de 11 a 12% de umidade e descanse o café em tulha antes do beneficiamento para estabilizar a qualidade.',
-  },
-]
-
-const DEFAULT_ANSWER =
-  'Ótima pergunta! No contexto do cafeeiro, a recomendação sempre parte de duas bases: a análise de solo atualizada e o monitoramento da lavoura em campo. ' +
-  'Me dê um pouco mais de detalhe (fase da cultura, sintoma observado, ou objetivo) que eu trago uma orientação técnica mais precisa para o seu talhão. ' +
-  'Posso ajudar com manejo de pragas, correção de solo, adubação, irrigação, colheita ou comercialização.'
-
-function pickAnswer(input: string): string {
-  const q = input.toLowerCase()
-  for (const a of ANSWERS) {
-    if (a.keys.some((k) => q.includes(k))) return a.text
-  }
-  return DEFAULT_ANSWER
-}
-
 const SUGGESTIONS = [
   'Como controlar a ferrugem do café?',
   'Qual a melhor época de calagem?',
@@ -98,19 +34,7 @@ const SUGGESTIONS = [
 const GREETING =
   'Olá! Sou o Assistente Agrícola da Frutificar. Posso te ajudar com manejo de pragas, correção e adubação de solo, irrigação, colheita e comercialização do café. Como posso ajudar na sua lavoura hoje?'
 
-const PREVIEW_SEED: Msg[] = [
-  { id: 0, role: 'assistant', content: GREETING },
-  { id: 1, role: 'user', content: 'Estou vendo manchas alaranjadas embaixo das folhas. O que pode ser?' },
-  {
-    id: 2,
-    role: 'assistant',
-    content:
-      'Esse sintoma é clássico de ferrugem do cafeeiro: pústulas amarelo-alaranjadas na face inferior das folhas, levando à desfolha. ' +
-      'Faça o monitoramento da incidência e inicie um programa preventivo de fungicidas, alternando modos de ação, e reforce a nutrição potássica da lavoura.',
-  },
-]
-
-const REAL_SEED: Msg[] = [{ id: 0, role: 'assistant', content: GREETING }]
+const INITIAL_SEED: Msg[] = [{ id: 0, role: 'assistant', content: GREETING }]
 
 /* ── Subcomponentes ─────────────────────────────────────────────────── */
 function AssistantAvatar({ size = 36 }: { size?: number }) {
@@ -185,11 +109,11 @@ function TypingIndicator() {
 }
 
 /* ── Página ─────────────────────────────────────────────────────────── */
-export function ChatView({ preview }: { preview: boolean }) {
-  const [messages, setMessages] = useState<Msg[]>(preview ? PREVIEW_SEED : REAL_SEED)
+export function ChatView() {
+  const [messages, setMessages] = useState<Msg[]>(INITIAL_SEED)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const nextId = useRef(preview ? PREVIEW_SEED.length : REAL_SEED.length)
+  const nextId = useRef(INITIAL_SEED.length)
   const sessionId = useRef<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -198,20 +122,7 @@ export function ChatView({ preview }: { preview: boolean }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, isTyping])
 
-  /* Modo demo (sem banco/IA): resposta simulada determinística. */
-  function sendPreview(content: string) {
-    const userMsg: Msg = { id: nextId.current++, role: 'user', content }
-    setMessages((prev) => [...prev, userMsg])
-    setIsTyping(true)
-    const answer = pickAnswer(content)
-    const delay = Math.min(700 + content.length * 8, 1100)
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { id: nextId.current++, role: 'assistant', content: answer }])
-      setIsTyping(false)
-    }, delay)
-  }
-
-  /* Modo real: chama /api/chat e faz streaming da resposta da IA. */
+  /* Chama /api/chat e faz streaming da resposta da IA. */
   async function sendReal(content: string) {
     const userMsg: Msg = { id: nextId.current++, role: 'user', content }
     const assistantId = nextId.current++
@@ -271,8 +182,7 @@ export function ChatView({ preview }: { preview: boolean }) {
     const content = text.trim()
     if (!content || isTyping) return
     setInput('')
-    if (preview) sendPreview(content)
-    else void sendReal(content)
+    void sendReal(content)
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -313,14 +223,6 @@ export function ChatView({ preview }: { preview: boolean }) {
               >
                 Assistente Agrícola Frutificar
               </h1>
-              {preview && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                  style={{ background: 'oklch(0.62 0.12 55 / 0.12)', color: T.earth, letterSpacing: '0.04em' }}
-                >
-                  <Sparkles size={10} /> PREVIEW
-                </span>
-              )}
             </div>
             <p className="text-xs mt-0.5 flex items-center gap-1.5 truncate" style={{ color: T.muted }}>
               <Bot size={12} style={{ color: T.green }} />

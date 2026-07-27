@@ -74,7 +74,7 @@ const inputStyle: React.CSSProperties = {
   background: 'oklch(0.99 0.005 144)',
 }
 
-export function ServicosView({ preview }: { preview: boolean }) {
+export function ServicosView() {
   const [requestTarget, setRequestTarget] = useState<ServiceTarget | null>(null)
   const [contactOpen, setContactOpen] = useState(false)
   const [talhao, setTalhao] = useState(talhoes[0])
@@ -103,12 +103,6 @@ export function ServicosView({ preview }: { preview: boolean }) {
         .filter(Boolean)
         .join(' · ') || 'Solicitação de serviço'
 
-    if (preview) {
-      closeRequest()
-      toast.success('Solicitação enviada', { description: `${name} — entraremos em contato para confirmar.` })
-      return
-    }
-
     setSaving(true)
     const res = await requestService({ serviceType: name, description })
     setSaving(false)
@@ -125,12 +119,6 @@ export function ServicosView({ preview }: { preview: boolean }) {
     const fd = new FormData(e.currentTarget)
     const assunto = String(fd.get('assunto') ?? '').trim()
     const mensagem = String(fd.get('mensagem') ?? '').trim()
-
-    if (preview) {
-      setContactOpen(false)
-      toast.success('Mensagem enviada', { description: 'Um técnico responde em até 24h.' })
-      return
-    }
 
     setSaving(true)
     const res = await requestService({

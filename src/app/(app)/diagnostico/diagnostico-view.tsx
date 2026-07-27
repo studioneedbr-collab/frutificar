@@ -51,12 +51,11 @@ const tipoOptions = [
 const MAX_BYTES = 15 * 1024 * 1024
 
 export function DiagnosticoView({
-  initialHistorico, talhaoOptions, initialResult, preview,
+  initialHistorico, talhaoOptions, initialResult,
 }: {
   initialHistorico: HistoricoItem[]
   talhaoOptions: TalhaoOption[]
   initialResult: DiagnosticResult | null
-  preview: boolean
 }) {
   const router = useRouter()
   const [historico, setHistorico] = useState<HistoricoItem[]>(initialHistorico)
@@ -96,15 +95,6 @@ export function DiagnosticoView({
 
     if (!file) {
       toast.error('Anexe o laudo', { description: 'Envie uma foto nítida ou o PDF do laboratório.' })
-      return
-    }
-
-    // Modo demo: sem IA/banco, apenas simula.
-    if (preview) {
-      setHistorico((cur) => [{ talhao: talhaoLabel, data: hoje, status: 'Concluído' }, ...cur])
-      setNovoOpen(false)
-      setFile(null)
-      toast.success('Análise concluída (demo)', { description: 'Conecte o banco + OpenAI para a IA real.' })
       return
     }
 

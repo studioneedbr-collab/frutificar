@@ -25,11 +25,10 @@ const statusStyle: Record<string, { bg: string; text: string }> = {
 }
 
 export function TutoringView({
-  initialRequests, whatsappUrl, preview,
+  initialRequests, whatsappUrl,
 }: {
   initialRequests: TutoriaRequest[]
   whatsappUrl: string
-  preview: boolean
 }) {
   const router = useRouter()
   const [requests, setRequests] = useState<TutoriaRequest[]>(initialRequests)
@@ -47,13 +46,6 @@ export function TutoringView({
       return
     }
     const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-
-    if (preview) {
-      setRequests((cur) => [{ id: `tmp-${cur.length}`, tema, description, status: 'Solicitado', data: hoje }, ...cur])
-      if (descRef.current) descRef.current.value = ''
-      toast.success('Tutoria solicitada (demo)', { description: 'Conecte o banco para gravar de verdade.' })
-      return
-    }
 
     setSending(true)
     const res = await requestService({ serviceType: `${TUTORIA_PREFIX} — ${tema}`, description })

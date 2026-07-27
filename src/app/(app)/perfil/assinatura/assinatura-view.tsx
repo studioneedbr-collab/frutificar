@@ -41,8 +41,8 @@ const PAYMENT_BADGE: Record<PaymentStatusKind, { label: string; bg: string; fg: 
   REFUNDED: { label: 'Reembolsado', bg: 'oklch(0.9 0.005 144)', fg: 'oklch(0.5 0.02 144)' },
 }
 
-/* Plano atual + status + ações são reais (Server Actions) quando !preview.
-   Histórico de pagamentos e forma de pagamento (cartão) permanecem mock (local). */
+/* Plano atual + status + ações são reais (Server Actions).
+   Forma de pagamento (cartão) permanece local — sem integração de gerenciamento de cartão. */
 
 const benefits = [
   'Tudo do Premium',
@@ -86,7 +86,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export function AssinaturaView({
-  initialPlan, initialPrice, initialStatus, initialPeriodEnd, initialPayments, preview,
+  initialPlan, initialPrice, initialStatus, initialPeriodEnd, initialPayments,
   hasSubscription, bloqueado,
 }: {
   initialPlan: string
@@ -94,7 +94,6 @@ export function AssinaturaView({
   initialStatus: SubStatus
   initialPeriodEnd: string
   initialPayments: PaymentRow[]
-  preview: boolean
   hasSubscription: boolean
   bloqueado?: string
 }) {
@@ -144,12 +143,6 @@ export function AssinaturaView({
 
   async function handleCancel() {
     setCancelOpen(false)
-
-    if (preview) {
-      setStatus('CANCELED')
-      notify('Assinatura cancelada', `Você mantém o acesso ${initialPlan} até ${initialPeriodEnd}.`, 'danger')
-      return
-    }
 
     setCanceling(true)
     const res = await cancelMySubscription()

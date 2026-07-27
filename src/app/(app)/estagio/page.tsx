@@ -3,9 +3,8 @@
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listServiceRequestsByUser } from '@/server/repositories/appointments.repository'
-import { mockEstagios, ESTAGIO_PREFIX, type EstagioItem } from './data'
+import { ESTAGIO_PREFIX, type EstagioItem } from './data'
 import { EstagioView } from './estagio-view'
 
 const statusLabel: Record<string, string> = {
@@ -17,13 +16,9 @@ const statusLabel: Record<string, string> = {
 }
 
 export default async function EstagioPage() {
-  if (PREVIEW_MODE) {
-    return <EstagioView initial={mockEstagios} preview />
-  }
-
   try {
     const session = await auth()
-    if (!session?.user?.id) return <EstagioView initial={[]} preview={false} />
+    if (!session?.user?.id) return <EstagioView initial={[]} />
 
     const rows = await listServiceRequestsByUser(session.user.id)
     const items: EstagioItem[] = rows
@@ -36,8 +31,8 @@ export default async function EstagioPage() {
         data: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
 
-    return <EstagioView initial={items} preview={false} />
+    return <EstagioView initial={items} />
   } catch {
-    return <EstagioView initial={[]} preview={false} />
+    return <EstagioView initial={[]} />
   }
 }

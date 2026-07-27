@@ -46,7 +46,7 @@ function licenseStatus(expiresAt: string | null): { label: string; bg: string; c
 let tmp = 0
 const tmpId = () => `tmp-${++tmp}`
 
-export function GestaoView({ properties, preview }: { properties: GestaoProperty[]; preview: boolean }) {
+export function GestaoView({ properties }: { properties: GestaoProperty[] }) {
   const router = useRouter()
   const [props, setProps] = useState<GestaoProperty[]>(properties)
   useEffect(() => { setProps(properties) }, [properties])
@@ -87,13 +87,6 @@ export function GestaoView({ properties, preview }: { properties: GestaoProperty
       createdAt: new Date().toISOString(),
     }
 
-    if (preview) {
-      patchProp(property.id, (p) => ({ ...p, docs: [optimistic, ...p.docs] }))
-      setAddType(null)
-      toast.success('Adicionado (demo)')
-      return
-    }
-
     setSaving(true)
     const res = await createPropertyDocumentAction(fd)
     setSaving(false)
@@ -109,11 +102,9 @@ export function GestaoView({ properties, preview }: { properties: GestaoProperty
     const id = removeId
     patchProp(property.id, (p) => ({ ...p, docs: p.docs.filter((d) => d.id !== id) }))
     setRemoveId(null)
-    if (!preview) {
-      const res = await deletePropertyDocumentAction(id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deletePropertyDocumentAction(id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   const addMeta = useMemo(() => sections.find((s) => s.type === addType) ?? null, [addType])

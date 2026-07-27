@@ -31,10 +31,9 @@ const inputClass =
 const labelClass = 'block text-xs font-semibold mb-1.5'
 
 export function PropriedadesView({
-  initialProperties, preview,
+  initialProperties,
 }: {
   initialProperties: Property[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [properties, setProperties] = useState<Property[]>(initialProperties)
@@ -51,7 +50,7 @@ export function PropriedadesView({
   const [removeTalhao, setRemoveTalhao] = useState<{ propId: string; talhaoId: string } | null>(null)
   const [removeProp, setRemoveProp] = useState<string | null>(null)
 
-  /* ── Ações (otimista + Server Action quando !preview) ── */
+  /* ── Ações (otimista + Server Action) ── */
   async function handleAddProperty(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const data = new FormData(e.currentTarget)
@@ -73,11 +72,9 @@ export function PropriedadesView({
     setAddOpen(false)
     toast.success('Propriedade adicionada', { description: `${name} foi cadastrada.` })
 
-    if (!preview) {
-      const res = await createProperty({ name, location: location || undefined, totalAreaHa: area })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createProperty({ name, location: location || undefined, totalAreaHa: area })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleAddTalhao(e: React.FormEvent<HTMLFormElement>) {
@@ -104,11 +101,9 @@ export function PropriedadesView({
     setTalhaoStatus('Saudável')
     toast.success('Talhão adicionado')
 
-    if (!preview) {
-      const res = await createPlot(propId, { name, areaHa: area, status })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await createPlot(propId, { name, areaHa: area, status })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function confirmRemoveTalhao() {
@@ -124,11 +119,9 @@ export function PropriedadesView({
     setRemoveTalhao(null)
     toast.success('Talhão removido')
 
-    if (!preview) {
-      const res = await deletePlot(talhaoId)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deletePlot(talhaoId)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function confirmRemoveProperty() {
@@ -138,11 +131,9 @@ export function PropriedadesView({
     setRemoveProp(null)
     toast.success('Propriedade removida')
 
-    if (!preview) {
-      const res = await deleteProperty(propId)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = await deleteProperty(propId)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function handleDetails(name: string) {

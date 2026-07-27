@@ -1,15 +1,13 @@
-// Server Component: busca visitas técnicas e solicitações de serviço reais (Supabase) quando
-// PREVIEW_MODE=false, senão renderiza o mock. A interatividade fica em AgendamentosView (client).
+// Server Component: busca visitas técnicas e solicitações de serviço reais (Supabase).
+// A interatividade fica em AgendamentosView (client).
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import {
   listVisitsByUser, listServiceRequestsByUser,
 } from '@/server/repositories/appointments.repository'
 import {
-  initialUpcoming as mockUpcoming, history as mockHistory,
   type Appointment, type AppointmentStatus,
 } from './data'
 import { AgendamentosView } from './agendamentos-view'
@@ -41,12 +39,7 @@ const SERVICE_STATUS: Record<string, AppointmentStatus | null> = {
 }
 
 export default async function AgendamentosPage() {
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <AgendamentosView initialUpcoming={mockUpcoming} initialHistory={mockHistory} preview />
-  }
-
-  // Modo real: sem sessão → login (nunca dados fake).
+  // Sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
     redirect('/login')
@@ -95,5 +88,5 @@ export default async function AgendamentosPage() {
     .filter((a) => a.status === 'Concluído')
     .map((a) => ({ type: a.type, agro: a.agro, when: a.when }))
 
-  return <AgendamentosView initialUpcoming={upcoming} initialHistory={history} preview={false} />
+  return <AgendamentosView initialUpcoming={upcoming} initialHistory={history} />
 }

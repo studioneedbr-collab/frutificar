@@ -1,11 +1,10 @@
-// Server Component: lê os Dias de Campo reais (Supabase) quando PREVIEW_MODE=false.
+// Server Component: lê os Dias de Campo reais (Supabase).
 // Separa em próximo (destaque), próximos e edições anteriores. Evento é informativo.
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listFieldDays, getUserRegistrationIds } from '@/server/repositories/fielddays.repository'
-import { mockData, type FieldDaysData, type FieldEvent, type PastEvent } from './data'
+import { type FieldDaysData, type FieldEvent, type PastEvent } from './data'
 import { DiasView } from './dias-view'
 
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -26,10 +25,6 @@ function toEvent(row: { id: string; title: string; location: string; date: Date;
 }
 
 export default async function DiasDeCampoPage() {
-  if (PREVIEW_MODE) {
-    return <DiasView data={mockData} />
-  }
-
   try {
     const session = await auth()
     const rows = await listFieldDays()

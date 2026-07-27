@@ -1,18 +1,13 @@
-// Server Component: lista os cursos MINICOURSE publicados. Em modo real lê do banco
-// com o progresso do aluno; em preview usa o mock. Cada card leva a /cursos/[slug].
+// Server Component: lista os cursos MINICOURSE publicados. Lê do banco com o
+// progresso do aluno. Cada card leva a /cursos/[slug].
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { PREVIEW_MODE } from '@/lib/preview'
-import { mockMinicursos, type MiniCourse } from './data'
+import { type MiniCourse } from './data'
 import { MinicursosView } from './minicursos-view'
 
 export default async function MinicursosPage() {
-  if (PREVIEW_MODE) {
-    return <MinicursosView minicursos={mockMinicursos} />
-  }
-
   try {
     const session = await auth()
 

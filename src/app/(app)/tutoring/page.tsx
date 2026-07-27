@@ -3,9 +3,8 @@
 export const dynamic = 'force-dynamic'
 
 import { auth } from '@/lib/auth'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listServiceRequestsByUser } from '@/server/repositories/appointments.repository'
-import { mockTutorias, TUTORIA_PREFIX, type TutoriaRequest } from './data'
+import { TUTORIA_PREFIX, type TutoriaRequest } from './data'
 import { TutoringView } from './tutoring-view'
 
 const statusLabel: Record<string, string> = {
@@ -20,14 +19,10 @@ const statusLabel: Record<string, string> = {
 const WHATSAPP_URL = process.env.WHATSAPP_TUTORIA_URL ?? process.env.NEXT_PUBLIC_WHATSAPP_TUTORIA ?? ''
 
 export default async function TutoringPage() {
-  if (PREVIEW_MODE) {
-    return <TutoringView initialRequests={mockTutorias} whatsappUrl={WHATSAPP_URL} preview />
-  }
-
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
+      return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} />
     }
 
     const rows = await listServiceRequestsByUser(session.user.id)
@@ -41,8 +36,8 @@ export default async function TutoringPage() {
         data: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
 
-    return <TutoringView initialRequests={requests} whatsappUrl={WHATSAPP_URL} preview={false} />
+    return <TutoringView initialRequests={requests} whatsappUrl={WHATSAPP_URL} />
   } catch {
-    return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
+    return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} />
   }
 }

@@ -57,11 +57,10 @@ function buildRequestedDate(date: string, time: string): Date {
 }
 
 export function AgendamentosView({
-  initialUpcoming, initialHistory, preview,
+  initialUpcoming, initialHistory,
 }: {
   initialUpcoming: Appointment[]
   initialHistory: HistoryItem[]
-  preview: boolean
 }) {
   const router = useRouter()
   const [upcoming, setUpcoming] = useState<Appointment[]>(initialUpcoming)
@@ -116,16 +115,14 @@ export function AgendamentosView({
     setFormTime('')
     toast.success('Agendamento solicitado', { description: 'Você receberá a confirmação em breve.' })
 
-    if (!preview) {
-      const res = isVisit
-        ? await requestVisit({
-            reason: `${tipo} — ${place}`,
-            requestedDate: buildRequestedDate(date, time),
-          })
-        : await requestService({ serviceType: tipo, description: place })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = isVisit
+      ? await requestVisit({
+          reason: `${tipo} — ${place}`,
+          requestedDate: buildRequestedDate(date, time),
+        })
+      : await requestService({ serviceType: tipo, description: place })
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   async function handleConfirmCancel() {
@@ -135,13 +132,11 @@ export function AgendamentosView({
     setCancelTarget(null)
     toast.success('Agendamento cancelado')
 
-    if (!preview) {
-      const res = target.kind === 'visit'
-        ? await cancelVisit(target.id)
-        : await cancelServiceRequest(target.id)
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
-    }
+    const res = target.kind === 'visit'
+      ? await cancelVisit(target.id)
+      : await cancelServiceRequest(target.id)
+    if (!res.ok) toast.error(res.error)
+    router.refresh()
   }
 
   function handleReport(h: HistoryItem) {

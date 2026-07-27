@@ -8,7 +8,7 @@ import { submitFeedback } from '@/server/actions/feedback'
 const deep = 'var(--color-frutificar-deep)'
 const green = 'var(--color-frutificar-green)'
 
-export function FeedbackView({ preview }: { preview: boolean }) {
+export function FeedbackView() {
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
   const [sending, setSending] = useState(false)
@@ -20,11 +20,6 @@ export function FeedbackView({ preview }: { preview: boolean }) {
     const message = msgRef.current?.value.trim() ?? ''
     if (message.length < 3) {
       toast.error('Escreva seu feedback', { description: 'Conte o que achou da plataforma.' })
-      return
-    }
-    if (preview) {
-      setDone(true)
-      toast.success('Feedback enviado (demo)')
       return
     }
     setSending(true)

@@ -1,10 +1,9 @@
-// Server Component: lê lives reais (Supabase) quando PREVIEW_MODE=false, senão mock.
+// Server Component: lê lives reais (Supabase).
 // Separa em: ao vivo agora (LIVE), próximas (SCHEDULED futuras) e gravadas (ENDED).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listLives } from '@/server/repositories/lives.repository'
-import { mockData, type LivesData, type Featured, type Upcoming, type Recorded } from './data'
+import { type LivesData, type Featured, type Upcoming, type Recorded } from './data'
 import { LivesView } from './lives-view'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -26,10 +25,6 @@ function badgeFor(d: Date): string {
 }
 
 export default async function LivesPage() {
-  if (PREVIEW_MODE) {
-    return <LivesView data={mockData} />
-  }
-
   try {
     const rows = await listLives()
     const now = Date.now()

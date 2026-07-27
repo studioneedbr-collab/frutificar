@@ -1,10 +1,8 @@
-// Server Component: lê episódios reais (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A UI fica em PodcastsView (client).
+// Server Component: lê episódios reais (Supabase). A UI fica em PodcastsView (client).
 export const dynamic = 'force-dynamic'
 
-import { PREVIEW_MODE } from '@/lib/preview'
 import { listEpisodes } from '@/server/repositories/podcasts.repository'
-import { mockEpisodes, COVERS, type Episode } from './data'
+import { COVERS, type Episode } from './data'
 import { PodcastsView } from './podcasts-view'
 
 // "há X dias/semanas" a partir da data de publicação.
@@ -23,10 +21,6 @@ function timeAgo(date: Date): string {
 }
 
 export default async function PodcastsPage() {
-  if (PREVIEW_MODE) {
-    return <PodcastsView initialEpisodes={mockEpisodes} />
-  }
-
   try {
     const rows = await listEpisodes()
     // Aluno só vê episódios publicados (despublicados ficam ocultos).

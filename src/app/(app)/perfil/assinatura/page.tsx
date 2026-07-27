@@ -1,31 +1,12 @@
-// Server Component: busca a assinatura real (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em AssinaturaView (client).
+// Server Component: busca a assinatura real (Supabase). A interatividade fica
+// em AssinaturaView (client).
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
-import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { getSubscriptionByUser } from '@/server/repositories/subscription.repository'
 import { listPaymentsByUser } from '@/server/repositories/payments.repository'
 import { AssinaturaView, type PaymentRow, type SubStatus } from './assinatura-view'
-
-// Valores mock usados no modo demo (sem banco/sessão).
-const MOCK = {
-  initialPlan: 'Gold',
-  initialPrice: 'R$ 197,00',
-  initialStatus: 'ACTIVE' as SubStatus,
-  initialPeriodEnd: '12 jul 2026',
-  hasSubscription: true,
-}
-
-// Histórico de pagamentos mock — usado apenas no modo demo.
-const MOCK_PAYMENTS: PaymentRow[] = [
-  { date: '12 jun 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Cartão de crédito', status: 'PAID' },
-  { date: '12 mai 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Cartão de crédito', status: 'PAID' },
-  { date: '12 abr 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Cartão de crédito', status: 'PAID' },
-  { date: '12 mar 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Cartão de crédito', status: 'PAID' },
-  { date: '12 fev 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Cartão de crédito', status: 'PAID' },
-]
 
 function capitalizePlan(name: string): string {
   if (name === 'ESSENCIAL') return 'Essencial'
@@ -49,12 +30,7 @@ export default async function AssinaturaPage({
 }) {
   const { bloqueado } = await searchParams
 
-  // Modo demo (sem banco): usa o mock.
-  if (PREVIEW_MODE) {
-    return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview bloqueado={bloqueado} />
-  }
-
-  // Modo real: sem sessão → login (nunca dados fake).
+  // Sem sessão → login (nunca dados fake).
   const session = await auth()
   if (!session?.user?.id) {
     redirect('/login')
@@ -81,7 +57,6 @@ export default async function AssinaturaPage({
         initialStatus="NONE"
         initialPeriodEnd="—"
         initialPayments={payments}
-        preview={false}
         hasSubscription={false}
         bloqueado={bloqueado}
       />
@@ -95,7 +70,6 @@ export default async function AssinaturaPage({
       initialStatus={sub.status}
       initialPeriodEnd={formatPeriodEnd(sub.currentPeriodEnd)}
       initialPayments={payments}
-      preview={false}
       hasSubscription
       bloqueado={bloqueado}
     />
