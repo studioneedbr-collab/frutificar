@@ -21,8 +21,7 @@ function MaintenanceScreen() {
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // Modo demo (sem banco): não exige login — renderiza com um aluno fictício
-  // para que o botão "Entrar como aluno (sem banco)" funcione.
+  // Modo demo (sem banco): não exige login — renderiza com um aluno fictício.
   const session = PREVIEW_MODE ? null : await auth()
   if (!PREVIEW_MODE && !session) {
     redirect('/login')

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -46,13 +46,26 @@ export default function LoginPage() {
       password: data.password,
       redirect: false,
     })
-    setLoading(false)
     if (result?.error) {
+      setLoading(false)
       setError('Email ou senha incorretos.')
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+      return
     }
+
+    // Login do aluno não serve para contas de administrador — elas entram por /admin/login.
+    try {
+      const res = await fetch('/api/auth/session', { cache: 'no-store' })
+      const session = await res.json()
+      if (session?.user?.role === 'ADMIN') {
+        await signOut({ redirect: false })
+        setLoading(false)
+        setError('Esta é uma conta administrativa. Acesse pelo painel em /admin/login.')
+        return
+      }
+    } catch { /* segue: o proxy ainda protege as rotas */ }
+
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
@@ -289,26 +302,6 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-
-          {/* DEV PREVIEW — remover quando banco estiver rodando */}
-          <div className="mt-4">
-            <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px" style={{ background: 'oklch(0.88 0.03 144)' }} />
-              <span className="text-xs font-medium" style={{ color: 'oklch(0.65 0.02 144)' }}>preview</span>
-              <div className="flex-1 h-px" style={{ background: 'oklch(0.88 0.03 144)' }} />
-            </div>
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-center w-full h-11 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{
-                background: 'oklch(0.48 0.13 144 / 0.08)',
-                color: 'var(--color-frutificar-forest)',
-                border: '1px dashed oklch(0.48 0.13 144 / 0.3)',
-              }}
-            >
-              Entrar como aluno (sem banco)
-            </Link>
-          </div>
 
           <p className="text-center text-sm mt-6" style={{ color: 'oklch(0.52 0.03 144)' }}>
             Não tem conta?{' '}

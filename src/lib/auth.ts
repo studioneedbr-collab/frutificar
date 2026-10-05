@@ -21,12 +21,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        const email = typeof credentials?.email === 'string' ? credentials.email : null
+        const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : null
         const password = typeof credentials?.password === 'string' ? credentials.password : null
         if (!email || !password) return null
 
-        const user = await prisma.user.findUnique({
-          where: { email },
+        // Case-insensitive: contas antigas podem ter sido gravadas com maiúsculas.
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: 'insensitive' } },
           select: { id: true, email: true, name: true, passwordHash: true, role: true, deletedAt: true, emailVerified: true },
         })
 

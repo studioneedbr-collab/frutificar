@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { FrutificarLogo } from '@/components/shared/logo'
 import { ShieldCheck } from 'lucide-react'
@@ -32,6 +32,8 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/session', { cache: 'no-store' })
       const session = await res.json()
       if (session?.user?.role !== 'ADMIN') {
+        // Não deixa a sessão de aluno aberta a partir do login do painel.
+        await signOut({ redirect: false })
         setLoading(false)
         setError('Esta conta não tem acesso ao painel administrativo.')
         return

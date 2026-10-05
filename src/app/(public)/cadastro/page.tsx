@@ -51,7 +51,14 @@ export default function CadastroPage() {
     setLoading(true)
     setError(null)
 
-    const result = await registerUser(data)
+    let result: Awaited<ReturnType<typeof registerUser>>
+    try {
+      result = await registerUser(data)
+    } catch {
+      setLoading(false)
+      setError('Não foi possível criar a conta agora. Verifique sua conexão e tente novamente.')
+      return
+    }
     if (!result.ok) {
       setLoading(false)
       setError(result.error)
@@ -59,7 +66,7 @@ export default function CadastroPage() {
     }
 
     const signInResult = await signIn('credentials', {
-      email: data.email,
+      email: data.email.trim().toLowerCase(),
       password: data.password,
       redirect: false,
     })

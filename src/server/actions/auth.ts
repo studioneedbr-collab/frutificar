@@ -18,8 +18,8 @@ const RESET_TTL_MS = 60 * 60 * 1000 // 1 hora
 
 const registerSchema = z
   .object({
-    name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-    email: z.string().email('E-mail inválido.'),
+    name: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+    email: z.string().trim().toLowerCase().email('E-mail inválido.'),
     password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.'),
     confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória.'),
   })
@@ -37,14 +37,19 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
   const { name, email, password } = parsed.data
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    })
     if (existing) {
       return { ok: false, error: 'Este e-mail já está cadastrado.' }
     }
 
     const plan = await prisma.plan.findUnique({ where: { name: 'ESSENCIAL' }, select: { id: true } })
+    // Sem o plano no banco (seed não rodou) o cadastro não pode travar: cria a
+    // conta sem assinatura e o admin libera o plano depois.
     if (!plan) {
-      return { ok: false, error: 'Plano indisponível. Tente novamente em instantes.' }
+      console.error('[registerUser] plano ESSENCIAL não encontrado — conta criada sem trial.')
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
@@ -60,13 +65,15 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
           passwordHash,
           role: 'STUDENT',
           emailVerified: null,
-          subscription: {
-            create: {
-              planId: plan.id,
-              status: 'ACTIVE',
-              currentPeriodEnd: periodEnd,
+          ...(plan && {
+            subscription: {
+              create: {
+                planId: plan.id,
+                status: 'ACTIVE',
+                currentPeriodEnd: periodEnd,
+              },
             },
-          },
+          }),
         },
       }),
       prisma.verificationToken.create({
@@ -93,12 +100,13 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
     if ((err as { code?: string }).code === 'P2002') {
       return { ok: false, error: 'Este e-mail já está cadastrado.' }
     }
-    return { ok: false, error: 'Erro ao criar conta.' }
+    console.error('[registerUser] erro ao criar conta:', err)
+    return { ok: false, error: 'Erro ao criar conta. Tente novamente.' }
   }
 }
 
 const requestResetSchema = z.object({
-  email: z.string().email('E-mail inválido.'),
+  email: z.string().trim().toLowerCase().email('E-mail inválido.'),
 })
 
 /**
