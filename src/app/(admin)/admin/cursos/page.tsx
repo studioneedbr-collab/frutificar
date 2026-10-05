@@ -33,7 +33,9 @@ export default async function AdminCursosPage() {
       })),
     }))
     return <CursosAdminView initialCourses={courses} preview={false} />
-  } catch {
-    return <CursosAdminView initialCourses={mockCourses} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/cursos] erro ao carregar do banco:', err)
+    return <CursosAdminView initialCourses={[]} preview={false} />
   }
 }

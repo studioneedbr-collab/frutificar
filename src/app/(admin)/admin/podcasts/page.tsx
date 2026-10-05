@@ -14,7 +14,7 @@ export default async function AdminPodcastsPage() {
     return <PodcastsView initialEpisodes={mockEpisodes} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listEpisodes()
     const episodes: Episode[] = rows.map((e) => ({
@@ -32,7 +32,9 @@ export default async function AdminPodcastsPage() {
     }))
 
     return <PodcastsView initialEpisodes={episodes} preview={false} />
-  } catch {
-    return <PodcastsView initialEpisodes={mockEpisodes} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/podcasts] erro ao carregar do banco:', err)
+    return <PodcastsView initialEpisodes={[]} preview={false} />
   }
 }

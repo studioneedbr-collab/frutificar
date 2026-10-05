@@ -15,7 +15,7 @@ import * as usersRepository from '@/server/repositories/users.repository'
 
 const createUserSchema = z.object({
   name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
-  email: z.string().email('E-mail inválido'),
+  email: z.string().trim().toLowerCase().email('E-mail inválido'),
   role: z.enum(['STUDENT', 'ADMIN', 'INSTRUCTOR']),
 })
 

@@ -27,7 +27,7 @@ export default async function AdminMateriaisPage() {
     return <MateriaisView initialMaterials={mockMaterials} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listResources()
     const materials: Material[] = rows.map((r) => ({
@@ -41,7 +41,9 @@ export default async function AdminMateriaisPage() {
     }))
 
     return <MateriaisView initialMaterials={materials} preview={false} />
-  } catch {
-    return <MateriaisView initialMaterials={mockMaterials} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/materiais] erro ao carregar do banco:', err)
+    return <MateriaisView initialMaterials={[]} preview={false} />
   }
 }

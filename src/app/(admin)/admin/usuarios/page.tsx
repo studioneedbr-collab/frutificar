@@ -19,7 +19,7 @@ export default async function AdminUsuariosPage() {
     return <UsuariosView initialUsers={mockUsers} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listUsers()
     const users: User[] = rows.map((u) => ({
@@ -33,7 +33,9 @@ export default async function AdminUsuariosPage() {
     }))
 
     return <UsuariosView initialUsers={users} preview={false} />
-  } catch {
-    return <UsuariosView initialUsers={mockUsers} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/usuarios] erro ao carregar do banco:', err)
+    return <UsuariosView initialUsers={[]} preview={false} />
   }
 }

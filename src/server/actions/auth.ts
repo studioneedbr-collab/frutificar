@@ -124,8 +124,8 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
   const { email } = parsed.data
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
       select: { id: true, deletedAt: true },
     })
 
@@ -188,10 +188,17 @@ export async function resetPassword(input: unknown): Promise<ActionResult> {
     }
 
     const email = record.identifier.slice(RESET_PREFIX.length)
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
+      select: { id: true },
+    })
+    if (!user) {
+      return { ok: false, error: 'Link inválido ou expirado. Solicite um novo.' }
+    }
     const passwordHash = await bcrypt.hash(password, 12)
 
     await prisma.$transaction([
-      prisma.user.update({ where: { email }, data: { passwordHash } }),
+      prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
       // Consome o token (diferente da verificação de e-mail, aqui deletamos).
       prisma.verificationToken.delete({ where: { token } }),
     ])

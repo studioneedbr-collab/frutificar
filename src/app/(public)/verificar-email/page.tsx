@@ -17,16 +17,16 @@ export default async function VerificarEmailPage({
       // (antivírus corporativo, preview de links) costumam fazer GET no link antes
       // do usuário clicar; se consumíssemos o token, o clique real veria "link
       // inválido". O token expira sozinho em 24h.
-      const user = await prisma.user.findUnique({
-        where: { email: record.identifier },
-        select: { emailVerified: true, name: true },
+      const user = await prisma.user.findFirst({
+        where: { email: { equals: record.identifier, mode: 'insensitive' } },
+        select: { id: true, emailVerified: true, name: true },
       })
       if (user) {
         // Só envia boas-vindas na PRIMEIRA confirmação (transição null → data).
         const firstTime = !user.emailVerified
         if (firstTime) {
           await prisma.user.update({
-            where: { email: record.identifier },
+            where: { id: user.id },
             data: { emailVerified: new Date() },
           })
           try {

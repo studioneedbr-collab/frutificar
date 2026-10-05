@@ -16,7 +16,7 @@ export default async function AdminLivesPage() {
     return <LivesView initialLives={mockLives} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listLives()
     const lives: Live[] = rows.map((l) => {
@@ -35,7 +35,9 @@ export default async function AdminLivesPage() {
     })
 
     return <LivesView initialLives={lives} preview={false} />
-  } catch {
-    return <LivesView initialLives={mockLives} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/lives] erro ao carregar do banco:', err)
+    return <LivesView initialLives={[]} preview={false} />
   }
 }

@@ -21,7 +21,9 @@ export default async function AdminServicosPage() {
       active: s.active,
     }))
     return <ServicosAdminView initial={services} preview={false} />
-  } catch {
-    return <ServicosAdminView initial={mockServices} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/servicos] erro ao carregar do banco:', err)
+    return <ServicosAdminView initial={[]} preview={false} />
   }
 }

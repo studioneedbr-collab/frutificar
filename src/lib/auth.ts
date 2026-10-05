@@ -28,10 +28,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Case-insensitive: contas antigas podem ter sido gravadas com maiúsculas.
         const user = await prisma.user.findFirst({
           where: { email: { equals: email, mode: 'insensitive' } },
-          select: { id: true, email: true, name: true, passwordHash: true, role: true, deletedAt: true, emailVerified: true },
+          select: { id: true, email: true, name: true, passwordHash: true, role: true, deletedAt: true, suspendedAt: true, emailVerified: true },
         })
 
-        if (!user || user.deletedAt) return null
+        // Conta excluída ou suspensa pelo admin não entra.
+        if (!user || user.deletedAt || user.suspendedAt) return null
         if (!user.passwordHash) return null
 
         const passwordValid = await bcrypt.compare(password, user.passwordHash)

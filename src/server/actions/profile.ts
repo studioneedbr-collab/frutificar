@@ -9,7 +9,7 @@ import type { ActionResult } from '@/lib/action-types'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
-  email: z.string().email('E-mail inválido.'),
+  email: z.string().trim().toLowerCase().email('E-mail inválido.'),
 })
 
 const changePasswordSchema = z.object({

@@ -24,7 +24,7 @@ export default async function AdminPlanosPage() {
     return <PlanosView initialPlans={mockPlans} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listPlans()
     const plans: Plan[] = rows.map((p) => ({
@@ -39,7 +39,9 @@ export default async function AdminPlanosPage() {
     }))
 
     return <PlanosView initialPlans={plans} preview={false} />
-  } catch {
-    return <PlanosView initialPlans={mockPlans} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/planos] erro ao carregar do banco:', err)
+    return <PlanosView initialPlans={[]} preview={false} />
   }
 }

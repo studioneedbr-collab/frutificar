@@ -23,7 +23,7 @@ export default async function AdminDiasDeCampoPage() {
     return <DiasDeCampoView initialEvents={mockEvents} preview />
   }
 
-  // Modo real: lê do banco; em caso de erro, cai no mock para não quebrar.
+  // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
   try {
     const rows = await listFieldDays()
     const events: FieldDayRow[] = rows.map((f) => ({
@@ -39,7 +39,9 @@ export default async function AdminDiasDeCampoPage() {
     }))
 
     return <DiasDeCampoView initialEvents={events} preview={false} />
-  } catch {
-    return <DiasDeCampoView initialEvents={mockEvents} preview />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin/dias-de-campo] erro ao carregar do banco:', err)
+    return <DiasDeCampoView initialEvents={[]} preview={false} />
   }
 }

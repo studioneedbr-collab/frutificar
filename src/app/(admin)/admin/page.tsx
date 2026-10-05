@@ -26,7 +26,7 @@ export default async function AdminPage() {
   }
 
   // Modo real: busca tudo do banco em paralelo.
-  // Em caso de erro, cai no mock para não quebrar a tela.
+  // Em caso de erro, mostra a tela zerada (nunca dados fictícios) e loga.
   try {
     const [visits, services, stats, users, courses] = await Promise.all([
       listPendingVisits(),
@@ -79,7 +79,17 @@ export default async function AdminPage() {
         recentCourses={recentCourses}
       />
     )
-  } catch {
-    return <AdminDashboardView initialSolicitations={mockSolicitations} preview={false} />
+  } catch (err) {
+    // Nunca mostrar mock em produção: lista vazia + log para investigar.
+    console.error('[admin] erro ao carregar do banco:', err)
+    return (
+      <AdminDashboardView
+        initialSolicitations={[]}
+        preview={false}
+        metrics={{ activeStudents: 0, activeSubscriptions: 0, publishedCourses: 0, monthlyRevenue: 0 }}
+        recentUsers={[]}
+        recentCourses={[]}
+      />
+    )
   }
 }
