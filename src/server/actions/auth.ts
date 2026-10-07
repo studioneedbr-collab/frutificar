@@ -69,7 +69,8 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
             subscription: {
               create: {
                 planId: plan.id,
-                status: 'ACTIVE',
+                // Teste grátis: acesso até periodEnd, sem pagamento.
+                status: 'TRIALING',
                 currentPeriodEnd: periodEnd,
               },
             },

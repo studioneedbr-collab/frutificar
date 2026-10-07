@@ -33,27 +33,47 @@ export async function reactivateSubscriptionAdmin(id: string): Promise<ActionRes
   }
 
   try {
-    await adminSubscriptionsRepository.setSubscriptionStatus(id, SubscriptionStatus.ACTIVE)
+    const status = await adminSubscriptionsRepository.statusOnReactivate(id)
+    await adminSubscriptionsRepository.setSubscriptionStatus(id, status)
     revalidatePath('/admin/assinaturas')
     return { ok: true, data: undefined }
-  } catch {
+  } catch (err) {
+    console.error('[reactivateSubscriptionAdmin]', err)
     return { ok: false, error: 'Erro ao reativar assinatura.' }
   }
 }
 
-// ─── Marcar como paga (de PAST_DUE) ───────────────────────
+// ─── Marcar como paga (pagamento manual) ──────────────────
 
-export async function markSubscriptionPaid(id: string): Promise<ActionResult> {
+const paidAtSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional()
+  .or(z.literal(''))
+
+export async function markSubscriptionPaid(id: string, paidAtIso?: string): Promise<ActionResult> {
   const session = await auth()
   if (!session || session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso negado.' }
   }
 
+  const parsed = paidAtSchema.safeParse(paidAtIso)
+  if (!parsed.success) {
+    return { ok: false, error: 'Data de pagamento inválida.' }
+  }
+  // Data escolhida (meio-dia, evita virar o dia por fuso) ou agora.
+  const paidAt = parsed.data ? new Date(`${parsed.data}T12:00:00`) : new Date()
+  if (paidAt.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+    return { ok: false, error: 'A data do pagamento não pode ser no futuro.' }
+  }
+
   try {
-    await adminSubscriptionsRepository.setSubscriptionStatus(id, SubscriptionStatus.ACTIVE)
+    await adminSubscriptionsRepository.registerManualPayment(id, paidAt)
     revalidatePath('/admin/assinaturas')
+    revalidatePath('/admin')
     return { ok: true, data: undefined }
-  } catch {
+  } catch (err) {
+    console.error('[markSubscriptionPaid]', err)
     return { ok: false, error: 'Erro ao marcar assinatura como paga.' }
   }
 }

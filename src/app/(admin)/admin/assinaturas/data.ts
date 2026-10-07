@@ -2,7 +2,7 @@
 // ou como fallback quando o banco não está disponível.
 
 export type Plan = 'GOLD' | 'PREMIUM' | 'ESSENCIAL'
-export type Status = 'ACTIVE' | 'PAST_DUE' | 'CANCELED'
+export type Status = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'
 
 export type Sub = {
   id: string
@@ -13,6 +13,8 @@ export type Sub = {
   status: Status
   renewal: string
   gateway: string
+  /** Mensalidade numérica (para o MRR). */
+  price?: number
 }
 
 export const mockSubscriptions: Sub[] = [

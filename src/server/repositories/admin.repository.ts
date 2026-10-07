@@ -96,7 +96,7 @@ export async function getDashboardStats() {
 
   const [activeStudents, activeSubscriptions, publishedCourses, revenue] = await Promise.all([
     prisma.user.count({ where: { role: 'STUDENT', deletedAt: null } }),
-    prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+    prisma.subscription.count({ where: { status: 'ACTIVE', user: { role: { not: 'ADMIN' } } } }),
     prisma.course.count({ where: { published: true, deletedAt: null } }),
     prisma.payment.aggregate({
       _sum: { amount: true },

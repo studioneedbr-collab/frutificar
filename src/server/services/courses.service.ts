@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma'
+import { subscriptionGrantsAccess } from '@/lib/subscription-access'
 
 export async function canUserAccessCourse(userId: string, courseId: string): Promise<boolean> {
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
-    select: { planId: true, status: true },
+    select: { planId: true, status: true, currentPeriodEnd: true },
   })
-  if (!subscription || subscription.status !== 'ACTIVE') return false
+  if (!subscription || !subscriptionGrantsAccess(subscription)) return false
 
   const access = await prisma.courseAccess.findFirst({
     where: { planId: subscription.planId, courseId },

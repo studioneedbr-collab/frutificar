@@ -30,10 +30,7 @@ export default async function AdminAssinaturasPage() {
     const rows = await listAllSubscriptions()
     const subscriptions: Sub[] = rows.map((s) => {
       const plan = s.plan.name as Plan
-      const status =
-        s.status === 'ACTIVE' ? ('ACTIVE' as Status)
-        : s.status === 'PAST_DUE' ? ('PAST_DUE' as Status)
-        : ('CANCELED' as Status)
+      const status = s.status as Status
       return {
         id: s.id,
         name: s.user.name ?? '—',
@@ -43,6 +40,7 @@ export default async function AdminAssinaturasPage() {
         status,
         renewal: status === 'CANCELED' ? '—' : fmtDate(s.currentPeriodEnd),
         gateway: s.gatewaySubscriptionId ?? '—',
+        price: Number(s.plan.priceMonthly),
       }
     })
 

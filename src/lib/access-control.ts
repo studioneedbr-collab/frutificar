@@ -1,6 +1,7 @@
 import type { PlanName } from '@prisma/client'
 import { PLAN_FEATURES, ROUTE_FEATURE_MAP, type Feature } from '@/lib/constants'
 import { prisma } from '@/lib/prisma'
+import { subscriptionGrantsAccess } from '@/lib/subscription-access'
 
 export function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
   if (!plan) return false
@@ -17,8 +18,8 @@ export function getRouteRequiredFeature(pathname: string): Feature | null {
 export async function getUserActivePlan(userId: string): Promise<PlanName | null> {
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
-    select: { status: true, plan: { select: { name: true } } },
+    select: { status: true, currentPeriodEnd: true, plan: { select: { name: true } } },
   })
-  if (!subscription || subscription.status !== 'ACTIVE') return null
+  if (!subscription || !subscriptionGrantsAccess(subscription)) return null
   return subscription.plan.name
 }

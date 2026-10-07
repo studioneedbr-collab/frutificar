@@ -4,6 +4,9 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import type { Role, PlanName } from '@prisma/client'
+import { subscriptionGrantsAccess } from '@/lib/subscription-access'
+
+const PLAN_REFRESH_MS = 5 * 60 * 1000
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -47,17 +50,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = user.role
-        // Só atualiza no sign-in (como token.plan). Após verificar o e-mail, o
-        // banner persiste até o próximo login/refresh do JWT — comportamento
-        // aceitável para verificação "soft".
+        // Só atualiza no sign-in. Após verificar o e-mail, o banner persiste até
+        // o próximo login — comportamento aceitável para verificação "soft".
         token.emailVerified = user.emailVerified
-        // Fetch plan and cache in JWT (refreshed on each sign-in)
-        const subscription = await prisma.subscription.findUnique({
-          where: { userId: user.id },
-          select: { status: true, plan: { select: { name: true } } },
-        })
-        token.plan = subscription?.status === 'ACTIVE' ? subscription.plan.name : null
       }
+      // Plano em cache no JWT, revalidado no banco a cada PLAN_REFRESH_MS: assim
+      // pagamento confirmado, cancelamento ou fim do teste grátis valem sem
+      // precisar sair e entrar de novo.
+      const userId = token.id as string | undefined
+      const checkedAt = token.planCheckedAt as number | undefined
+      const stale = !checkedAt || Date.now() - checkedAt > PLAN_REFRESH_MS
+      if (userId && (user || stale)) {
+        try {
+          const subscription = await prisma.subscription.findUnique({
+            where: { userId },
+            select: { status: true, currentPeriodEnd: true, plan: { select: { name: true } } },
+          })
+          token.plan = subscriptionGrantsAccess(subscription) ? subscription!.plan.name : null
+          token.planUntil =
+            subscription?.status === 'TRIALING' ? subscription.currentPeriodEnd.getTime() : null
+          token.planCheckedAt = Date.now()
+        } catch (err) {
+          // Falha no banco não derruba a sessão: mantém o último valor conhecido.
+          console.error('[auth] falha ao revalidar plano:', err)
+        }
+      }
+      // Teste grátis vencido entre duas revalidações.
+      const planUntil = token.planUntil as number | null | undefined
+      if (planUntil && Date.now() > planUntil) token.plan = null
       return token
     },
     async session({ session, token }) {

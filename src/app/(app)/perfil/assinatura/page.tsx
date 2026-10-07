@@ -17,7 +17,7 @@ const MOCK = {
   initialPeriodEnd: '12 jul 2026',
 }
 
-// Histórico de pagamentos mock — usado no modo demo, sem sessão ou quando não há pagamentos reais.
+// Histórico de pagamentos mock — usado só no modo demo / sem sessão.
 const MOCK_PAYMENTS = [
   { date: '12 jun 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
   { date: '12 mai 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
@@ -49,15 +49,16 @@ export default async function AssinaturaPage() {
     return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview />
   }
 
-  // Histórico real de pagamentos; cai no mock quando ainda não há registros.
+  // Histórico real de pagamentos (só os confirmados). Sem registros → lista
+  // vazia: nunca mostrar pagamentos fictícios para um aluno real.
   const rows = await listPaymentsByUser(session.user.id)
-  const payments = rows.length
-    ? rows.map((p) => ({
-        date: p.paidAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-        desc: p.description ?? 'Plano — Mensal',
-        value: `R$ ${Number(p.amount).toFixed(2).replace('.', ',')}`,
-      }))
-    : MOCK_PAYMENTS
+  const payments = rows
+    .filter((p) => p.status === 'PAID')
+    .map((p) => ({
+      date: p.paidAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      desc: p.description ?? 'Plano — Mensal',
+      value: `R$ ${Number(p.amount).toFixed(2).replace('.', ',')}`,
+    }))
 
   const sub = await getSubscriptionByUser(session.user.id)
   if (!sub) {
