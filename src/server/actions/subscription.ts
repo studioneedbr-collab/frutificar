@@ -7,6 +7,7 @@ import { SubscriptionStatus, PlanName } from '@prisma/client'
 import type { ActionResult } from '@/lib/action-types'
 import * as subscriptionRepository from '@/server/repositories/subscription.repository'
 import { statusOnReactivate } from '@/server/repositories/admin-subscriptions.repository'
+import { cancelGatewaySubscription, updateGatewaySubscriptionPlan } from '@/server/services/billing.service'
 
 const changePlanSchema = z.object({
   plan: z.enum(['ESSENCIAL', 'PREMIUM', 'GOLD']),
@@ -42,6 +43,8 @@ export async function changePlan(input: unknown): Promise<ActionResult> {
     }
 
     await subscriptionRepository.updateSubscription(session.user.id, { planId: plan.id })
+    // Próximas cobranças no Asaas com o valor do novo plano.
+    await updateGatewaySubscriptionPlan(current.id)
     revalidatePath('/perfil/assinatura')
     return { ok: true, data: undefined }
   } catch {
@@ -56,9 +59,11 @@ export async function cancelSubscription(): Promise<ActionResult> {
   }
 
   try {
-    await subscriptionRepository.updateSubscription(session.user.id, {
+    const current = await subscriptionRepository.updateSubscription(session.user.id, {
       status: SubscriptionStatus.CANCELED,
     })
+    // Para de gerar cobranças no Asaas.
+    await cancelGatewaySubscription(current.id)
     revalidatePath('/perfil/assinatura')
     return { ok: true, data: undefined }
   } catch {
@@ -80,9 +85,9 @@ export async function reactivateSubscription(): Promise<ActionResult> {
     }
     const status = await statusOnReactivate(current.id)
     await subscriptionRepository.updateSubscription(session.user.id, { status })
-    if (status === SubscriptionStatus.PAST_DUE) {
+    if (status === SubscriptionStatus.PENDING) {
       revalidatePath('/perfil/assinatura')
-      return { ok: false, error: 'Assinatura reativada, mas aguardando pagamento para liberar o acesso.' }
+      return { ok: false, error: 'Assinatura reativada — conclua o pagamento em /checkout para liberar o acesso.' }
     }
     revalidatePath('/perfil/assinatura')
     return { ok: true, data: undefined }

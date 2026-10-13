@@ -25,6 +25,7 @@ const planStyle: Record<string, { bg: string; text: string }> = {
   ESSENCIAL: { bg: 'oklch(0.55 0.1 220 / 0.12)', text: 'oklch(0.4 0.1 220)' },
 }
 const statusStyle: Record<string, { dot: string; label: string; text: string }> = {
+  PENDING:  { dot: 'oklch(0.72 0.12 85)',  label: 'Aguardando pagamento', text: 'oklch(0.48 0.1 75)' },
   TRIALING: { dot: 'oklch(0.6 0.1 220)',   label: 'Teste grátis',  text: 'oklch(0.42 0.1 220)' },
   ACTIVE:   { dot: 'oklch(0.55 0.14 144)', label: 'Ativa',         text: 'oklch(0.38 0.1 144)' },
   PAST_DUE: { dot: 'oklch(0.7 0.15 55)',   label: 'Inadimplente',  text: 'oklch(0.5 0.12 55)' },
@@ -42,7 +43,7 @@ const planOptions = [
 const statusFilterOptions = [
   { value: 'Todos', label: 'Todos os status' },
   { value: 'ACTIVE', label: 'Ativa (paga)' },
-  { value: 'TRIALING', label: 'Teste grátis' },
+  { value: 'PENDING', label: 'Aguardando pagamento' },
   { value: 'PAST_DUE', label: 'Inadimplente' },
   { value: 'CANCELED', label: 'Cancelada' },
 ]
@@ -84,17 +85,16 @@ export function AssinaturasView({
     return true
   })
 
-  // Métricas reais: só assinaturas ACTIVE (pagas) entram no MRR. Teste grátis
-  // não é receita. Sem % de tendência — não há histórico para comparar.
+  // Métricas reais: só assinaturas ACTIVE (pagas) entram no MRR. Sem % de tendência — não há histórico para comparar.
   const paying = subs.filter((s) => s.status === 'ACTIVE')
   const mrr = paying.reduce((sum, s) => sum + (s.price ?? 0), 0)
-  const trialCount = subs.filter((s) => s.status === 'TRIALING').length
+  const pendingCount = subs.filter((s) => s.status === 'PENDING' || s.status === 'TRIALING').length
   const pastDueCount = subs.filter((s) => s.status === 'PAST_DUE').length
 
   const metrics = [
     { label: 'MRR', value: mrr.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) },
     { label: 'Assinaturas pagas', value: String(paying.length) },
-    { label: 'Em teste grátis', value: String(trialCount) },
+    { label: 'Aguardando pagamento', value: String(pendingCount) },
     { label: 'Inadimplentes', value: String(pastDueCount) },
   ]
 
@@ -122,7 +122,7 @@ export function AssinaturasView({
     const id = toggleTarget.id
     const wasCanceled = toggleTarget.status === 'CANCELED'
     // Reativar não vira "Ativa" sem pagamento — o servidor decide o status.
-    const next: Status = wasCanceled ? 'PAST_DUE' : 'CANCELED'
+    const next: Status = wasCanceled ? 'PENDING' : 'CANCELED'
     const name = toggleTarget.name
     setSubs((cur) => cur.map((s) => (s.id === id ? { ...s, status: next } : s)))
     setToggleTarget(null)
@@ -234,7 +234,7 @@ export function AssinaturasView({
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={{ color: 'oklch(0.6 0.02 144)' }}>
                     <ArrowLeftRight size={15} />
                   </button>
-                  {(s.status === 'PAST_DUE' || s.status === 'TRIALING') && (
+                  {(s.status === 'PAST_DUE' || s.status === 'TRIALING' || s.status === 'PENDING') && (
                     <button onClick={() => { setPayDate(''); setPayTarget(s) }} title="Marcar como pago"
                       className="p-1.5 rounded-lg transition-colors hover:bg-[oklch(0.55_0.14_144_/_0.1)]" style={{ color: 'var(--color-frutificar-green)' }}>
                       <CheckCircle2 size={15} />
@@ -287,7 +287,7 @@ export function AssinaturasView({
                 <div className="flex items-center justify-end gap-1 mt-3">
                   <button onClick={() => setDetailTarget(s)} className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'oklch(0.6 0.02 144)' }} title="Ver detalhes"><Eye size={16} /></button>
                   <button onClick={() => { setNewPlan(s.plan); setPlanTarget(s) }} className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'oklch(0.6 0.02 144)' }} title="Alterar plano"><ArrowLeftRight size={16} /></button>
-                  {(s.status === 'PAST_DUE' || s.status === 'TRIALING') && (
+                  {(s.status === 'PAST_DUE' || s.status === 'TRIALING' || s.status === 'PENDING') && (
                     <button onClick={() => { setPayDate(''); setPayTarget(s) }} className="p-2 rounded-lg hover:bg-[oklch(0.55_0.14_144_/_0.1)]" style={{ color: 'var(--color-frutificar-green)' }} title="Marcar como pago"><CheckCircle2 size={16} /></button>
                   )}
                   {s.status === 'CANCELED' ? (
@@ -405,7 +405,7 @@ export function AssinaturasView({
                 </div>
                 <DialogTitle style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)' }}>Reativar assinatura?</DialogTitle>
                 <DialogDescription>
-                  A assinatura de <strong>{toggleTarget?.name}</strong> será reativada. Só volta a <strong>Ativa</strong> se houver pagamento confirmado na vigência; senão fica aguardando pagamento.
+                  A assinatura de <strong>{toggleTarget?.name}</strong> será reativada. Só volta a <strong>Ativa</strong> se houver pagamento confirmado na vigência; senão fica aguardando pagamento (o aluno cai no checkout).
                 </DialogDescription>
               </>
             ) : (

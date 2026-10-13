@@ -12,7 +12,6 @@ import {
 } from '@/lib/email'
 import type { ActionResult } from '@/lib/action-types'
 
-const TRIAL_DAYS = 7
 const RESET_PREFIX = 'reset:'
 const RESET_TTL_MS = 60 * 60 * 1000 // 1 hora
 
@@ -47,13 +46,12 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
 
     const plan = await prisma.plan.findUnique({ where: { name: 'ESSENCIAL' }, select: { id: true } })
     // Sem o plano no banco (seed não rodou) o cadastro não pode travar: cria a
-    // conta sem assinatura e o admin libera o plano depois.
+    // conta sem assinatura — o checkout cria a assinatura com o plano escolhido.
     if (!plan) {
-      console.error('[registerUser] plano ESSENCIAL não encontrado — conta criada sem trial.')
+      console.error('[registerUser] plano ESSENCIAL não encontrado — conta criada sem assinatura.')
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
-    const periodEnd = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
     const token = randomBytes(32).toString('hex')
     const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
@@ -69,9 +67,9 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
             subscription: {
               create: {
                 planId: plan.id,
-                // Teste grátis: acesso até periodEnd, sem pagamento.
-                status: 'TRIALING',
-                currentPeriodEnd: periodEnd,
+                // Sem acesso até pagar: o aluno vai direto para o checkout.
+                status: 'PENDING',
+                currentPeriodEnd: new Date(),
               },
             },
           }),

@@ -17,6 +17,11 @@ const envSchema = z.object({
   // Payment gateway
   GATEWAY_API_KEY: z.string().optional(),
   GATEWAY_WEBHOOK_SECRET: z.string().optional(),
+  // Asaas — chave de API ($aact_prod_… / $aact_hmlg_…), token do webhook e wallet.
+  ASAAS_API_KEY: z.string().startsWith('$aact_', 'ASAAS_API_KEY inválida (deve começar com $aact_)').optional(),
+  ASAAS_WEBHOOK_TOKEN: z.string().min(16, 'ASAAS_WEBHOOK_TOKEN deve ter ao menos 16 caracteres').optional(),
+  ASAAS_WALLET_ID: z.string().optional(),
+  ASAAS_API_URL: z.string().url().optional(), // opcional: sobrescreve a URL da API
 
   // Email (Brevo transacional)
   RESEND_API_KEY: z.string().optional(),

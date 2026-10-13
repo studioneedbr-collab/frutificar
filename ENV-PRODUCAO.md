@@ -28,6 +28,24 @@ Referência para ligar o app em produção (Vercel) e localmente (`.env.local`).
 
 Sem essa chave, chat e diagnóstico mostram erro amigável e não funcionam.
 
+## Pagamentos — Asaas (obrigatório: sem isso ninguém consegue pagar/entrar)
+
+| Variável | Para quê | Onde pegar |
+|---|---|---|
+| `ASAAS_API_KEY` | Cria clientes, assinaturas e cobranças | Asaas → Integrações → Chave de API (`$aact_prod_...`) |
+| `ASAAS_WEBHOOK_TOKEN` | Autentica os avisos de pagamento do Asaas | string aleatória 32+ chars (`openssl rand -hex 24`) |
+| `ASAAS_WALLET_ID` | Referência da carteira (não usado no fluxo atual) | Asaas → Minha conta |
+
+> ⚠️ Em arquivos `.env` / `.env.local` o `$` da chave precisa ser escapado: `ASAAS_API_KEY=\$aact_prod_...`
+> (o Next.js expande `$variavel`). No painel da Vercel cole o valor normal, sem barra.
+
+Depois do deploy, cadastre o webhook uma vez:
+```bash
+ASAAS_API_KEY='$aact_prod_...' ASAAS_WEBHOOK_TOKEN='mesmo-valor-da-vercel' \
+APP_URL='https://www.frutificardigital.com.br' WEBHOOK_EMAIL='seu@email.com' \
+./node_modules/.bin/tsx scripts/asaas-setup-webhook.ts
+```
+
 ## Supabase Storage — upload de arquivos (materiais, áudio, laudos)
 
 | Variável | Para quê | Onde pegar |

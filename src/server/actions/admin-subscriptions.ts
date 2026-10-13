@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { SubscriptionStatus, PlanName } from '@prisma/client'
 import type { ActionResult } from '@/lib/action-types'
 import * as adminSubscriptionsRepository from '@/server/repositories/admin-subscriptions.repository'
+import { cancelGatewaySubscription, updateGatewaySubscriptionPlan } from '@/server/services/billing.service'
 
 // ─── Cancelar assinatura ──────────────────────────────────
 
@@ -17,6 +18,8 @@ export async function cancelSubscriptionAdmin(id: string): Promise<ActionResult>
 
   try {
     await adminSubscriptionsRepository.setSubscriptionStatus(id, SubscriptionStatus.CANCELED)
+    // Para de gerar cobranças no Asaas.
+    await cancelGatewaySubscription(id)
     revalidatePath('/admin/assinaturas')
     return { ok: true, data: undefined }
   } catch {
@@ -100,6 +103,8 @@ export async function changeSubscriptionPlanAdmin(
 
   try {
     await adminSubscriptionsRepository.changeSubscriptionPlan(id, parsed.data.plan)
+    // Próximas cobranças no Asaas com o valor do novo plano.
+    await updateGatewaySubscriptionPlan(id)
     revalidatePath('/admin/assinaturas')
     return { ok: true, data: undefined }
   } catch {

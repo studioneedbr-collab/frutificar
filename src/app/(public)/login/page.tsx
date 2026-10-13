@@ -310,7 +310,7 @@ export default function LoginPage() {
               className="font-bold hover:underline underline-offset-2"
               style={{ color: 'var(--color-frutificar-forest)' }}
             >
-              Criar conta gratuita
+              Criar conta
             </Link>
           </p>
         </div>

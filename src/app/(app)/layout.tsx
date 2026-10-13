@@ -26,6 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!PREVIEW_MODE && !session) {
     redirect('/login')
   }
+  // Só entra quem pagou (o proxy já faz isso; aqui é a segunda barreira).
+  if (!PREVIEW_MODE && session?.user.role === 'STUDENT' && !session.user.plan) {
+    redirect('/checkout')
+  }
 
   // Modo de manutenção (admin /configuracoes): bloqueia produtores, admin passa.
   if (!PREVIEW_MODE && session && session.user.role !== 'ADMIN') {

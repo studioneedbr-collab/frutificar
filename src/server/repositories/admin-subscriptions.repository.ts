@@ -38,21 +38,19 @@ export async function changeSubscriptionPlan(id: string, planName: PlanName) {
 
 /**
  * Status para o qual uma assinatura volta ao ser reativada. Nunca vira ACTIVE
- * sem pagamento: com pagamento confirmado e vigência em dia → ACTIVE; ainda
- * dentro do teste grátis (sem pagamento) → TRIALING; senão → PAST_DUE
- * (aguardando pagamento).
+ * sem pagamento: com pagamento confirmado e vigência em dia → ACTIVE; senão →
+ * PENDING (o aluno cai no checkout para pagar).
  */
 export async function statusOnReactivate(id: string): Promise<SubscriptionStatus> {
   const sub = await prisma.subscription.findUniqueOrThrow({
     where: { id },
     select: { userId: true, currentPeriodEnd: true },
   })
-  const inPeriod = sub.currentPeriodEnd > new Date()
-  if (!inPeriod) return 'PAST_DUE'
+  if (sub.currentPeriodEnd <= new Date()) return 'PENDING'
   const paid = await prisma.payment.count({
     where: { status: 'PAID', OR: [{ subscriptionId: id }, { userId: sub.userId }] },
   })
-  return paid > 0 ? 'ACTIVE' : 'TRIALING'
+  return paid > 0 ? 'ACTIVE' : 'PENDING'
 }
 
 /**

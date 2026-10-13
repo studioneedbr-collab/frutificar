@@ -441,7 +441,7 @@ export default function LandingPage() {
               className="px-4 py-2 rounded-full text-sm font-bold text-white"
               style={{ background: 'var(--color-earth)', boxShadow: '0 4px 16px oklch(0.62 0.12 55 / 0.4)' }}
             >
-              Começar grátis
+              Começar agora
             </ShineButton>
             <button
               className="md:hidden flex items-center justify-center w-9 h-9 rounded-full"
@@ -561,7 +561,7 @@ export default function LandingPage() {
             className="earth-glow px-8 py-4 rounded-2xl text-white font-bold text-base"
             style={{ background: 'var(--color-earth)' }}
           >
-            Começar gratuitamente <ArrowRight size={16} className="arrow" />
+            Assinar agora <ArrowRight size={16} className="arrow" />
           </ShineButton>
           <Link
             href="/planos"
@@ -950,7 +950,7 @@ export default function LandingPage() {
             className="earth-glow px-8 py-4 rounded-xl font-bold text-[15px] text-white"
             style={{ background: 'linear-gradient(130deg, oklch(0.55 0.14 75) 0%, oklch(0.62 0.12 55) 100%)' }}
           >
-            Começar gratuitamente <ArrowRight size={16} className="arrow" />
+            Assinar agora <ArrowRight size={16} className="arrow" />
           </ShineButton>
           <p className="mt-4 text-xs" style={{ color: 'oklch(1 0 0 / 0.35)' }}>
             Sem cartão de crédito para começar · Cancele quando quiser

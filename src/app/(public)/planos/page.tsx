@@ -85,7 +85,7 @@ export default async function PlanosPage() {
                       variant={isPremium ? 'default' : 'outline'}
                       asChild
                     >
-                      <Link href="/cadastro">Começar</Link>
+                      <Link href={`/cadastro?plano=${plan.name}`}>Começar</Link>
                     </Button>
                   </CardContent>
                 </Card>

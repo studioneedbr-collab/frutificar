@@ -18,7 +18,7 @@ export function getRouteRequiredFeature(pathname: string): Feature | null {
 export async function getUserActivePlan(userId: string): Promise<PlanName | null> {
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
-    select: { status: true, currentPeriodEnd: true, plan: { select: { name: true } } },
+    select: { status: true, currentPeriodEnd: true, gatewaySubscriptionId: true, plan: { select: { name: true } } },
   })
   if (!subscription || !subscriptionGrantsAccess(subscription)) return null
   return subscription.plan.name

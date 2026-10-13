@@ -24,6 +24,7 @@ enum PlanName {
 }
 
 enum SubscriptionStatus {
+  PENDING // aguardando o primeiro pagamento (checkout) — sem acesso
   TRIALING // teste grátis de 7 dias, sem pagamento — acesso até currentPeriodEnd
   ACTIVE // paga (pagamento confirmado) ou concedida pelo admin
   PAST_DUE
@@ -176,6 +177,11 @@ model Payment {
   method         String        @default("Cartão de crédito")
   description    String?
   paidAt         DateTime      @default(now())
+  // Asaas: id da cobrança, link da fatura e vencimento.
+  gatewayPaymentId String?     @unique
+  invoiceUrl       String?
+  billingType      String?
+  dueDate          DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

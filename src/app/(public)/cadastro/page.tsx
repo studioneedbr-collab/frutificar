@@ -80,7 +80,9 @@ export default function CadastroPage() {
     }
 
     setSuccess(true)
-    setTimeout(() => router.push('/dashboard'), 1500)
+    // Conta criada: próximo passo é o pagamento (plano vindo da landing, se houver).
+    const plano = new URLSearchParams(window.location.search).get('plano')
+    setTimeout(() => router.push(plano ? `/checkout?plano=${encodeURIComponent(plano)}` : '/checkout'), 1200)
   }
 
   if (success) {
@@ -109,7 +111,7 @@ export default function CadastroPage() {
             Conta criada!
           </h2>
           <p style={{ color: 'oklch(0.5 0.04 144)', fontSize: '0.9rem' }}>
-            Redirecionando para o login...
+            Agora é só escolher a forma de pagamento...
           </p>
         </div>
       </div>
@@ -237,7 +239,7 @@ export default function CadastroPage() {
                 letterSpacing: '-0.035em',
               }}
             >
-              Comece gratuitamente.
+              Crie sua conta.
             </h2>
             <p style={{ color: 'oklch(0.48 0.04 144)', fontSize: '0.9rem', lineHeight: 1.6 }}>
               Crie sua conta e explore o conteúdo da plataforma.

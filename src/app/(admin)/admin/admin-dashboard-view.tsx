@@ -88,6 +88,7 @@ const planColors: Record<string, { bg: string; text: string }> = {
 }
 
 const statusColors: Record<string, { dot: string; text: string; label: string }> = {
+  PENDING:   { dot: 'oklch(0.72 0.12 85)', text: 'oklch(0.48 0.1 75)', label: 'Aguardando pagamento' },
   TRIALING:  { dot: 'oklch(0.6 0.1 220)', text: 'oklch(0.42 0.1 220)', label: 'Teste grátis' },
   ACTIVE:    { dot: 'oklch(0.55 0.14 144)', text: 'oklch(0.38 0.1 144)', label: 'Ativo' },
   PAST_DUE:  { dot: 'oklch(0.7 0.15 55)', text: 'oklch(0.5 0.12 55)', label: 'Inadimplente' },

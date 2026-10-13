@@ -2,7 +2,7 @@
 // ou como fallback quando o banco não está disponível.
 
 export type Plan = 'GOLD' | 'PREMIUM' | 'ESSENCIAL'
-export type Status = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'
+export type Status = 'PENDING' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'
 
 export type Sub = {
   id: string

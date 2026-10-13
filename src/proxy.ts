@@ -34,6 +34,7 @@ export default auth((req) => {
     pathname === '/verificar-email' ||
     pathname.startsWith('/planos') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
 
@@ -53,17 +54,21 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
+  // Só entra quem pagou: aluno sem assinatura ativa vai para o checkout
+  // (admin e instrutor não pagam). APIs respondem por conta própria.
+  const userPlan = session.user.plan ?? null
+  const isCheckout = pathname === '/checkout' || pathname.startsWith('/checkout/')
+  if (session.user.role === 'STUDENT' && !userPlan && !isCheckout && !pathname.startsWith('/api/')) {
+    return NextResponse.redirect(new URL('/checkout', req.url))
+  }
+
   // App route plan check
   const requiredFeature = getRouteRequiredFeature(pathname)
 
   if (requiredFeature) {
-    const userPlan = session?.user?.plan ?? null
-
     if (!userPlan) {
-      // No subscription at all → redirect to plans
-      const url = new URL('/planos', req.url)
-      url.searchParams.set('reason', 'no_subscription')
-      return NextResponse.redirect(url)
+      // Sem assinatura ativa → checkout
+      return NextResponse.redirect(new URL('/checkout', req.url))
     }
 
     if (!canAccessFeature(userPlan, requiredFeature)) {

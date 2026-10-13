@@ -55,27 +55,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.emailVerified = user.emailVerified
       }
       // Plano em cache no JWT, revalidado no banco a cada PLAN_REFRESH_MS: assim
-      // pagamento confirmado, cancelamento ou fim do teste grátis valem sem
-      // precisar sair e entrar de novo.
+      // pagamento confirmado, cancelamento ou cobrança vencida valem sem
+      // precisar sair e entrar de novo. Sem plano (aguardando pagamento no
+      // checkout) revalida a cada requisição, para liberar assim que pagar.
       const userId = token.id as string | undefined
       const checkedAt = token.planCheckedAt as number | undefined
-      const stale = !checkedAt || Date.now() - checkedAt > PLAN_REFRESH_MS
+      const stale = !token.plan || !checkedAt || Date.now() - checkedAt > PLAN_REFRESH_MS
       if (userId && (user || stale)) {
         try {
           const subscription = await prisma.subscription.findUnique({
             where: { userId },
-            select: { status: true, currentPeriodEnd: true, plan: { select: { name: true } } },
+            select: { status: true, currentPeriodEnd: true, gatewaySubscriptionId: true, plan: { select: { name: true } } },
           })
           token.plan = subscriptionGrantsAccess(subscription) ? subscription!.plan.name : null
           token.planUntil =
-            subscription?.status === 'TRIALING' ? subscription.currentPeriodEnd.getTime() : null
+            subscription && token.plan && !subscription.gatewaySubscriptionId
+              ? subscription.currentPeriodEnd.getTime()
+              : null
           token.planCheckedAt = Date.now()
         } catch (err) {
           // Falha no banco não derruba a sessão: mantém o último valor conhecido.
           console.error('[auth] falha ao revalidar plano:', err)
         }
       }
-      // Teste grátis vencido entre duas revalidações.
+      // Período com acesso vencido entre duas revalidações.
       const planUntil = token.planUntil as number | null | undefined
       if (planUntil && Date.now() > planUntil) token.plan = null
       return token
