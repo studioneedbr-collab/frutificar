@@ -35,6 +35,7 @@ export default auth((req) => {
     pathname.startsWith('/planos') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/cron') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
 
