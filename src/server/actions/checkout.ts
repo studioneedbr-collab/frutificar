@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { subscriptionGrantsAccess } from '@/lib/subscription-access'
 import { AsaasError } from '@/lib/asaas'
 import type { ActionResult } from '@/lib/action-types'
+import { rateLimit, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit'
 import {
   startCheckout,
   syncUserSubscription,
@@ -22,6 +23,11 @@ const checkoutSchema = z.object({
 export async function createCheckout(input: unknown): Promise<ActionResult<OpenCharge>> {
   const session = await auth()
   if (!session?.user?.id) return { ok: false, error: 'Faça login para continuar.' }
+
+  // Cada chamada cria/atualiza cobrança no Asaas.
+  if (!rateLimit(`checkout:${session.user.id}`, 10, 10 * 60_000)) {
+    return { ok: false, error: RATE_LIMIT_MESSAGE }
+  }
 
   const parsed = checkoutSchema.safeParse(input)
   if (!parsed.success) {
@@ -52,8 +58,10 @@ export async function checkCheckoutStatus(): Promise<ActionResult<{ active: bool
   if (!session?.user?.id) return { ok: false, error: 'Sessão expirada.' }
 
   try {
-    // Fallback do webhook: puxa o status direto do Asaas.
-    await syncUserSubscription(session.user.id)
+    // Fallback do webhook: puxa o status direto do Asaas (no máx. 1x a cada 4s).
+    if (rateLimit(`checkout-sync:${session.user.id}`, 1, 4000)) {
+      await syncUserSubscription(session.user.id)
+    }
   } catch (err) {
     console.error('[checkCheckoutStatus] falha ao sincronizar com o Asaas:', err)
   }

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { tokenLookup } from '@/lib/tokens'
 import { sendWelcomeEmail } from '@/lib/email'
 
 export default async function VerificarEmailPage({
@@ -11,7 +12,7 @@ export default async function VerificarEmailPage({
   let status: 'ok' | 'invalid' = 'invalid'
 
   if (token) {
-    const record = await prisma.verificationToken.findUnique({ where: { token } })
+    const record = await prisma.verificationToken.findFirst({ where: { token: { in: tokenLookup(token) } } })
     if (record && record.expires > new Date()) {
       // Idempotente de propósito: NÃO deletamos o token aqui. Prescanners de e-mail
       // (antivírus corporativo, preview de links) costumam fazer GET no link antes

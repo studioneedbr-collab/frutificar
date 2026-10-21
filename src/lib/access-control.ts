@@ -1,6 +1,7 @@
 import type { PlanName } from '@prisma/client'
 import { PLAN_FEATURES, ROUTE_FEATURE_MAP, type Feature } from '@/lib/constants'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { subscriptionGrantsAccess } from '@/lib/subscription-access'
 
 export function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
@@ -22,4 +23,23 @@ export async function getUserActivePlan(userId: string): Promise<PlanName | null
   })
   if (!subscription || !subscriptionGrantsAccess(subscription)) return null
   return subscription.plan.name
+}
+
+/**
+ * Para usar dentro de Server Actions e rotas de API (que não passam pela
+ * checagem de plano do proxy): exige sessão e o recurso no plano ativo.
+ * Admin e instrutor passam sem plano.
+ */
+export async function requireFeature(
+  feature: Feature,
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const session = await auth()
+  if (!session?.user?.id) return { ok: false, error: 'Não autenticado.' }
+  if (session.user.role !== 'STUDENT') return { ok: true, userId: session.user.id }
+  // Confere no banco (não confia só no JWT em cache).
+  const plan = await getUserActivePlan(session.user.id)
+  if (!canAccessFeature(plan, feature)) {
+    return { ok: false, error: 'Seu plano não inclui este recurso.' }
+  }
+  return { ok: true, userId: session.user.id }
 }

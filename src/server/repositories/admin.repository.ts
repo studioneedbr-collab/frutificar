@@ -117,7 +117,10 @@ export async function listRecentUsers(limit = 6) {
     where: { deletedAt: null },
     take: limit,
     orderBy: { createdAt: 'desc' },
-    include: {
+    select: {
+      name: true,
+      email: true,
+      createdAt: true,
       subscription: { select: { status: true, plan: { select: { name: true } } } },
     },
   })

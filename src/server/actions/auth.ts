@@ -1,10 +1,11 @@
 'use server'
 
 import { z } from 'zod'
-import { randomBytes } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { signOut } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { newToken, tokenLookup } from '@/lib/tokens'
+import { rateLimit, clientIp, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit'
 import {
   sendVerificationEmail,
   sendAdminNewUserNotification,
@@ -17,9 +18,9 @@ const RESET_TTL_MS = 60 * 60 * 1000 // 1 hora
 
 const registerSchema = z
   .object({
-    name: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+    name: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(120),
     email: z.string().trim().toLowerCase().email('E-mail inválido.'),
-    password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.'),
+    password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.').max(72, 'A senha deve ter no máximo 72 caracteres.'),
     confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória.'),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -28,6 +29,10 @@ const registerSchema = z
   })
 
 export async function registerUser(input: unknown): Promise<ActionResult> {
+  // Contra criação de contas em massa / spam de e-mails.
+  if (!rateLimit(`register:${await clientIp()}`, 5, 60 * 60_000)) {
+    return { ok: false, error: RATE_LIMIT_MESSAGE }
+  }
   const parsed = registerSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
@@ -52,7 +57,7 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
-    const token = randomBytes(32).toString('hex')
+    const token = newToken()
     const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
     await prisma.$transaction([
@@ -76,7 +81,7 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
         },
       }),
       prisma.verificationToken.create({
-        data: { identifier: email, token, expires: tokenExpires },
+        data: { identifier: email, token: token.hash, expires: tokenExpires },
       }),
     ])
 
@@ -84,7 +89,7 @@ export async function registerUser(input: unknown): Promise<ActionResult> {
     // não deve derrubar o cadastro nem fazer o usuário tentar de novo e cair em
     // "e-mail já cadastrado" — apenas logamos; o reenvio pode ser feito depois.
     try {
-      await sendVerificationEmail(email, token)
+      await sendVerificationEmail(email, token.raw)
     } catch (mailErr) {
       console.error('[registerUser] falha ao enviar e-mail de verificação:', mailErr)
     }
@@ -121,6 +126,10 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
   }
 
   const { email } = parsed.data
+  // Resposta idêntica quando estoura o limite (não revela nada).
+  if (!rateLimit(`reset:ip:${await clientIp()}`, 10, 60 * 60_000) || !rateLimit(`reset:email:${email}`, 3, 60 * 60_000)) {
+    return { ok: true, data: undefined }
+  }
 
   try {
     const user = await prisma.user.findFirst({
@@ -131,7 +140,7 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
     // Só gera token/e-mail se a conta existir e estiver ativa; caso contrário,
     // seguimos silenciosamente (resposta idêntica) para não vazar informação.
     if (user && !user.deletedAt) {
-      const token = randomBytes(32).toString('hex')
+      const token = newToken()
       const expires = new Date(Date.now() + RESET_TTL_MS)
 
       // Remove tokens de reset anteriores deste e-mail antes de criar um novo.
@@ -139,11 +148,11 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
         where: { identifier: `${RESET_PREFIX}${email}` },
       })
       await prisma.verificationToken.create({
-        data: { identifier: `${RESET_PREFIX}${email}`, token, expires },
+        data: { identifier: `${RESET_PREFIX}${email}`, token: token.hash, expires },
       })
 
       try {
-        await sendPasswordResetEmail(email, token)
+        await sendPasswordResetEmail(email, token.raw)
       } catch (mailErr) {
         console.error('[requestPasswordReset] falha ao enviar e-mail de reset:', mailErr)
       }
@@ -159,7 +168,7 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
 const resetPasswordSchema = z
   .object({
     token: z.string().min(1, 'Token ausente.'),
-    password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.'),
+    password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.').max(72, 'A senha deve ter no máximo 72 caracteres.'),
     confirmPassword: z.string().min(8, 'Confirmação de senha obrigatória.'),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -175,9 +184,12 @@ export async function resetPassword(input: unknown): Promise<ActionResult> {
   }
 
   const { token, password } = parsed.data
+  if (!rateLimit(`reset-confirm:${await clientIp()}`, 20, 60 * 60_000)) {
+    return { ok: false, error: RATE_LIMIT_MESSAGE }
+  }
 
   try {
-    const record = await prisma.verificationToken.findUnique({ where: { token } })
+    const record = await prisma.verificationToken.findFirst({ where: { token: { in: tokenLookup(token) } } })
     if (
       !record ||
       !record.identifier.startsWith(RESET_PREFIX) ||
@@ -199,7 +211,7 @@ export async function resetPassword(input: unknown): Promise<ActionResult> {
     await prisma.$transaction([
       prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
       // Consome o token (diferente da verificação de e-mail, aqui deletamos).
-      prisma.verificationToken.delete({ where: { token } }),
+      prisma.verificationToken.delete({ where: { token: record.token } }),
     ])
 
     return { ok: true, data: undefined }

@@ -1,4 +1,6 @@
 import { auth } from '@/lib/auth'
+import { canAccessFeature, getUserActivePlan } from '@/lib/access-control'
+import { rateLimit as hitRateLimit } from '@/lib/rate-limit'
 import { prisma } from '@/lib/prisma'
 import { openai } from '@/lib/openai'
 import { getSetting } from '@/server/repositories/settings.repository'
@@ -29,6 +31,11 @@ const RATE_LIMIT_PER_HOUR = 30
 
 /** Modelo padrão quando o admin não configurou um em /configuracoes. */
 const DEFAULT_MODEL = 'gpt-4o'
+// Só modelos conhecidos (custo previsível), mesmo que o admin grave outro valor.
+const ALLOWED_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini']
+const DAILY_LIMIT = 150
+// Histórico guardado por conversa (o contexto enviado à IA usa só as últimas 16).
+const MAX_STORED_MESSAGES = 200
 
 // ai SDK v6 UIMessage part (text type)
 const uiMessagePartSchema = z.object({
@@ -78,6 +85,13 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return new Response('Não autorizado', { status: 401 })
   }
+  // A API não passa pela checagem de plano do proxy: confere aqui, no banco.
+  if (session.user.role === 'STUDENT') {
+    const plan = await getUserActivePlan(session.user.id)
+    if (!canAccessFeature(plan, 'chat')) {
+      return new Response('Seu plano não inclui o chat.', { status: 403 })
+    }
+  }
 
   let body: unknown
   try {
@@ -94,9 +108,23 @@ export async function POST(request: Request) {
   const { messages: incomingMessages, sessionId } = parsed.data
   const userId = session.user.id
 
-  // Configurações dinâmicas (admin /configuracoes) com fallback.
-  const rateLimit = Number(await getSetting('chat_limit')) || RATE_LIMIT_PER_HOUR
-  const aiModel = (await getSetting('ai_model')) || DEFAULT_MODEL
+  // Configurações dinâmicas (admin /configuracoes) com fallback e limites.
+  const configuredLimit = Number(await getSetting('chat_limit'))
+  const rateLimit =
+    Number.isFinite(configuredLimit) && configuredLimit >= 1 && configuredLimit <= 200
+      ? Math.floor(configuredLimit)
+      : RATE_LIMIT_PER_HOUR
+  const configuredModel = await getSetting('ai_model')
+  const aiModel = configuredModel && ALLOWED_MODELS.includes(configuredModel) ? configuredModel : DEFAULT_MODEL
+
+  // Limite por usuário (somando todas as conversas) — abrir conversa nova
+  // não zera a contagem.
+  if (!hitRateLimit(`chat:h:${userId}`, rateLimit, 60 * 60_000) || !hitRateLimit(`chat:d:${userId}`, DAILY_LIMIT, 24 * 60 * 60_000)) {
+    return new Response(
+      JSON.stringify({ error: `Limite de mensagens atingido. Tente novamente mais tarde.` }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 
   // Personaliza o prompt com o contexto do usuário (nome + plano) para respostas
   // mais direcionadas — o técnico sabe com quem está falando.
@@ -157,8 +185,8 @@ export async function POST(request: Request) {
   // Persist user message immediately
   const updatedMessages: StoredMessage[] = [
     ...storedMessages,
-    { role: 'user', content: userMessageText, ts: Date.now() },
-  ]
+    { role: 'user' as const, content: userMessageText, ts: Date.now() },
+  ].slice(-(MAX_STORED_MESSAGES - 1))
   await prisma.chatSession.update({
     where: { id: chatSession.id },
     data: { messages: updatedMessages, lastMessageAt: new Date() },

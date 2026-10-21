@@ -25,8 +25,11 @@ npm run dev
 
 Acesse [http://localhost:3000](http://localhost:3000)
 
-**Login de teste:** `aluno@teste.com` / `aluno123`
-**Admin:** `admin@frutificar.com` / `admin123`
+**Login de teste (só no banco local, criado pelo seed):** `aluno@teste.com` / `aluno123`
+**Admin local:** `admin@frutificar.com` / `admin123`
+
+> O seed recusa rodar contra o banco de produção. Em produção, o admin é criado com
+> `ADMIN_SEED_PASSWORD='senha-forte' ./node_modules/.bin/tsx prisma/create-admin.ts`.
 
 ## Estrutura
 

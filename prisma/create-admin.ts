@@ -5,10 +5,16 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
 // Cria (ou atualiza) o usuário ADMIN do painel. Idempotente — pode rodar de novo.
-// Uso: ./node_modules/.bin/tsx prisma/create-admin.ts
+// Uso: ADMIN_SEED_PASSWORD='senha-forte' ./node_modules/.bin/tsx prisma/create-admin.ts
+// A senha é obrigatória (sem padrão no código) e nunca é impressa.
 const ADMIN_EMAIL = process.env.ADMIN_SEED_EMAIL || 'admin@frutificardigital.com'
-const ADMIN_PASSWORD = process.env.ADMIN_SEED_PASSWORD || 'Frutificar@2026'
+const ADMIN_PASSWORD = process.env.ADMIN_SEED_PASSWORD ?? ''
 const ADMIN_NAME = 'Administrador Frutificar'
+
+if (ADMIN_PASSWORD.length < 12) {
+  console.error('Defina ADMIN_SEED_PASSWORD com pelo menos 12 caracteres.')
+  process.exit(1)
+}
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL })
@@ -42,7 +48,6 @@ async function main() {
   }
 
   console.log(`Admin pronto: ${user.email} (role=${user.role})`)
-  console.log(`Senha: ${ADMIN_PASSWORD}`)
 
   await prisma.$disconnect()
   await pool.end()

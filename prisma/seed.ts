@@ -15,7 +15,15 @@ import {
   PaymentStatus,
 } from '@prisma/client'
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+// Seed de DESENVOLVIMENTO: cria contas com senhas fracas conhecidas
+// (admin123/aluno123). Nunca rodar contra o banco de produção.
+const dbUrl = process.env.DATABASE_URL ?? ''
+if ((/supabase\.(co|com)/.test(dbUrl) || process.env.NODE_ENV === 'production') && process.env.ALLOW_DEV_SEED !== 'true') {
+  console.error('Seed de desenvolvimento bloqueado: DATABASE_URL parece ser de produção.')
+  process.exit(1)
+}
+
+const pool = new Pool({ connectionString: dbUrl })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 

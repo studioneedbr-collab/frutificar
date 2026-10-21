@@ -269,7 +269,8 @@ export async function sendVerificationEmail(email: string, token: string): Promi
       note: 'Por segurança, este link expira em 24 horas. Se você não criou esta conta, pode ignorar este e-mail.',
     }),
   })
-  if (!sent) console.info(`[email:stub] Verificação para ${email}: ${link}`)
+  // O link só aparece no log em desenvolvimento (em produção ele dá acesso à conta).
+  if (!sent && process.env.NODE_ENV !== 'production') console.info(`[email:stub] Verificação para ${email}: ${link}`)
 }
 
 /** Boas-vindas — enviado após o aluno confirmar o e-mail. */
@@ -334,5 +335,6 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
       note: 'Este link expira em 1 hora. Se você não solicitou a troca de senha, ignore este e-mail — sua senha atual continua valendo.',
     }),
   })
-  if (!sent) console.info(`[email:stub] Reset de senha para ${email}: ${link}`)
+  // O link só aparece no log em desenvolvimento (em produção ele dá acesso à conta).
+  if (!sent && process.env.NODE_ENV !== 'production') console.info(`[email:stub] Reset de senha para ${email}: ${link}`)
 }

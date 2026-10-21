@@ -1,6 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireFeature } from '@/lib/access-control'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { ActionResult } from '@/lib/action-types'
 import * as coursesService from '@/server/services/courses.service'
@@ -82,17 +84,25 @@ export async function deleteCourse(id: string): Promise<ActionResult> {
 }
 
 export async function completeLesson(lessonId: string): Promise<ActionResult> {
-  const session = await auth()
-  if (!session) {
-    return { ok: false, error: 'Não autenticado.' }
-  }
-
-  if (!lessonId || typeof lessonId !== 'string') {
+  if (!lessonId || typeof lessonId !== 'string' || lessonId.length > 64) {
     return { ok: false, error: 'ID de aula inválido.' }
   }
 
+  // A aula precisa existir num curso publicado que o plano do aluno cobre —
+  // senão dava para "concluir" qualquer aula (e ganhar certificado) por ID.
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { module: { select: { course: { select: { type: true, published: true, deletedAt: true } } } } },
+  })
+  const course = lesson?.module.course
+  if (!course || !course.published || course.deletedAt) {
+    return { ok: false, error: 'Aula não encontrada.' }
+  }
+  const access = await requireFeature(course.type === 'MINICOURSE' ? 'minicourses' : 'courses')
+  if (!access.ok) return access
+
   try {
-    await coursesService.markLessonComplete(session.user.id, lessonId)
+    await coursesService.markLessonComplete(access.userId, lessonId)
     return { ok: true, data: undefined }
   } catch {
     return { ok: false, error: 'Erro ao registrar progresso.' }

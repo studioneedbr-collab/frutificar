@@ -78,16 +78,16 @@ enum PaymentStatus {
 // ─── Usuários e acesso ────────────────────────────────────
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         Role      @default(STUDENT)
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          Role      @default(STUDENT)
   emailVerified DateTime?
-  suspendedAt  DateTime?
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  suspendedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   subscription      Subscription?
   payments          Payment[]
@@ -120,6 +120,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -128,6 +129,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -166,27 +169,33 @@ model Subscription {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
   payments Payment[]
+
+  @@index([status])
 }
 
 model Payment {
-  id             String        @id @default(cuid())
-  userId         String
-  subscriptionId String?
-  amount         Decimal       @db.Decimal(10, 2)
-  status         PaymentStatus @default(PAID)
-  method         String        @default("Cartão de crédito")
-  description    String?
-  paidAt         DateTime      @default(now())
+  id               String        @id @default(cuid())
+  userId           String
+  subscriptionId   String?
+  amount           Decimal       @db.Decimal(10, 2)
+  status           PaymentStatus @default(PAID)
+  method           String        @default("Cartão de crédito")
+  description      String?
+  paidAt           DateTime      @default(now())
   // Asaas: id da cobrança, link da fatura e vencimento.
-  gatewayPaymentId String?     @unique
+  gatewayPaymentId String?       @unique
   invoiceUrl       String?
   billingType      String?
   dueDate          DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, paidAt])
+  @@index([subscriptionId])
+  @@index([status, paidAt])
 }
 
 model CourseAccess {
@@ -318,6 +327,8 @@ model ChatSession {
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Live {
@@ -374,6 +385,9 @@ model TechnicalVisit {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model ServiceRequest {
@@ -387,6 +401,9 @@ model ServiceRequest {
   updatedAt     DateTime      @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model DownloadableResource {
@@ -424,10 +441,12 @@ model Property {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plots           Plot[]
   technicalVisits TechnicalVisit[]
   documents       PropertyDocument[]
+
+  @@index([userId])
 }
 
 // Feedback dos alunos sobre a plataforma (cai no /admin/feedbacks).
@@ -460,18 +479,18 @@ model Service {
 model AppSetting {
   key       String   @id
   value     String
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 // Gestão da propriedade: licenças ambientais, documentos e histórico (spec Premium).
 model PropertyDocument {
   id          String    @id @default(cuid())
   propertyId  String
-  type        String    // LICENCA | DOCUMENTO | HISTORICO
+  type        String // LICENCA | DOCUMENTO | HISTORICO
   title       String
   description String?
   fileUrl     String?
-  issuer      String?   // órgão emissor (licenças)
+  issuer      String? // órgão emissor (licenças)
   issuedAt    DateTime? // data de emissão / do evento (histórico)
   expiresAt   DateTime? // validade (licenças)
   createdAt   DateTime  @default(now())
@@ -496,21 +515,25 @@ model Plot {
   soilAnalyses    SoilAnalysis[]
   activities      Activity[]
   recommendations Recommendation[]
+
+  @@index([propertyId])
 }
 
 model SoilAnalysis {
-  id         String         @id @default(cuid())
-  plotId     String
-  ph         Decimal        @db.Decimal(4, 2)
-  nutrients  Json
-  status     AnalysisStatus @default(COMPLETED)
-  summary    String?
-  analysisType String       @default("Completa")
-  analyzedAt DateTime
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id           String         @id @default(cuid())
+  plotId       String
+  ph           Decimal        @db.Decimal(4, 2)
+  nutrients    Json
+  status       AnalysisStatus @default(COMPLETED)
+  summary      String?
+  analysisType String         @default("Completa")
+  analyzedAt   DateTime
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   plot Plot @relation(fields: [plotId], references: [id], onDelete: Cascade)
+
+  @@index([plotId])
 }
 
 model Activity {

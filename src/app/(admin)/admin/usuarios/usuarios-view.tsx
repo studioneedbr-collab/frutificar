@@ -129,13 +129,16 @@ export function UsuariosView({
     }
     setUsers((cur) => [user, ...cur])
     setCreateOpen(false)
-    toast.success('Usuário criado', { description: name })
 
-    if (!preview) {
-      const res = await createUserAction({ name, email, role: createRole })
-      if (!res.ok) toast.error(res.error)
-      router.refresh()
+    if (preview) {
+      toast.success('Usuário criado', { description: name })
+      return
     }
+    const res = await createUserAction({ name, email, role: createRole })
+    if (!res.ok) toast.error(res.error)
+    else if (res.data.emailSent) toast.success('Usuário criado', { description: `Enviamos para ${email} o link para definir a senha.` })
+    else toast.warning('Usuário criado, mas o e-mail não foi enviado', { description: 'Use "Redefinir senha" para gerar o acesso.' })
+    router.refresh()
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {

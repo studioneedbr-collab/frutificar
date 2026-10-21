@@ -7,6 +7,8 @@ import type { PlanName } from '@prisma/client'
 // via PREVIEW_MODE="true" — assim a produção nunca fica sem controle por engano.
 const PREVIEW_MODE = process.env.PREVIEW_MODE === 'true'
 
+const STATIC_FILE = /\.(?:png|jpe?g|gif|webp|avif|svg|ico|txt|xml|webmanifest|woff2?|ttf|css|js|map|mp3|mp4|pdf)$/i
+
 // Inline pure helpers — no DB/Prisma dependency in middleware
 function canAccessFeature(plan: PlanName | null | undefined, feature: Feature): boolean {
   if (!plan) return false
@@ -37,7 +39,8 @@ export default auth((req) => {
     pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/api/cron') ||
     pathname.startsWith('/_next') ||
-    pathname.includes('.')
+    // Só arquivos estáticos por extensão (antes, qualquer caminho com "." passava).
+    STATIC_FILE.test(pathname)
 
   if (isPublicPath) return NextResponse.next()
 

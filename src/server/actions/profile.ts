@@ -5,16 +5,18 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { newToken } from '@/lib/tokens'
+import { sendVerificationEmail } from '@/lib/email'
 import type { ActionResult } from '@/lib/action-types'
 
 const updateProfileSchema = z.object({
-  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+  name: z.string().trim().min(2, 'Nome deve ter ao menos 2 caracteres').max(120),
   email: z.string().trim().toLowerCase().email('E-mail inválido.'),
 })
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Informe a senha atual.'),
-  newPassword: z.string().min(8, 'A nova senha deve ter ao menos 8 caracteres.'),
+  newPassword: z.string().min(8, 'A nova senha deve ter ao menos 8 caracteres.').max(72, 'A nova senha deve ter no máximo 72 caracteres.'),
 })
 
 export async function updateProfile(input: unknown): Promise<ActionResult> {
@@ -29,10 +31,28 @@ export async function updateProfile(input: unknown): Promise<ActionResult> {
   }
 
   try {
+    const current = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true },
+    })
+    const emailChanged = current?.email.toLowerCase() !== parsed.data.email
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { name: parsed.data.name, email: parsed.data.email },
+      // E-mail novo precisa ser confirmado de novo (ele é usado no reset de senha).
+      data: { name: parsed.data.name, email: parsed.data.email, ...(emailChanged && { emailVerified: null }) },
     })
+    if (emailChanged) {
+      // Link de confirmação para o e-mail novo (não bloqueia se o envio falhar).
+      try {
+        const token = newToken()
+        await prisma.verificationToken.create({
+          data: { identifier: parsed.data.email, token: token.hash, expires: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+        })
+        await sendVerificationEmail(parsed.data.email, token.raw)
+      } catch (mailErr) {
+        console.error('[updateProfile] falha ao enviar verificação do novo e-mail:', mailErr)
+      }
+    }
     revalidatePath('/perfil')
     return { ok: true, data: undefined }
   } catch (err) {

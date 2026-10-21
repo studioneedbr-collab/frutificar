@@ -48,7 +48,7 @@ const tipoOptions = [
   { value: 'Foliar', label: 'Foliar' },
 ]
 
-const MAX_BYTES = 15 * 1024 * 1024
+const MAX_BYTES = 4 * 1000 * 1000 // limite da Vercel por requisição
 
 export function DiagnosticoView({
   initialHistorico, talhaoOptions, initialResult, preview,
@@ -82,7 +82,7 @@ export function DiagnosticoView({
   function onPickFile(f: File | undefined) {
     if (!f) { setFile(null); return }
     if (f.size > MAX_BYTES) {
-      toast.error('Arquivo muito grande', { description: 'O limite é 15MB.' })
+      toast.error('Arquivo muito grande', { description: 'O limite é 4 MB.' })
       return
     }
     setFile(f)

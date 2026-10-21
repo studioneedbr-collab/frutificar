@@ -11,7 +11,8 @@ const createResourceSchema = z.object({
   title: z.string().min(2, 'Título deve ter ao menos 2 caracteres'),
   category: z.string().min(2, 'Categoria deve ter ao menos 2 caracteres'),
   description: z.string().optional(),
-  fileUrl: z.string().optional(),
+  // Só links http(s) — nada de javascript:/data: em href.
+  fileUrl: z.string().trim().max(2000).regex(/^https?:\/\//i, 'Link inválido (use http/https).').optional().or(z.literal('')),
   requiredPlan: z.enum(['ESSENCIAL', 'PREMIUM', 'GOLD']).optional(),
 })
 

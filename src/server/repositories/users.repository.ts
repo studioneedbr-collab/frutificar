@@ -2,9 +2,16 @@ import { prisma } from '@/lib/prisma'
 import type { PlanName, Role } from '@prisma/client'
 
 export async function listUsers() {
+  // Só os campos que a tela usa (nunca carregar passwordHash à toa).
   return prisma.user.findMany({
     where: { deletedAt: null },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      suspendedAt: true,
+      createdAt: true,
       subscription: {
         select: {
           status: true,

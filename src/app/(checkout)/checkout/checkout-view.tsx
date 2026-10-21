@@ -73,6 +73,9 @@ export function CheckoutView({
         const res = await checkCheckoutStatus()
         if (res.ok && res.data.active) {
           setPaid(true)
+          // Navegação completa (não SPA) de propósito: a sessão é recarregada
+          // já com o plano ativo antes de entrar na plataforma.
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           setTimeout(() => window.location.assign('/dashboard'), 1500)
         }
       } finally {

@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs'
 import { Prisma, Role } from '@prisma/client'
 import type { ActionResult } from '@/lib/action-types'
 import { prisma } from '@/lib/prisma'
+import { newToken } from '@/lib/tokens'
 import { sendPasswordResetEmail } from '@/lib/email'
 import * as usersRepository from '@/server/repositories/users.repository'
 
@@ -21,6 +22,48 @@ const createUserSchema = z.object({
 
 const updateUserSchema = createUserSchema.partial()
 
+const RESET_PREFIX = 'reset:'
+const RESET_TTL_MS = 60 * 60 * 1000 // 1 hora
+const INVITE_TTL_MS = 72 * 60 * 60 * 1000 // 3 dias para o primeiro acesso
+
+/** Gera um link de definição de senha e envia por e-mail. Não lança erro. */
+async function sendSetPasswordLink(email: string, ttlMs: number): Promise<boolean> {
+  try {
+    const token = newToken()
+    await prisma.verificationToken.deleteMany({ where: { identifier: `${RESET_PREFIX}${email}` } })
+    await prisma.verificationToken.create({
+      data: { identifier: `${RESET_PREFIX}${email}`, token: token.hash, expires: new Date(Date.now() + ttlMs) },
+    })
+    await sendPasswordResetEmail(email, token.raw)
+    return true
+  } catch (err) {
+    console.error('[admin-users] falha ao enviar link de senha:', err)
+    return false
+  }
+}
+
+/** Impede o admin de se rebaixar/suspender/excluir e de remover o último admin. */
+async function guardAdminTarget(
+  targetId: string,
+  sessionUserId: string,
+  change: 'demote' | 'suspend' | 'delete' | 'temp-password',
+): Promise<string | null> {
+  if (targetId === sessionUserId && change !== 'temp-password') {
+    return 'Você não pode fazer isso com a sua própria conta.'
+  }
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true } })
+  if (!target) return 'Usuário não encontrado.'
+  if (target.role !== 'ADMIN') return null
+  if (change === 'temp-password') {
+    return 'Por segurança, administradores só redefinem a senha pelo link enviado por e-mail.'
+  }
+  const admins = await prisma.user.count({
+    where: { role: 'ADMIN', deletedAt: null, suspendedAt: null },
+  })
+  if (admins <= 1) return 'Não é possível remover o último administrador ativo.'
+  return null
+}
+
 function isUniqueConstraintError(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -32,7 +75,7 @@ function isUniqueConstraintError(error: unknown): boolean {
 
 export async function createUserAction(
   input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; emailSent: boolean }>> {
   const session = await auth()
   if (!session || session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso negado.' }
@@ -44,7 +87,9 @@ export async function createUserAction(
   }
 
   try {
-    const passwordHash = await bcrypt.hash('frutificar123', 12)
+    // Senha aleatória que ninguém conhece: o usuário define a dele pelo link
+    // enviado por e-mail (antes era uma senha fixa igual para todo mundo).
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString('hex'), 12)
     const user = await usersRepository.createUser({
       name: parsed.data.name,
       email: parsed.data.email,
@@ -52,7 +97,8 @@ export async function createUserAction(
       passwordHash,
     })
     revalidatePath('/admin/usuarios')
-    return { ok: true, data: { id: user.id } }
+    const emailSent = await sendSetPasswordLink(user.email, INVITE_TTL_MS)
+    return { ok: true, data: { id: user.id, emailSent } }
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       return { ok: false, error: 'Este e-mail já está em uso.' }
@@ -75,6 +121,11 @@ export async function updateUserAction(
   const parsed = updateUserSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+  }
+
+  if (parsed.data.role && parsed.data.role !== 'ADMIN') {
+    const blocked = await guardAdminTarget(id, session.user.id, 'demote')
+    if (blocked) return { ok: false, error: blocked }
   }
 
   try {
@@ -102,6 +153,11 @@ export async function toggleUserSuspended(
   const session = await auth()
   if (!session || session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso negado.' }
+  }
+
+  if (suspended) {
+    const blocked = await guardAdminTarget(id, session.user.id, 'suspend')
+    if (blocked) return { ok: false, error: blocked }
   }
 
   try {
@@ -162,6 +218,9 @@ export async function setTemporaryPasswordAction(
     return { ok: false, error: 'Acesso negado.' }
   }
 
+  const blocked = await guardAdminTarget(id, session.user.id, 'temp-password')
+  if (blocked) return { ok: false, error: blocked }
+
   try {
     const tempPassword = generateTempPassword()
     const passwordHash = await bcrypt.hash(tempPassword, 12)
@@ -174,37 +233,20 @@ export async function setTemporaryPasswordAction(
 
 // ─── Redefinir senha: enviar link por e-mail ──────────────
 
-const RESET_PREFIX = 'reset:'
-const RESET_TTL_MS = 60 * 60 * 1000 // 1 hora
-
 export async function sendPasswordResetAction(id: string): Promise<ActionResult> {
   const session = await auth()
   if (!session || session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso negado.' }
   }
 
-  try {
-    const user = await usersRepository.getUserById(id)
-    if (!user || user.deletedAt) {
-      return { ok: false, error: 'Usuário não encontrado.' }
-    }
-
-    const token = randomBytes(32).toString('hex')
-    const expires = new Date(Date.now() + RESET_TTL_MS)
-
-    await prisma.verificationToken.deleteMany({
-      where: { identifier: `${RESET_PREFIX}${user.email}` },
-    })
-    await prisma.verificationToken.create({
-      data: { identifier: `${RESET_PREFIX}${user.email}`, token, expires },
-    })
-
-    await sendPasswordResetEmail(user.email, token)
-    return { ok: true, data: undefined }
-  } catch (err) {
-    console.error('[sendPasswordResetAction] falha ao enviar reset:', err)
-    return { ok: false, error: 'Não foi possível enviar o e-mail. Verifique a configuração de e-mail (Brevo).' }
+  const user = await usersRepository.getUserById(id)
+  if (!user || user.deletedAt) {
+    return { ok: false, error: 'Usuário não encontrado.' }
   }
+  const sent = await sendSetPasswordLink(user.email, RESET_TTL_MS)
+  return sent
+    ? { ok: true, data: undefined }
+    : { ok: false, error: 'Não foi possível enviar o e-mail. Verifique a configuração de e-mail (Brevo).' }
 }
 
 // ─── Excluir usuário (soft delete) ────────────────────────
@@ -214,6 +256,9 @@ export async function deleteUserAction(id: string): Promise<ActionResult> {
   if (!session || session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso negado.' }
   }
+
+  const blocked = await guardAdminTarget(id, session.user.id, 'delete')
+  if (blocked) return { ok: false, error: blocked }
 
   try {
     await usersRepository.softDeleteUser(id)

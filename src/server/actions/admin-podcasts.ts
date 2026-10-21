@@ -15,7 +15,7 @@ function revalidate() {
 
 const createEpisodeSchema = z.object({
   title: z.string().min(3, 'Título deve ter ao menos 3 caracteres'),
-  audioUrl: z.string().optional(),
+  audioUrl: z.string().trim().max(2000).regex(/^https?:\/\//i, 'Link inválido (use http/https).').optional().or(z.literal('')),
   publishedAt: z.coerce.date(),
 })
 
@@ -49,7 +49,7 @@ export async function createEpisodeAction(
 
 const updateEpisodeSchema = z.object({
   title: z.string().min(3, 'Título deve ter ao menos 3 caracteres').optional(),
-  audioUrl: z.string().optional(),
+  audioUrl: z.string().trim().max(2000).regex(/^https?:\/\//i, 'Link inválido (use http/https).').optional().or(z.literal('')),
   publishedAt: z.coerce.date().optional(),
 })
 

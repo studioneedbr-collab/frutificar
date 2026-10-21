@@ -1,6 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { requireFeature } from '@/lib/access-control'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { VisitStatus, ServiceStatus } from '@prisma/client'
@@ -8,32 +10,39 @@ import type { ActionResult } from '@/lib/action-types'
 import * as appointmentsRepository from '@/server/repositories/appointments.repository'
 
 const requestVisitSchema = z.object({
-  reason: z.string().min(3, 'Motivo deve ter ao menos 3 caracteres'),
+  reason: z.string().trim().min(3, 'Motivo deve ter ao menos 3 caracteres').max(500),
   requestedDate: z.coerce.date(),
-  propertyId: z.string().optional(),
-  notes: z.string().optional(),
+  propertyId: z.string().max(64).optional(),
+  notes: z.string().max(2000).optional(),
 })
 
 const requestServiceSchema = z.object({
-  serviceType: z.string().min(2, 'Tipo de serviço inválido'),
-  description: z.string().min(3, 'Descrição deve ter ao menos 3 caracteres'),
+  serviceType: z.string().trim().min(2, 'Tipo de serviço inválido').max(120),
+  description: z.string().trim().min(3, 'Descrição deve ter ao menos 3 caracteres').max(2000),
 })
 
 export async function requestVisit(
   input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  const session = await auth()
-  if (!session) {
-    return { ok: false, error: 'Não autenticado.' }
-  }
+  const access = await requireFeature('visits')
+  if (!access.ok) return access
 
   const parsed = requestVisitSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
   }
 
+  // A propriedade precisa ser do próprio aluno.
+  if (parsed.data.propertyId) {
+    const owner = await prisma.property.findUnique({
+      where: { id: parsed.data.propertyId },
+      select: { userId: true },
+    })
+    if (owner?.userId !== access.userId) return { ok: false, error: 'Propriedade inválida.' }
+  }
+
   try {
-    const visit = await appointmentsRepository.createTechnicalVisit(session.user.id, {
+    const visit = await appointmentsRepository.createTechnicalVisit(access.userId, {
       reason: parsed.data.reason,
       requestedDate: parsed.data.requestedDate,
       propertyId: parsed.data.propertyId,
@@ -50,10 +59,8 @@ export async function requestVisit(
 export async function requestService(
   input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  const session = await auth()
-  if (!session) {
-    return { ok: false, error: 'Não autenticado.' }
-  }
+  const access = await requireFeature('services')
+  if (!access.ok) return access
 
   const parsed = requestServiceSchema.safeParse(input)
   if (!parsed.success) {
@@ -61,7 +68,7 @@ export async function requestService(
   }
 
   try {
-    const service = await appointmentsRepository.createServiceRequest(session.user.id, {
+    const service = await appointmentsRepository.createServiceRequest(access.userId, {
       serviceType: parsed.data.serviceType,
       description: parsed.data.description,
     })

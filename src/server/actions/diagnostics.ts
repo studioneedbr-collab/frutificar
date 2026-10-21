@@ -1,12 +1,14 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireFeature } from '@/lib/access-control'
+import { rateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/lib/action-types'
 import { AnalysisStatus } from '@prisma/client'
 import * as diagnosticsRepository from '@/server/repositories/diagnostics.repository'
-import { uploadToStorage } from '@/lib/storage'
+import { uploadToStorage, sniffFile } from '@/lib/storage'
 import { analyzeSoilReportWithAI, type AiSoilResult } from '@/lib/soil-ai'
 
 const requestDiagnosticSchema = z.object({
@@ -20,10 +22,9 @@ const requestDiagnosticSchema = z.object({
 export async function requestDiagnostic(
   input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-  const session = await auth()
-  if (!session) {
-    return { ok: false, error: 'Não autenticado.' }
-  }
+  const access = await requireFeature('diagnostic')
+  if (!access.ok) return access
+  const session = { user: { id: access.userId } }
 
   const parsed = requestDiagnosticSchema.safeParse(input)
   if (!parsed.success) {
@@ -56,7 +57,7 @@ export async function requestDiagnostic(
 
 // ─── Análise de solo com IA (lê o laudo enviado) ──────────
 
-const MAX_REPORT_BYTES = 15 * 1024 * 1024 // 15MB
+const MAX_REPORT_BYTES = 4 * 1000 * 1000 // limite da Vercel por requisição
 const ACCEPTED_MIMES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
 ]
@@ -70,14 +71,17 @@ export type SoilAnalysisResult = AiSoilResult & { id: string; fileUrl: string | 
 export async function analyzeSoilReport(
   formData: FormData,
 ): Promise<ActionResult<SoilAnalysisResult>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return { ok: false, error: 'Não autenticado.' }
+  const access = await requireFeature('diagnostic')
+  if (!access.ok) return access
+  const session = { user: { id: access.userId } }
+  // Cada análise é uma chamada paga à IA: limite por aluno.
+  if (!rateLimit(`soil-ai:${access.userId}`, 10, 24 * 60 * 60_000)) {
+    return { ok: false, error: 'Limite diário de análises atingido. Tente novamente amanhã.' }
   }
 
   const plotId = String(formData.get('plotId') ?? '')
-  const analysisType = String(formData.get('analysisType') ?? 'Completa')
-  const observacoes = String(formData.get('observacoes') ?? '')
+  const analysisType = String(formData.get('analysisType') ?? 'Completa').slice(0, 60)
+  const observacoes = String(formData.get('observacoes') ?? '').slice(0, 1000)
   const file = formData.get('file')
 
   if (!plotId) return { ok: false, error: 'Selecione um talhão.' }
@@ -85,9 +89,11 @@ export async function analyzeSoilReport(
     return { ok: false, error: 'Anexe o arquivo do laudo (foto ou PDF).' }
   }
   if (file.size > MAX_REPORT_BYTES) {
-    return { ok: false, error: 'Arquivo muito grande (máx. 15MB).' }
+    return { ok: false, error: 'Arquivo muito grande (máx. 4 MB).' }
   }
-  const mime = file.type || 'application/octet-stream'
+  // Tipo pelo conteúdo do arquivo (o informado pelo navegador pode ser falso).
+  const sniffed = sniffFile(new Uint8Array(await file.slice(0, 16).arrayBuffer()), file.name)
+  const mime = sniffed?.mime ?? 'application/octet-stream'
   if (!ACCEPTED_MIMES.includes(mime)) {
     return { ok: false, error: 'Formato não suportado. Envie JPG, PNG, WEBP ou PDF.' }
   }
@@ -128,7 +134,7 @@ export async function analyzeSoilReport(
 
   // Upload do laudo ao Storage (best-effort — não bloqueia se não configurado).
   let fileUrl: string | null = null
-  const up = await uploadToStorage(file, { prefix: 'laudos' })
+  const up = await uploadToStorage(file, { folder: 'laudos', allow: ['pdf', 'image'] })
   if (up.ok) fileUrl = up.url
 
   // Grava o diagnóstico concluído com o plano da IA.
