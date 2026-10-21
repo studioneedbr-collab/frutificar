@@ -15,9 +15,10 @@ export default async function AdminPodcastsPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let episodes: Episode[] = []
   try {
     const rows = await listEpisodes()
-    const episodes: Episode[] = rows.map((e) => ({
+    episodes = rows.map((e) => ({
       id: e.id,
       title: e.title,
       // Sem campo "host"/programa próprio no episódio — usamos o título do podcast.
@@ -30,11 +31,10 @@ export default async function AdminPodcastsPage() {
       plays: 0,
       published: true,
     }))
-
-    return <PodcastsView initialEpisodes={episodes} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/podcasts] erro ao carregar do banco:', err)
-    return <PodcastsView initialEpisodes={[]} preview={false} />
+    episodes = []
   }
+  return <PodcastsView initialEpisodes={episodes} preview={false} />
 }

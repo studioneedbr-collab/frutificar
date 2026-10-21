@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -40,7 +40,11 @@ export function PropriedadesView({
   const [properties, setProperties] = useState<Property[]>(initialProperties)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setProperties(initialProperties) }, [initialProperties])
+  const [prevInitialProperties, setPrevInitialProperties] = useState(initialProperties)
+  if (initialProperties !== prevInitialProperties) {
+    setPrevInitialProperties(initialProperties)
+    setProperties(initialProperties)
+  }
 
   const tmpRef = useRef(0)
   const tmpId = () => `tmp-${++tmpRef.current}`

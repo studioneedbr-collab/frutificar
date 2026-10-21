@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, Circle, Pencil, Trash2, X, KeyRound, Mail, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
@@ -74,7 +74,11 @@ export function UsuariosView({
   const [users, setUsers] = useState<User[]>(initialUsers)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setUsers(initialUsers) }, [initialUsers])
+  const [prevInitialUsers, setPrevInitialUsers] = useState(initialUsers)
+  if (initialUsers !== prevInitialUsers) {
+    setPrevInitialUsers(initialUsers)
+    setUsers(initialUsers)
+  }
 
   const [filter, setFilter] = useState<Filter>('Todos')
   const [query, setQuery] = useState('')

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { compressImage } from '@/lib/image-compress'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
@@ -49,12 +50,18 @@ const tmpId = () => `tmp-${++tmp}`
 export function GestaoView({ properties, preview }: { properties: GestaoProperty[]; preview: boolean }) {
   const router = useRouter()
   const [props, setProps] = useState<GestaoProperty[]>(properties)
-  useEffect(() => { setProps(properties) }, [properties])
+  const [prevProperties, setPrevProperties] = useState(properties)
+  if (properties !== prevProperties) {
+    setPrevProperties(properties)
+    setProps(properties)
+  }
 
   const [selectedId, setSelectedId] = useState(properties[0]?.id ?? '')
-  useEffect(() => {
-    if (!props.find((p) => p.id === selectedId)) setSelectedId(props[0]?.id ?? '')
-  }, [props, selectedId])
+  // Se a propriedade selecionada sumiu (ex.: após refresh), volta para a primeira.
+  const fallbackId = props[0]?.id ?? ''
+  if (!props.find((p) => p.id === selectedId) && selectedId !== fallbackId) {
+    setSelectedId(fallbackId)
+  }
 
   const [addType, setAddType] = useState<DocType | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,6 +79,13 @@ export function GestaoView({ properties, preview }: { properties: GestaoProperty
     if (!property || !addType) return
     const form = e.currentTarget
     const fd = new FormData(form)
+    // Foto é reduzida no navegador antes de subir (economiza espaço).
+    const picked = fd.get('file')
+    if (picked instanceof File && picked.size > 0) {
+      const small = await compressImage(picked)
+      if (small.size > 4_000_000) { toast.error('Arquivo muito grande', { description: 'O limite é 4 MB.' }); return }
+      fd.set('file', small)
+    }
     fd.set('propertyId', property.id)
     fd.set('type', addType)
     const title = String(fd.get('title') ?? '').trim()

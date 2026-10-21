@@ -2,6 +2,7 @@
 // (ServiceRequest com serviceType "Estágio — …").
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listServiceRequestsByUser } from '@/server/repositories/appointments.repository'
@@ -21,12 +22,13 @@ export default async function EstagioPage() {
     return <EstagioView initial={mockEstagios} preview />
   }
 
-  try {
-    const session = await auth()
-    if (!session?.user?.id) return <EstagioView initial={[]} preview={false} />
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
 
+  let items: EstagioItem[] = []
+  try {
     const rows = await listServiceRequestsByUser(session.user.id)
-    const items: EstagioItem[] = rows
+    items = rows
       .filter((r) => r.serviceType.startsWith(ESTAGIO_PREFIX))
       .map((r) => ({
         id: r.id,
@@ -35,9 +37,9 @@ export default async function EstagioPage() {
         status: statusLabel[r.status] ?? r.status,
         data: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
-
-    return <EstagioView initial={items} preview={false} />
-  } catch {
-    return <EstagioView initial={[]} preview={false} />
+  } catch (err) {
+    console.error('[estagio] erro ao carregar do banco:', err)
+    items = []
   }
+  return <EstagioView initial={items} preview={false} />
 }

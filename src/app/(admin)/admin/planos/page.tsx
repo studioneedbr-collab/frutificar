@@ -25,9 +25,10 @@ export default async function AdminPlanosPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let plans: Plan[] = []
   try {
     const rows = await listPlans()
-    const plans: Plan[] = rows.map((p) => ({
+    plans = rows.map((p) => ({
       id: p.id,
       name: capitalize(p.name),
       price: Number(p.priceMonthly),
@@ -37,11 +38,10 @@ export default async function AdminPlanosPage() {
       revenue: 'R$ 0',
       features: Array.isArray(p.features) ? (p.features as string[]) : [],
     }))
-
-    return <PlanosView initialPlans={plans} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/planos] erro ao carregar do banco:', err)
-    return <PlanosView initialPlans={[]} preview={false} />
+    plans = []
   }
+  return <PlanosView initialPlans={plans} preview={false} />
 }

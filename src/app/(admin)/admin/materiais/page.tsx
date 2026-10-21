@@ -28,9 +28,10 @@ export default async function AdminMateriaisPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let materials: Material[] = []
   try {
     const rows = await listResources()
-    const materials: Material[] = rows.map((r) => ({
+    materials = rows.map((r) => ({
       id: r.id,
       title: r.title,
       type: toType(r.category),
@@ -39,11 +40,10 @@ export default async function AdminMateriaisPage() {
       size: '— MB',
       date: r.createdAt.toLocaleDateString('pt-BR'),
     }))
-
-    return <MateriaisView initialMaterials={materials} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/materiais] erro ao carregar do banco:', err)
-    return <MateriaisView initialMaterials={[]} preview={false} />
+    materials = []
   }
+  return <MateriaisView initialMaterials={materials} preview={false} />
 }

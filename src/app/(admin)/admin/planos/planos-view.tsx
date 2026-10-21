@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Users, TrendingUp, Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -40,7 +40,11 @@ export function PlanosView({
   const [plans, setPlans] = useState<Plan[]>(initialPlans)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setPlans(initialPlans) }, [initialPlans])
+  const [prevInitialPlans, setPrevInitialPlans] = useState(initialPlans)
+  if (initialPlans !== prevInitialPlans) {
+    setPrevInitialPlans(initialPlans)
+    setPlans(initialPlans)
+  }
 
   const [nextId, setNextId] = useState(initialPlans.length + 1)
 

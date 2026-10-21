@@ -2,6 +2,8 @@
 // Separa em: ao vivo agora (LIVE), próximas (SCHEDULED futuras) e gravadas (ENDED).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listLives } from '@/server/repositories/lives.repository'
 import { mockData, type LivesData, type Featured, type Upcoming, type Recorded } from './data'
@@ -25,19 +27,28 @@ function badgeFor(d: Date): string {
   return `AO VIVO EM ${diffDays} DIAS`
 }
 
+// Lives agendadas a partir de agora, da mais próxima para a mais distante.
+function upcomingScheduled<T extends { status: string; scheduledAt: Date }>(rows: T[]): T[] {
+  const now = Date.now()
+  return rows
+    .filter((l) => l.status === 'SCHEDULED' && new Date(l.scheduledAt).getTime() >= now)
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+}
+
 export default async function LivesPage() {
   if (PREVIEW_MODE) {
     return <LivesView data={mockData} />
   }
 
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  let data: LivesData = { featured: null, proximas: [], gravadas: [], temas: ['Todos'] }
   try {
     const rows = await listLives()
-    const now = Date.now()
 
     const liveNow = rows.find((l) => l.status === 'LIVE')
-    const upcoming = rows
-      .filter((l) => l.status === 'SCHEDULED' && new Date(l.scheduledAt).getTime() >= now)
-      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    const upcoming = upcomingScheduled(rows)
     const recorded = rows.filter((l) => l.status === 'ENDED')
 
     let featured: Featured | null = null
@@ -68,9 +79,10 @@ export default async function LivesPage() {
       }
     }
 
-    const data: LivesData = { featured, proximas, gravadas, temas: ['Todos'] }
-    return <LivesView data={data} />
-  } catch {
-    return <LivesView data={mockData} />
+    data = { featured, proximas, gravadas, temas: ['Todos'] }
+  } catch (err) {
+    console.error('[lives] erro ao carregar do banco:', err)
+    data = { featured: null, proximas: [], gravadas: [], temas: ['Todos'] }
   }
+  return <LivesView data={data} />
 }

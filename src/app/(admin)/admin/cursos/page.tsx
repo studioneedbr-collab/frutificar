@@ -12,9 +12,10 @@ export default async function AdminCursosPage() {
     return <CursosAdminView initialCourses={mockCourses} preview />
   }
 
+  let courses: AdminCourse[] = []
   try {
     const rows = await listCoursesForAdmin()
-    const courses: AdminCourse[] = rows.map((c) => ({
+    courses = rows.map((c) => ({
       id: c.id,
       title: c.title,
       type: c.type,
@@ -32,10 +33,10 @@ export default async function AdminCursosPage() {
         })),
       })),
     }))
-    return <CursosAdminView initialCourses={courses} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/cursos] erro ao carregar do banco:', err)
-    return <CursosAdminView initialCourses={[]} preview={false} />
+    courses = []
   }
+  return <CursosAdminView initialCourses={courses} preview={false} />
 }

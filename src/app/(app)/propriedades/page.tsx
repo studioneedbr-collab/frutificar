@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade fica em PropriedadesView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listPropertiesByUser } from '@/server/repositories/properties.repository'
@@ -14,13 +15,17 @@ export default async function PropriedadesPage() {
     return <PropriedadesView initialProperties={mockProperties} preview />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: exige sessão.
   const session = await auth()
-  if (!session?.user?.id) {
-    return <PropriedadesView initialProperties={mockProperties} preview />
-  }
+  if (!session?.user?.id) redirect('/login')
 
-  const rows = await listPropertiesByUser(session.user.id)
+  let rows: Awaited<ReturnType<typeof listPropertiesByUser>>
+  try {
+    rows = await listPropertiesByUser(session.user.id)
+  } catch (err) {
+    console.error('[propriedades] erro ao carregar do banco:', err)
+    return <PropriedadesView initialProperties={[]} preview={false} />
+  }
   const properties: Property[] = rows.map((p) => ({
     id: p.id,
     name: p.name,

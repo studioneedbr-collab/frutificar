@@ -1,6 +1,7 @@
 'use client'
 
 import { uploadFileAction } from '@/server/actions/uploads'
+import { compressImage } from '@/lib/image-compress'
 
 // Helper de client: monta o FormData e chama a Server Action de upload.
 // `prefix` vira a "pasta" no bucket (ex.: 'materiais', 'podcasts').
@@ -9,7 +10,8 @@ export async function uploadFile(
   prefix: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const fd = new FormData()
-  fd.append('file', file)
+  // Fotos são reduzidas no navegador antes de subir (economiza Storage).
+  fd.append('file', await compressImage(file))
   fd.append('prefix', prefix)
   const res = await uploadFileAction(fd)
   if (!res.ok) return { ok: false, error: res.error }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, MapPin, Circle, Check, X, CheckCheck, UserCog } from 'lucide-react'
 import { toast } from 'sonner'
@@ -53,7 +53,11 @@ export function AgendamentosView({
   const [filter, setFilter] = useState<string>('ALL')
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setVisits(initialVisits) }, [initialVisits])
+  const [prevInitialVisits, setPrevInitialVisits] = useState(initialVisits)
+  if (initialVisits !== prevInitialVisits) {
+    setPrevInitialVisits(initialVisits)
+    setVisits(initialVisits)
+  }
 
   // Cancelar/Recusar
   const [cancelTarget, setCancelTarget] = useState<Visit | null>(null)

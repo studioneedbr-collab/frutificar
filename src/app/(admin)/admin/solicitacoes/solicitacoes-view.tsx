@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Search, Inbox, Check, X, Play, CheckCheck } from 'lucide-react'
@@ -25,7 +25,11 @@ const filterToStatus: Record<Exclude<Filter, 'Todas'>, SolStatus> = {
 export function SolicitacoesView({ initial, preview }: { initial: SolicitacaoItem[]; preview: boolean }) {
   const router = useRouter()
   const [items, setItems] = useState<SolicitacaoItem[]>(initial)
-  useEffect(() => { setItems(initial) }, [initial])
+  const [prevInitial, setPrevInitial] = useState(initial)
+  if (initial !== prevInitial) {
+    setPrevInitial(initial)
+    setItems(initial)
+  }
 
   const [filter, setFilter] = useState<Filter>('Todas')
   const [query, setQuery] = useState('')

@@ -131,3 +131,28 @@ export async function uploadToStorage(
 
   return { ok: true, url: `${base}/storage/v1/object/public/${bucket}/${path}` }
 }
+
+/**
+ * Remove do Storage um arquivo enviado por nós (a partir da URL pública).
+ * Ignora URLs externas (YouTube, Drive…). Nunca lança erro: falha só é logada,
+ * para não travar a exclusão do registro no banco.
+ */
+export async function deleteFromStorage(publicUrl: string | null | undefined): Promise<void> {
+  const base = resolveSupabaseUrl()
+  const key = serviceKey()
+  if (!publicUrl || !base || !key) return
+  const prefix = `${base}/storage/v1/object/public/`
+  if (!publicUrl.startsWith(prefix)) return
+  const objectPath = publicUrl.slice(prefix.length) // "<bucket>/<pasta>/<arquivo>"
+  // Só caminhos no formato que nós mesmos geramos (sem "..").
+  if (!/^[a-z0-9_-]+\/[a-z0-9-]+\/[A-Za-z0-9._-]+$/i.test(objectPath)) return
+  try {
+    const res = await fetch(`${base}/storage/v1/object/${objectPath}`, {
+      method: 'DELETE',
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    })
+    if (!res.ok && res.status !== 404) console.error('[storage] falha ao apagar', res.status, objectPath)
+  } catch (err) {
+    console.error('[storage] falha ao apagar', objectPath, err)
+  }
+}

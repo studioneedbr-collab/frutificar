@@ -2,6 +2,7 @@
 // senão renderiza o mock. A interatividade + análise por IA ficam em DiagnosticoView.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { listSoilAnalysesByUser, listPlotsByUser } from '@/server/repositories/diagnostics.repository'
@@ -41,27 +42,24 @@ export default async function DiagnosticoPage() {
     )
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: exige sessão.
   const session = await auth()
-  if (!session?.user?.id) {
-    return (
-      <DiagnosticoView
-        initialHistorico={mockHistorico}
-        talhaoOptions={mockTalhaoOptions}
-        initialResult={mockResult}
-        preview
-      />
-    )
-  }
+  if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
 
-  const plots = await listPlotsByUser(userId)
-  const talhaoOptions: TalhaoOption[] = plots.length
-    ? plots.map((pl) => ({ value: pl.id, label: pl.name }))
-    : mockTalhaoOptions
+  let plots: Awaited<ReturnType<typeof listPlotsByUser>>
+  let analyses: Awaited<ReturnType<typeof listSoilAnalysesByUser>>
+  try {
+    ;[plots, analyses] = await Promise.all([listPlotsByUser(userId), listSoilAnalysesByUser(userId)])
+  } catch (err) {
+    console.error('[diagnostico] erro ao carregar do banco:', err)
+    return <DiagnosticoView initialHistorico={[]} talhaoOptions={[]} initialResult={null} preview={false} />
+  }
 
-  const analyses = await listSoilAnalysesByUser(userId)
+  // Sem talhões cadastrados → lista vazia (a view orienta a cadastrar a propriedade).
+  const talhaoOptions: TalhaoOption[] = plots.map((pl) => ({ value: pl.id, label: pl.name }))
+
   const historico: HistoricoItem[] = analyses.map((a) => ({
     id: a.id,
     talhao: a.plot?.name ?? '—',

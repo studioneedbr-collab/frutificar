@@ -10,10 +10,11 @@ export default async function AdminConfiguracoesPage() {
   if (PREVIEW_MODE) {
     return <ConfiguracoesView initial={{}} preview />
   }
+  let initial: Awaited<ReturnType<typeof getAllSettings>> = {}
   try {
-    const initial = await getAllSettings()
-    return <ConfiguracoesView initial={initial} preview={false} />
+    initial = await getAllSettings()
   } catch {
-    return <ConfiguracoesView initial={{}} preview={false} />
+    initial = {}
   }
+  return <ConfiguracoesView initial={initial} preview={false} />
 }

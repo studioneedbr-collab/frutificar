@@ -18,8 +18,8 @@ const modalInputStyle: React.CSSProperties = {
   background: 'oklch(0.99 0.005 144)',
 }
 
-/* Dados mock de um produtor Gold (campos sem persistência ficam locais). */
-const user = {
+/* Dados mock de um produtor Gold — só no modo demo (campos sem persistência ficam locais). */
+const mockUser = {
   phone: '(34) 99812-3344',
   city: 'Patrocínio/MG',
   property: 'Fazenda Santa Clara',
@@ -57,12 +57,19 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: () => void; la
 }
 
 export function PerfilView({
-  initialName, initialEmail, preview,
+  initialName, initialEmail, preview, initialPlan = null, memberSince = '',
 }: {
   initialName: string
   initialEmail: string
   preview: boolean
+  initialPlan?: string | null
+  memberSince?: string
 }) {
+  // Modo real: só dados do banco/sessão; campos sem persistência começam vazios.
+  const user = preview
+    ? mockUser
+    : { phone: '', city: '', property: '', cultura: '', plan: initialPlan, since: memberSince, initials: '' }
+
   const router = useRouter()
 
   /* ── Dados pessoais (Nome/E-mail persistem; demais ficam locais) ── */
@@ -74,7 +81,7 @@ export function PerfilView({
   const [cultura, setCultura] = useState(user.cultura)
 
   const initials =
-    name.trim().split(/\s+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || user.initials
+    name.trim().split(/\s+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || user.initials || email.charAt(0).toUpperCase()
 
   const [prefs, setPrefs] = useState<Record<string, boolean>>(
     Object.fromEntries(notifications.map((n) => [n.key, n.on])),
@@ -197,17 +204,19 @@ export function PerfilView({
               <Mail size={13} /> {email}
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full"
-                style={{
-                  background: 'oklch(0.78 0.17 75 / 0.14)',
-                  color: 'oklch(0.55 0.14 75)',
-                  border: '1px solid oklch(0.78 0.17 75 / 0.4)',
-                }}
-              >
-                <Sprout size={11} /> PLANO {user.plan}
-              </span>
-              <span className="text-xs" style={{ color: 'oklch(0.6 0.03 144)' }}>{user.since}</span>
+              {user.plan && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{
+                    background: 'oklch(0.78 0.17 75 / 0.14)',
+                    color: 'oklch(0.55 0.14 75)',
+                    border: '1px solid oklch(0.78 0.17 75 / 0.4)',
+                  }}
+                >
+                  <Sprout size={11} /> PLANO {user.plan}
+                </span>
+              )}
+              {user.since && <span className="text-xs" style={{ color: 'oklch(0.6 0.03 144)' }}>{user.since}</span>}
             </div>
           </div>
 
@@ -408,7 +417,7 @@ export function PerfilView({
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-sm" style={{ color: 'var(--color-frutificar-deep)' }}>Gerenciar assinatura</div>
-            <div className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>Plano {user.plan} · pagamento e faturas</div>
+            <div className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>{user.plan ? `Plano ${user.plan} · pagamento e faturas` : 'Pagamento e faturas'}</div>
           </div>
           <ArrowRight size={16} style={{ color: 'oklch(0.7 0.02 144)' }} />
         </Link>

@@ -2,6 +2,7 @@
 // com o progresso do aluno; em preview usa o mock. Cada card leva a /cursos/[slug].
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PREVIEW_MODE } from '@/lib/preview'
@@ -13,26 +14,26 @@ export default async function MinicursosPage() {
     return <MinicursosView minicursos={mockMinicursos} />
   }
 
-  try {
-    const session = await auth()
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
 
+  let minicursos: MiniCourse[] = []
+  try {
     const [minisRaw, completedRecords] = await Promise.all([
       prisma.course.findMany({
         where: { published: true, deletedAt: null, type: 'MINICOURSE' },
         orderBy: { createdAt: 'asc' },
         include: { modules: { include: { lessons: { select: { id: true } } } } },
       }),
-      session
-        ? prisma.lessonProgress.findMany({
-            where: { userId: session.user.id, completed: true },
-            select: { lessonId: true },
-          })
-        : Promise.resolve([]),
+      prisma.lessonProgress.findMany({
+        where: { userId: session.user.id, completed: true },
+        select: { lessonId: true },
+      }),
     ])
 
     const completed = new Set(completedRecords.map((p) => p.lessonId))
 
-    const minicursos: MiniCourse[] = minisRaw.map((c) => {
+    minicursos = minisRaw.map((c) => {
       const lessons = c.modules.flatMap((m) => m.lessons)
       const done = lessons.filter((l) => completed.has(l.id)).length
       return {
@@ -44,9 +45,9 @@ export default async function MinicursosPage() {
         progress: lessons.length ? Math.round((done / lessons.length) * 100) : 0,
       }
     })
-
-    return <MinicursosView minicursos={minicursos} />
-  } catch {
-    return <MinicursosView minicursos={mockMinicursos} />
+  } catch (err) {
+    console.error('[minicursos] erro ao carregar do banco:', err)
+    minicursos = []
   }
+  return <MinicursosView minicursos={minicursos} />
 }

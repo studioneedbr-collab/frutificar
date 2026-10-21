@@ -2,11 +2,13 @@
 // PREVIEW_MODE=false, senão renderiza o mock. A interatividade fica em AgendamentosView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import {
   listVisitsByUser, listServiceRequestsByUser,
 } from '@/server/repositories/appointments.repository'
+import { listPropertiesByUser } from '@/server/repositories/properties.repository'
 import {
   initialUpcoming as mockUpcoming, history as mockHistory,
   type Appointment, type AppointmentStatus,
@@ -45,17 +47,24 @@ export default async function AgendamentosPage() {
     return <AgendamentosView initialUpcoming={mockUpcoming} initialHistory={mockHistory} preview />
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
+  // Modo real: exige sessão.
   const session = await auth()
-  if (!session?.user?.id) {
-    return <AgendamentosView initialUpcoming={mockUpcoming} initialHistory={mockHistory} preview />
-  }
+  if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
-  const [visits, serviceRequests] = await Promise.all([
-    listVisitsByUser(userId),
-    listServiceRequestsByUser(userId),
-  ])
+  let visits: Awaited<ReturnType<typeof listVisitsByUser>>
+  let serviceRequests: Awaited<ReturnType<typeof listServiceRequestsByUser>>
+  let properties: Awaited<ReturnType<typeof listPropertiesByUser>>
+  try {
+    ;[visits, serviceRequests, properties] = await Promise.all([
+      listVisitsByUser(userId),
+      listServiceRequestsByUser(userId),
+      listPropertiesByUser(userId),
+    ])
+  } catch (err) {
+    console.error('[agendamentos] erro ao carregar do banco:', err)
+    return <AgendamentosView initialUpcoming={[]} initialHistory={[]} preview={false} />
+  }
 
   const items: Appointment[] = []
 
@@ -92,7 +101,19 @@ export default async function AgendamentosPage() {
   const upcoming = items.filter((a) => a.status === 'Pendente' || a.status === 'Confirmado')
   const history = items
     .filter((a) => a.status === 'Concluído')
-    .map((a) => ({ type: a.type, agro: a.agro, when: a.when }))
+    .map((a) => ({ type: a.type, agro: a.agro, when: a.when, place: a.place }))
 
-  return <AgendamentosView initialUpcoming={upcoming} initialHistory={history} preview={false} />
+  // Opções reais de "Propriedade / Talhão" para o formulário de agendamento.
+  const placeOptions = properties.flatMap((p) =>
+    p.plots.length ? p.plots.map((pl) => `${p.name} — ${pl.name}`) : [p.name],
+  )
+
+  return (
+    <AgendamentosView
+      initialUpcoming={upcoming}
+      initialHistory={history}
+      placeOptions={placeOptions}
+      preview={false}
+    />
+  )
 }

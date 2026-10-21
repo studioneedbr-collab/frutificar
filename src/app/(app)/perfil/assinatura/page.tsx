@@ -1,77 +1,117 @@
-// Server Component: busca a assinatura real (Supabase) quando PREVIEW_MODE=false,
-// senão renderiza o mock. A interatividade fica em AssinaturaView (client).
-// Histórico de pagamentos + forma de pagamento permanecem mock (sem tabela no schema).
+// Server Component: assinatura, forma de pagamento e histórico reais do aluno.
+// Em PREVIEW_MODE (demo sem banco) usa dados de exemplo. Nenhum dado de cartão
+// passa por aqui: o cartão é digitado só na página segura do Asaas.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
+import type { PlanName } from '@prisma/client'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
-import { getSubscriptionByUser } from '@/server/repositories/subscription.repository'
-import { listPaymentsByUser } from '@/server/repositories/payments.repository'
-import { AssinaturaView } from './assinatura-view'
+import { prisma } from '@/lib/prisma'
+import { AssinaturaView, type PlanOption, type SubStatus } from './assinatura-view'
 
-// Valores mock usados no modo demo e como fallback quando não há assinatura.
-const MOCK = {
-  initialPlan: 'Gold',
-  initialPrice: 'R$ 197',
-  initialStatus: 'Ativo' as const,
-  initialPeriodEnd: '12 jul 2026',
+const PLAN_ORDER: PlanName[] = ['ESSENCIAL', 'PREMIUM', 'GOLD']
+
+function planLabel(name: string): string {
+  return name.charAt(0) + name.slice(1).toLowerCase()
 }
 
-// Histórico de pagamentos mock — usado só no modo demo / sem sessão.
-const MOCK_PAYMENTS = [
-  { date: '12 jun 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
-  { date: '12 mai 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
-  { date: '12 abr 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
-  { date: '12 mar 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
-  { date: '12 fev 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00' },
-]
-
-function capitalizePlan(name: string): string {
-  if (name === 'ESSENCIAL') return 'Essencial'
-  if (name === 'PREMIUM') return 'Premium'
-  if (name === 'GOLD') return 'Gold'
-  return name
-}
-
-function formatPeriodEnd(date: Date): string {
+function fmtDate(date: Date): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function brl(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function features(raw: unknown): string[] {
+  return Array.isArray(raw) ? (raw as string[]).filter((x) => typeof x === 'string') : []
+}
+
+// Só para o modo demo.
+const DEMO_PLANS: PlanOption[] = [
+  { name: 'Essencial', price: 'R$ 47,00', features: ['Curso completo', 'Chat inteligente', 'Diagnóstico por imagem'] },
+  { name: 'Premium', price: 'R$ 97,00', features: ['Tudo do Essencial', 'Minicursos', 'Gestão da propriedade'] },
+  { name: 'Gold', price: 'R$ 197,00', features: ['Tudo do Premium', 'Dias de campo', 'Tutoria'] },
+]
+
 export default async function AssinaturaPage() {
-  // Modo demo (sem banco): usa o mock.
   if (PREVIEW_MODE) {
-    return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview />
+    return (
+      <AssinaturaView
+        planName="Gold"
+        planPrice="R$ 197,00"
+        planFeatures={DEMO_PLANS[2].features}
+        status="ACTIVE"
+        periodEnd="12 jul 2026"
+        paymentMethod="Pix"
+        openInvoiceUrl={null}
+        payerName="Aluno Demo"
+        payments={[{ date: '12 jun 2026', desc: 'Plano Gold — Mensal', value: 'R$ 197,00', method: 'Pix' }]}
+        plans={DEMO_PLANS}
+        preview
+      />
+    )
   }
 
-  // Modo real: exige sessão; sem ela, cai no mock para não quebrar.
   const session = await auth()
-  if (!session?.user?.id) {
-    return <AssinaturaView {...MOCK} initialPayments={MOCK_PAYMENTS} preview />
-  }
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
 
-  // Histórico real de pagamentos (só os confirmados). Sem registros → lista
-  // vazia: nunca mostrar pagamentos fictícios para um aluno real.
-  const rows = await listPaymentsByUser(session.user.id)
-  const payments = rows
-    .filter((p) => p.status === 'PAID')
-    .map((p) => ({
-      date: p.paidAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-      desc: p.description ?? 'Plano — Mensal',
-      value: `R$ ${Number(p.amount).toFixed(2).replace('.', ',')}`,
-    }))
+  const [sub, plansDb, payments] = await Promise.all([
+    prisma.subscription.findUnique({
+      where: { userId },
+      select: {
+        status: true,
+        currentPeriodEnd: true,
+        plan: { select: { name: true, priceMonthly: true, features: true } },
+      },
+    }),
+    prisma.plan.findMany({ select: { name: true, priceMonthly: true, features: true } }),
+    // Só o necessário para a tela (nada de ids do gateway no navegador).
+    prisma.payment.findMany({
+      where: { userId },
+      orderBy: { paidAt: 'desc' },
+      take: 24,
+      select: {
+        status: true,
+        amount: true,
+        method: true,
+        description: true,
+        paidAt: true,
+        invoiceUrl: true,
+      },
+    }),
+  ])
 
-  const sub = await getSubscriptionByUser(session.user.id)
-  if (!sub) {
-    return <AssinaturaView {...MOCK} initialPayments={payments} preview={false} />
-  }
+  if (!sub) redirect('/checkout')
+
+  const paid = payments.filter((p) => p.status === 'PAID')
+  // Fatura em aberto (renovação): o link é a página segura do próprio Asaas.
+  const open = payments.find((p) => p.status === 'PENDING' && p.invoiceUrl?.startsWith('https://'))
+
+  const plans: PlanOption[] = PLAN_ORDER.flatMap((name) => {
+    const p = plansDb.find((x) => x.name === name)
+    return p ? [{ name: planLabel(name), price: brl(Number(p.priceMonthly)), features: features(p.features) }] : []
+  })
 
   return (
     <AssinaturaView
-      initialPlan={capitalizePlan(sub.plan.name)}
-      initialPrice={`R$ ${Number(sub.plan.priceMonthly)}`}
-      initialStatus={sub.status === 'CANCELED' ? 'Cancelado' : 'Ativo'}
-      initialPeriodEnd={formatPeriodEnd(sub.currentPeriodEnd)}
-      initialPayments={payments}
+      planName={planLabel(sub.plan.name)}
+      planPrice={brl(Number(sub.plan.priceMonthly))}
+      planFeatures={features(sub.plan.features)}
+      status={sub.status as SubStatus}
+      periodEnd={fmtDate(sub.currentPeriodEnd)}
+      paymentMethod={paid[0]?.method ?? null}
+      openInvoiceUrl={open?.invoiceUrl ?? null}
+      payerName={session.user.name ?? ''}
+      payments={paid.map((p) => ({
+        date: fmtDate(p.paidAt),
+        desc: p.description ?? 'Mensalidade',
+        value: brl(Number(p.amount)),
+        method: p.method,
+      }))}
+      plans={plans}
       preview={false}
     />
   )

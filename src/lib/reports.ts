@@ -290,8 +290,8 @@ export function gerarRecibo(r: ReciboReport) {
   y = metaGrid(doc, [
     ['Plano', r.plano],
     ['Data do pagamento', r.data],
-    ['Forma de pagamento', r.metodo ?? 'Cartão de crédito · Asaas'],
-    ['Pagador', r.pagador ?? 'Douglas Vargas'],
+    ['Forma de pagamento', r.metodo || 'Asaas'],
+    ['Pagador', r.pagador || '—'],
   ], y)
 
   // caixa de valor + status pago

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Sun, MapPin, Calendar, Users, Pencil, Trash2, Eye, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -72,7 +72,11 @@ export function DiasDeCampoView({
   const [days, setDays] = useState<FieldDayRow[]>(initialEvents)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setDays(initialEvents) }, [initialEvents])
+  const [prevInitialEvents, setPrevInitialEvents] = useState(initialEvents)
+  if (initialEvents !== prevInitialEvents) {
+    setPrevInitialEvents(initialEvents)
+    setDays(initialEvents)
+  }
 
   const [filter, setFilter] = useState<Filter>('Todos')
 

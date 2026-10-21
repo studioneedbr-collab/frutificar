@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Sprout, Sparkles, MapPin, UserCheck, BookMarked, Send, Loader2, Clock, CheckCircle2 } from 'lucide-react'
@@ -25,7 +25,11 @@ const statusStyle: Record<string, { bg: string; text: string }> = {
 export function EstagioView({ initial, preview }: { initial: EstagioItem[]; preview: boolean }) {
   const router = useRouter()
   const [items, setItems] = useState<EstagioItem[]>(initial)
-  useEffect(() => { setItems(initial) }, [initial])
+  const [prevInitial, setPrevInitial] = useState(initial)
+  if (initial !== prevInitial) {
+    setPrevInitial(initial)
+    setItems(initial)
+  }
 
   const [area, setArea] = useState(areaOptions[0].value)
   const [sending, setSending] = useState(false)

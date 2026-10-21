@@ -20,9 +20,10 @@ export default async function AdminAgendamentosPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let visits: Visit[] = []
   try {
     const rows = await listAllVisits()
-    const visits: Visit[] = rows.map((v) => ({
+    visits = rows.map((v) => ({
       id: v.id,
       user: v.user.name,
       property: v.property?.name ?? '—',
@@ -31,10 +32,10 @@ export default async function AdminAgendamentosPage() {
       status: v.status as Status,
       agronomist: v.agronomist ?? undefined,
     }))
-    return <AgendamentosView initialVisits={visits} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/agendamentos] erro ao carregar do banco:', err)
-    return <AgendamentosView initialVisits={[]} preview={false} />
+    visits = []
   }
+  return <AgendamentosView initialVisits={visits} preview={false} />
 }

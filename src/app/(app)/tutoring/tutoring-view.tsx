@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -33,7 +33,11 @@ export function TutoringView({
 }) {
   const router = useRouter()
   const [requests, setRequests] = useState<TutoriaRequest[]>(initialRequests)
-  useEffect(() => { setRequests(initialRequests) }, [initialRequests])
+  const [prevInitialRequests, setPrevInitialRequests] = useState(initialRequests)
+  if (initialRequests !== prevInitialRequests) {
+    setPrevInitialRequests(initialRequests)
+    setRequests(initialRequests)
+  }
 
   const [tema, setTema] = useState(temaOptions[0].value)
   const [sending, setSending] = useState(false)

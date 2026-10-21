@@ -9,7 +9,7 @@ import {
 } from '@/server/repositories/admin.repository'
 import { mockSolicitations, type Solicitation } from './data'
 import {
-  AdminDashboardView, type DashboardUser, type DashboardCourse,
+  AdminDashboardView, type DashboardUser, type DashboardCourse, type DashboardMetrics,
 } from './admin-dashboard-view'
 
 // Formata uma data em string curta (pt-BR) ou "há pouco" se muito recente.
@@ -27,6 +27,11 @@ export default async function AdminPage() {
 
   // Modo real: busca tudo do banco em paralelo.
   // Em caso de erro, mostra a tela zerada (nunca dados fictícios) e loga.
+  let solicitations: Solicitation[] = []
+  const emptyMetrics: DashboardMetrics = { activeStudents: 0, activeSubscriptions: 0, publishedCourses: 0, monthlyRevenue: 0 }
+  let metrics: DashboardMetrics = emptyMetrics
+  let recentUsers: DashboardUser[] = []
+  let recentCourses: DashboardCourse[] = []
   try {
     const [visits, services, stats, users, courses] = await Promise.all([
       listPendingVisits(),
@@ -36,7 +41,7 @@ export default async function AdminPage() {
       listRecentCourses(4),
     ])
 
-    const solicitations: Solicitation[] = [
+    solicitations = [
       ...visits.map((v): Solicitation => ({
         id: v.id,
         kind: 'visit',
@@ -55,7 +60,7 @@ export default async function AdminPage() {
       })),
     ]
 
-    const recentUsers: DashboardUser[] = users.map((u) => ({
+    recentUsers = users.map((u) => ({
       name: u.name,
       email: u.email,
       plan: u.subscription?.plan?.name ?? '—',
@@ -63,33 +68,29 @@ export default async function AdminPage() {
       joined: u.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
     }))
 
-    const recentCourses: DashboardCourse[] = courses.map((c) => ({
+    recentCourses = courses.map((c) => ({
       title: c.title,
       lessons: c.lessons,
       enrolled: c.enrolled,
       published: c.published,
     }))
 
-    return (
-      <AdminDashboardView
-        initialSolicitations={solicitations}
-        preview={false}
-        metrics={stats}
-        recentUsers={recentUsers}
-        recentCourses={recentCourses}
-      />
-    )
+    metrics = stats
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin] erro ao carregar do banco:', err)
-    return (
-      <AdminDashboardView
-        initialSolicitations={[]}
-        preview={false}
-        metrics={{ activeStudents: 0, activeSubscriptions: 0, publishedCourses: 0, monthlyRevenue: 0 }}
-        recentUsers={[]}
-        recentCourses={[]}
-      />
-    )
+    solicitations = []
+    metrics = emptyMetrics
+    recentUsers = []
+    recentCourses = []
   }
+  return (
+    <AdminDashboardView
+      initialSolicitations={solicitations}
+      preview={false}
+      metrics={metrics}
+      recentUsers={recentUsers}
+      recentCourses={recentCourses}
+    />
+  )
 }

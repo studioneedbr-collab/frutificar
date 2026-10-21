@@ -2,6 +2,8 @@
 // Separa em próximo (destaque), próximos e edições anteriores. Evento é informativo.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listFieldDays } from '@/server/repositories/fielddays.repository'
 import { mockData, type FieldDaysData, type FieldEvent, type PastEvent } from './data'
@@ -24,19 +26,28 @@ function toEvent(row: { id: string; title: string; location: string; date: Date;
   }
 }
 
+// Separa os eventos em futuros (do mais próximo ao mais distante) e passados, a partir de agora.
+function splitByNow<T extends { date: Date }>(rows: T[]): { future: T[]; pastRows: T[] } {
+  const now = Date.now()
+  const future = rows
+    .filter((r) => new Date(r.date).getTime() >= now)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const pastRows = rows.filter((r) => new Date(r.date).getTime() < now)
+  return { future, pastRows }
+}
+
 export default async function DiasDeCampoPage() {
   if (PREVIEW_MODE) {
     return <DiasView data={mockData} />
   }
 
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  let data: FieldDaysData = { featured: null, upcoming: [], past: [] }
   try {
     const rows = await listFieldDays()
-    const now = Date.now()
-
-    const future = rows
-      .filter((r) => new Date(r.date).getTime() >= now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    const pastRows = rows.filter((r) => new Date(r.date).getTime() < now)
+    const { future, pastRows } = splitByNow(rows)
 
     const featured = future[0] ? toEvent(future[0]) : null
     const upcoming = future.slice(1).map(toEvent)
@@ -45,9 +56,10 @@ export default async function DiasDeCampoPage() {
       return { title: r.title, when: `${MONTHS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` }
     })
 
-    const data: FieldDaysData = { featured, upcoming, past }
-    return <DiasView data={data} />
-  } catch {
-    return <DiasView data={mockData} />
+    data = { featured, upcoming, past }
+  } catch (err) {
+    console.error('[dias-de-campo] erro ao carregar do banco:', err)
+    data = { featured: null, upcoming: [], past: [] }
   }
+  return <DiasView data={data} />
 }

@@ -2,6 +2,7 @@
 // Lê PropertyDocument por propriedade do aluno; em preview usa mock.
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listPropertiesWithDocuments } from '@/server/repositories/properties.repository'
@@ -15,12 +16,13 @@ export default async function GestaoPage() {
     return <GestaoView properties={mockProperties} preview />
   }
 
-  try {
-    const session = await auth()
-    if (!session?.user?.id) return <GestaoView properties={mockProperties} preview />
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
 
+  let properties: GestaoProperty[] = []
+  try {
     const rows = await listPropertiesWithDocuments(session.user.id)
-    const properties: GestaoProperty[] = rows.map((p) => ({
+    properties = rows.map((p) => ({
       id: p.id,
       name: p.name,
       location: p.location ?? '—',
@@ -36,9 +38,9 @@ export default async function GestaoPage() {
         createdAt: d.createdAt.toISOString(),
       })),
     }))
-
-    return <GestaoView properties={properties} preview={false} />
-  } catch {
-    return <GestaoView properties={mockProperties} preview />
+  } catch (err) {
+    console.error('[gestao] erro ao carregar do banco:', err)
+    properties = []
   }
+  return <GestaoView properties={properties} preview={false} />
 }

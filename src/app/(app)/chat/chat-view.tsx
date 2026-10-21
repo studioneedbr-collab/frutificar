@@ -251,7 +251,9 @@ export function ChatView({ preview }: { preview: boolean }) {
         const { done, value } = await reader.read()
         if (done) break
         acc += decoder.decode(value, { stream: true })
-        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m)))
+        // Snapshot do texto acumulado: o updater não deve capturar a variável que segue mudando.
+        const partial = acc
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: partial } : m)))
       }
       if (!acc.trim()) {
         setMessages((prev) =>

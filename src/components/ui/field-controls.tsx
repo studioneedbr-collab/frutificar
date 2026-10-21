@@ -88,9 +88,11 @@ export function DateField({
   const selected = parseISO(value)
   const [view, setView] = React.useState<Date>(() => selected ?? new Date())
 
-  React.useEffect(() => {
-    if (open && selected) setView(new Date(selected.getFullYear(), selected.getMonth(), 1))
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Ao abrir, posiciona o calendário no mês da data selecionada.
+  function handleOpenChange(next: boolean) {
+    if (next && selected) setView(new Date(selected.getFullYear(), selected.getMonth(), 1))
+    setOpen(next)
+  }
 
   const year = view.getFullYear()
   const month = view.getMonth()
@@ -111,7 +113,7 @@ export function DateField({
   const shift = (n: number) => setView(new Date(year, month + n, 1))
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger
         id={id}
         className={cn(

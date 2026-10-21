@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   Calendar, CalendarCheck, Clock, MapPin, User, Leaf, Microscope,
@@ -25,7 +26,8 @@ const services = [
 
 const serviceTypes = ['Visita Técnica', 'Diagnóstico de Solo', 'Consultoria Agronômica'] as const
 
-const properties = [
+// Só para o modo demo; no modo real as opções vêm do banco (placeOptions).
+const mockPlaces = [
   'Fazenda Santa Clara — Talhão A1',
   'Fazenda Santa Clara — Talhão A2',
   'Fazenda Santa Clara — Talhão B1',
@@ -57,22 +59,28 @@ function buildRequestedDate(date: string, time: string): Date {
 }
 
 export function AgendamentosView({
-  initialUpcoming, initialHistory, preview,
+  initialUpcoming, initialHistory, preview, placeOptions = [],
 }: {
   initialUpcoming: Appointment[]
-  initialHistory: HistoryItem[]
+  initialHistory: (HistoryItem & { place?: string })[]
   preview: boolean
+  placeOptions?: string[]
 }) {
+  const properties = preview ? mockPlaces : placeOptions
   const router = useRouter()
   const [upcoming, setUpcoming] = useState<Appointment[]>(initialUpcoming)
   const [selectedService, setSelectedService] = useState<string | null>(null)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setUpcoming(initialUpcoming) }, [initialUpcoming])
+  const [prevInitialUpcoming, setPrevInitialUpcoming] = useState(initialUpcoming)
+  if (initialUpcoming !== prevInitialUpcoming) {
+    setPrevInitialUpcoming(initialUpcoming)
+    setUpcoming(initialUpcoming)
+  }
 
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [formType, setFormType] = useState<string>(serviceTypes[0])
-  const [formPlace, setFormPlace] = useState<string>(properties[0])
+  const [formPlace, setFormPlace] = useState<string>(properties[0] ?? '')
   const [formDate, setFormDate] = useState<string>('')
   const [formTime, setFormTime] = useState<string>('')
 
@@ -111,7 +119,7 @@ export function AgendamentosView({
     }
     setUpcoming((cur) => [novo, ...cur])
     setScheduleOpen(false)
-    setFormPlace(properties[0])
+    setFormPlace(properties[0] ?? '')
     setFormDate('')
     setFormTime('')
     toast.success('Agendamento solicitado', { description: 'Você receberá a confirmação em breve.' })
@@ -144,11 +152,11 @@ export function AgendamentosView({
     }
   }
 
-  function handleReport(h: HistoryItem) {
+  function handleReport(h: HistoryItem & { place?: string }) {
     gerarRelatorioVisita({
       tipo: h.type,
       agronomo: h.agro,
-      propriedade: 'Fazenda Santa Clara',
+      propriedade: preview ? 'Fazenda Santa Clara' : h.place || '—',
       data: h.when,
       status: 'Concluído',
     })
@@ -399,6 +407,11 @@ export function AgendamentosView({
                 options={properties.map((p) => ({ value: p, label: p }))}
                 placeholder="Selecione a propriedade"
               />
+              {properties.length === 0 && (
+                <p className="text-xs mt-1.5" style={{ color: 'oklch(0.55 0.04 144)' }}>
+                  Nenhuma propriedade cadastrada. <Link href="/propriedades" className="font-semibold" style={{ color: 'var(--color-earth)' }}>Cadastre sua propriedade</Link>
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

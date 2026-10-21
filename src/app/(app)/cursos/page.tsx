@@ -3,6 +3,7 @@
 // MINICOURSE viram cards. Cada aula leva ao player /cursos/[slug]/[lessonId].
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PREVIEW_MODE } from '@/lib/preview'
@@ -19,9 +20,11 @@ export default async function CursosPage() {
     return <CursosView data={mockData} />
   }
 
-  try {
-    const session = await auth()
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
 
+  let data: CoursesData = { main: null, modules: [], minis: [] }
+  try {
     const [principal, minisRaw, completedRecords] = await Promise.all([
       prisma.course.findFirst({
         where: { published: true, deletedAt: null, type: 'PRINCIPAL' },
@@ -35,12 +38,10 @@ export default async function CursosPage() {
         orderBy: { createdAt: 'asc' },
         include: { modules: { include: { lessons: { select: { id: true } } } } },
       }),
-      session
-        ? prisma.lessonProgress.findMany({
-            where: { userId: session.user.id, completed: true },
-            select: { lessonId: true },
-          })
-        : Promise.resolve([]),
+      prisma.lessonProgress.findMany({
+        where: { userId: session.user.id, completed: true },
+        select: { lessonId: true },
+      }),
     ])
 
     const completed = new Set(completedRecords.map((p) => p.lessonId))
@@ -98,8 +99,10 @@ export default async function CursosPage() {
       }
     })
 
-    return <CursosView data={{ main: mainData, modules, minis }} />
-  } catch {
-    return <CursosView data={mockData} />
+    data = { main: mainData, modules, minis }
+  } catch (err) {
+    console.error('[cursos] erro ao carregar do banco:', err)
+    data = { main: null, modules: [], minis: [] }
   }
+  return <CursosView data={data} />
 }

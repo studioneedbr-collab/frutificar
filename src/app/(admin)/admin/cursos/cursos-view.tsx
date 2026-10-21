@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -46,7 +46,11 @@ export function CursosAdminView({
 }) {
   const router = useRouter()
   const [courses, setCourses] = useState<AdminCourse[]>(initialCourses)
-  useEffect(() => { setCourses(initialCourses) }, [initialCourses])
+  const [prevInitialCourses, setPrevInitialCourses] = useState(initialCourses)
+  if (initialCourses !== prevInitialCourses) {
+    setPrevInitialCourses(initialCourses)
+    setCourses(initialCourses)
+  }
 
   const [filter, setFilter] = useState<Filter>('Todos')
 

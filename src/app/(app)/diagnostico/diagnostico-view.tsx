@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { compressImage } from '@/lib/image-compress'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   Leaf, Microscope, FlaskConical, Upload, Sparkles,
@@ -63,8 +65,16 @@ export function DiagnosticoView({
   const [result, setResult] = useState<DiagnosticResult | null>(initialResult)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setHistorico(initialHistorico) }, [initialHistorico])
-  useEffect(() => { setResult(initialResult) }, [initialResult])
+  const [prevInitialHistorico, setPrevInitialHistorico] = useState(initialHistorico)
+  if (initialHistorico !== prevInitialHistorico) {
+    setPrevInitialHistorico(initialHistorico)
+    setHistorico(initialHistorico)
+  }
+  const [prevInitialResult, setPrevInitialResult] = useState(initialResult)
+  if (initialResult !== prevInitialResult) {
+    setPrevInitialResult(initialResult)
+    setResult(initialResult)
+  }
 
   const firstTalhao = talhaoOptions[0]?.value ?? ''
   const [selectedTalhao, setSelectedTalhao] = useState(firstTalhao)
@@ -79,8 +89,10 @@ export function DiagnosticoView({
   const labelOf = (value: string) =>
     talhaoOptions.find((o) => o.value === value)?.label ?? value
 
-  function onPickFile(f: File | undefined) {
-    if (!f) { setFile(null); return }
+  async function onPickFile(picked: File | undefined) {
+    if (!picked) { setFile(null); return }
+    // Foto do celular é reduzida antes do envio (PDF passa intacto).
+    const f = await compressImage(picked)
     if (f.size > MAX_BYTES) {
       toast.error('Arquivo muito grande', { description: 'O limite é 4 MB.' })
       return
@@ -235,6 +247,11 @@ export function DiagnosticoView({
                     </button>
                   )
                 })}
+                {talhaoOptions.length === 0 && (
+                  <Link href="/propriedades" className="text-xs font-semibold underline" style={{ color: 'oklch(0.83 0.08 144)' }}>
+                    Nenhum talhão cadastrado — cadastre sua propriedade
+                  </Link>
+                )}
               </div>
             </div>
           </div>

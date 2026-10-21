@@ -1,6 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { deleteFromStorage } from '@/lib/storage'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/lib/action-types'
@@ -68,7 +70,12 @@ export async function updateEpisodeAction(
   }
 
   try {
+    const before = await prisma.podcastEpisode.findUnique({ where: { id }, select: { audioUrl: true } })
     await podcastsRepository.updateEpisode(id, parsed.data)
+    // Áudio trocado: apaga o antigo do Storage.
+    if (parsed.data.audioUrl !== undefined && before?.audioUrl && before.audioUrl !== parsed.data.audioUrl) {
+      await deleteFromStorage(before.audioUrl)
+    }
     revalidate()
     return { ok: true, data: undefined }
   } catch {
@@ -85,7 +92,8 @@ export async function deleteEpisodeAction(id: string): Promise<ActionResult> {
   }
 
   try {
-    await podcastsRepository.deleteEpisode(id)
+    const removed = await podcastsRepository.deleteEpisode(id)
+    await deleteFromStorage(removed.audioUrl)
     revalidate()
     return { ok: true, data: undefined }
   } catch {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Radio, Calendar, Clock, Eye, Pencil, Trash2, X, Play, Square } from 'lucide-react'
 import { toast } from 'sonner'
@@ -116,7 +116,11 @@ export function LivesView({
   const [lives, setLives] = useState<Live[]>(initialLives)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setLives(initialLives) }, [initialLives])
+  const [prevInitialLives, setPrevInitialLives] = useState(initialLives)
+  if (initialLives !== prevInitialLives) {
+    setPrevInitialLives(initialLives)
+    setLives(initialLives)
+  }
 
   const [filter, setFilter] = useState<'TODAS' | Status>('TODAS')
 

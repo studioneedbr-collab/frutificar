@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Mic2, Play, Pencil, Trash2, X, Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -68,9 +68,11 @@ export function PodcastsView({
   const [filter, setFilter] = useState<string>('Todos')
 
   // Reconcilia o estado local quando os dados do servidor mudam (router.refresh).
-  useEffect(() => {
+  const [prevInitialEpisodes, setPrevInitialEpisodes] = useState(initialEpisodes)
+  if (initialEpisodes !== prevInitialEpisodes) {
+    setPrevInitialEpisodes(initialEpisodes)
     setEpisodes(initialEpisodes)
-  }, [initialEpisodes])
+  }
 
   // Novo episódio
   const [createOpen, setCreateOpen] = useState(false)

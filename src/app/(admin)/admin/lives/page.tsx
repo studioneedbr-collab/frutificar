@@ -17,9 +17,10 @@ export default async function AdminLivesPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let lives: Live[] = []
   try {
     const rows = await listLives()
-    const lives: Live[] = rows.map((l) => {
+    lives = rows.map((l) => {
       const at = new Date(l.scheduledAt)
       return {
         id: l.id,
@@ -33,11 +34,10 @@ export default async function AdminLivesPage() {
         ytId: l.youtubeVideoId,
       }
     })
-
-    return <LivesView initialLives={lives} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/lives] erro ao carregar do banco:', err)
-    return <LivesView initialLives={[]} preview={false} />
+    lives = []
   }
+  return <LivesView initialLives={lives} preview={false} />
 }

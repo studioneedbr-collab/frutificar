@@ -2,6 +2,7 @@
 // solicitações de tutoria do aluno (ServiceRequest com serviceType "Tutoria — …").
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listServiceRequestsByUser } from '@/server/repositories/appointments.repository'
@@ -24,14 +25,13 @@ export default async function TutoringPage() {
     return <TutoringView initialRequests={mockTutorias} whatsappUrl={WHATSAPP_URL} preview />
   }
 
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
-    }
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
 
+  let requests: TutoriaRequest[] = []
+  try {
     const rows = await listServiceRequestsByUser(session.user.id)
-    const requests: TutoriaRequest[] = rows
+    requests = rows
       .filter((r) => r.serviceType.startsWith(TUTORIA_PREFIX))
       .map((r) => ({
         id: r.id,
@@ -40,9 +40,9 @@ export default async function TutoringPage() {
         status: statusLabel[r.status] ?? r.status,
         data: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       }))
-
-    return <TutoringView initialRequests={requests} whatsappUrl={WHATSAPP_URL} preview={false} />
-  } catch {
-    return <TutoringView initialRequests={[]} whatsappUrl={WHATSAPP_URL} preview={false} />
+  } catch (err) {
+    console.error('[tutoring] erro ao carregar do banco:', err)
+    requests = []
   }
+  return <TutoringView initialRequests={requests} whatsappUrl={WHATSAPP_URL} preview={false} />
 }

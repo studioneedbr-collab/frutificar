@@ -175,11 +175,13 @@ function CountUp({ value, className, style }: { value: string; className?: strin
   const [display, setDisplay] = useState(m ? prefix + '0' + suffix : value)
 
   useEffect(() => {
-    if (!m) { setDisplay(value); return }
-    if (prefersReducedMotion()) { setDisplay(final); return }
+    // Sem número para animar: o texto é exibido direto (derivado no render).
+    if (!m) return
     let started = false
     const node = ref.current
     if (!node) return
+    // Movimento reduzido: mostra o valor final assim que entrar na tela, sem animar.
+    const reduced = prefersReducedMotion()
     const run = () => {
       const dur = 1700
       const start = performance.now()
@@ -193,7 +195,7 @@ function CountUp({ value, className, style }: { value: string; className?: strin
     }
     const obs = new IntersectionObserver(
       (entries) => entries.forEach(e => {
-        if (e.isIntersecting && !started) { started = true; run() }
+        if (e.isIntersecting && !started) { started = true; if (reduced) setDisplay(final); else run() }
       }),
       { threshold: 0.5 },
     )
@@ -202,7 +204,7 @@ function CountUp({ value, className, style }: { value: string; className?: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
-  return <span ref={ref} className={className} style={style}>{display}</span>
+  return <span ref={ref} className={className} style={style}>{m ? display : value}</span>
 }
 
 /* Reusable CTA with light-sweep shine + lift + arrow slide */

@@ -12,60 +12,27 @@ import {
 import { SelectField, DateField } from '@/components/ui/field-controls'
 import { requestService } from '@/server/actions/appointments'
 
-const inclusos = [
-  {
-    icon: Leaf,
-    title: 'Visita Técnica',
-    badge: '2/mês inclusas',
-    desc: 'Um técnico na sua propriedade para avaliação de campo, manejo e recomendações práticas na lavoura.',
-    bullets: ['Agendamento em até 48h', 'Relatório fotográfico da visita', 'Sem custo adicional no Gold'],
-  },
-  {
-    icon: Microscope,
-    title: 'Diagnóstico de Solo',
-    badge: 'ilimitado',
-    desc: 'Coleta e interpretação de amostras para corrigir acidez, nutrição e fertilidade do seu cafezal.',
-    bullets: ['Análise química completa', 'Mapa de fertilidade por talhão', 'Solicite quantas vezes precisar'],
-  },
-  {
-    icon: FileText,
-    title: 'Laudo Técnico',
-    badge: '1/mês',
-    desc: 'Documento assinado por técnico responsável, válido para crédito rural, certificações e seguros.',
-    bullets: ['Assinatura de profissional CREA', 'Pronto para banco e seguradora', 'Entrega digital em PDF'],
-  },
-]
+export type ServiceItem = {
+  title: string
+  desc: string
+  price?: string
+  badge?: string
+  bullets?: string[]
+}
 
-const avulsos = [
-  {
-    icon: Users,
-    title: 'Consultoria Agronômica',
-    price: 'R$ 280',
-    unit: '/ hora',
-    desc: 'Acompanhamento personalizado com especialista para destravar problemas específicos da sua safra.',
-  },
-  {
-    icon: FlaskConical,
-    title: 'Análise Foliar',
-    price: 'R$ 150',
-    unit: '',
-    desc: 'Diagnóstico do estado nutricional das plantas para ajustar a adubação no momento certo.',
-  },
-  {
-    icon: ClipboardList,
-    title: 'Plano de Adubação',
-    price: 'R$ 320',
-    unit: '',
-    desc: 'Cronograma detalhado de adubação, doses e épocas, calculado para a sua produtividade alvo.',
-  },
+// Só para o modo demo; em produção o catálogo vem do banco (admin → Serviços).
+const DEMO_INCLUSOS: ServiceItem[] = [
+  { title: 'Visita Técnica', badge: 'incluso no plano', desc: 'Um técnico na sua propriedade para avaliação de campo, manejo e recomendações práticas na lavoura.', bullets: ['Agendamento em até 48h', 'Relatório fotográfico da visita'] },
+  { title: 'Diagnóstico de Solo', badge: 'incluso no plano', desc: 'Coleta e interpretação de amostras para corrigir acidez, nutrição e fertilidade.' },
 ]
+const DEMO_AVULSOS: ServiceItem[] = [
+  { title: 'Consultoria Agronômica', price: 'R$ 280,00', desc: 'Acompanhamento personalizado com especialista.' },
+  { title: 'Análise Foliar', price: 'R$ 150,00', desc: 'Diagnóstico do estado nutricional das plantas.' },
+]
+const DEMO_PLACES = ['Fazenda Demo — Talhão 1', 'Fazenda Demo — Talhão 2']
 
-const talhoes = [
-  'Fazenda Santa Clara — Talhão A1',
-  'Fazenda Santa Clara — Talhão A2',
-  'Fazenda Santa Clara — Talhão B1',
-  'Sítio Boa Vista',
-]
+const INCLUSO_ICONS = [Leaf, Microscope, FileText]
+const AVULSO_ICONS = [Users, FlaskConical, ClipboardList]
 
 type ServiceTarget = { name: string; priceLabel?: string }
 
@@ -74,22 +41,32 @@ const inputStyle: React.CSSProperties = {
   background: 'oklch(0.99 0.005 144)',
 }
 
-export function ServicosView({ preview }: { preview: boolean }) {
+export function ServicosView({
+  preview, inclusos: inclusosProp, avulsos: avulsosProp, placeOptions,
+}: {
+  preview: boolean
+  inclusos?: ServiceItem[]
+  avulsos?: ServiceItem[]
+  placeOptions?: string[]
+}) {
+  const inclusos = preview ? DEMO_INCLUSOS : (inclusosProp ?? [])
+  const avulsos = preview ? DEMO_AVULSOS : (avulsosProp ?? [])
+  const talhoes = preview ? DEMO_PLACES : (placeOptions ?? [])
   const [requestTarget, setRequestTarget] = useState<ServiceTarget | null>(null)
   const [contactOpen, setContactOpen] = useState(false)
-  const [talhao, setTalhao] = useState(talhoes[0])
+  const [talhao, setTalhao] = useState(talhoes[0] ?? '')
   const [data, setData] = useState('')
   const [saving, setSaving] = useState(false)
 
   function openRequest(target: ServiceTarget) {
-    setTalhao(talhoes[0])
+    setTalhao(talhoes[0] ?? '')
     setData('')
     setRequestTarget(target)
   }
 
   function closeRequest() {
     setRequestTarget(null)
-    setTalhao(talhoes[0])
+    setTalhao(talhoes[0] ?? '')
     setData('')
   }
 
@@ -170,7 +147,7 @@ export function ServicosView({ preview }: { preview: boolean }) {
           Serviços
         </h1>
         <p className="mt-1.5 text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>
-          Serviços agronômicos sob demanda — alguns já inclusos no seu plano Gold.
+          Serviços agronômicos sob demanda — alguns já inclusos no seu plano.
         </p>
       </header>
 
@@ -180,12 +157,15 @@ export function ServicosView({ preview }: { preview: boolean }) {
           className="dash-anim text-lg font-bold flex items-center gap-2"
           style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)', animationDelay: '0.08s' }}
         >
-          <Leaf size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Inclusos no seu plano Gold
+          <Leaf size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Inclusos no seu plano
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {inclusos.length === 0 && (
+            <p className="text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>Nenhum serviço incluso cadastrado no momento.</p>
+          )}
           {inclusos.map((s, i) => {
-            const Icon = s.icon
+            const Icon = INCLUSO_ICONS[i % INCLUSO_ICONS.length]
             return (
               <div
                 key={s.title}
@@ -207,11 +187,11 @@ export function ServicosView({ preview }: { preview: boolean }) {
                 <h3 className="font-bold text-base" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
                   {s.title}
                 </h3>
-                <p className="text-[11px] font-semibold mt-0.5 mb-2" style={{ color: 'var(--color-earth)' }}>{s.badge}</p>
+                {s.badge && <p className="text-[11px] font-semibold mt-0.5 mb-2" style={{ color: 'var(--color-earth)' }}>{s.badge}</p>}
                 <p className="text-xs mb-4" style={{ color: 'oklch(0.55 0.04 144)', lineHeight: 1.6 }}>{s.desc}</p>
 
                 <ul className="space-y-2 mb-5">
-                  {s.bullets.map((b) => (
+                  {(s.bullets ?? []).map((b) => (
                     <li key={b} className="flex items-start gap-2 text-xs" style={{ color: 'oklch(0.42 0.04 144)' }}>
                       <CheckCircle2 size={14} className="shrink-0 mt-px" style={{ color: 'var(--color-frutificar-green)' }} />
                       <span>{b}</span>
@@ -243,9 +223,12 @@ export function ServicosView({ preview }: { preview: boolean }) {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {avulsos.length === 0 && (
+            <p className="text-sm" style={{ color: 'oklch(0.55 0.04 144)' }}>Nenhum serviço avulso disponível no momento.</p>
+          )}
           {avulsos.map((s, i) => {
-            const Icon = s.icon
-            const priceLabel = `Valor: ${s.price}${s.unit ? ` ${s.unit}` : ''}`
+            const Icon = AVULSO_ICONS[i % AVULSO_ICONS.length]
+            const priceLabel = s.price ? `Valor: ${s.price}` : undefined
             return (
               <div
                 key={s.title}
@@ -262,8 +245,7 @@ export function ServicosView({ preview }: { preview: boolean }) {
                 <p className="text-xs mt-1 mb-4" style={{ color: 'oklch(0.55 0.04 144)', lineHeight: 1.6 }}>{s.desc}</p>
 
                 <div className="mt-auto flex items-end gap-1 mb-4">
-                  <span className="text-xl font-bold" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{s.price}</span>
-                  {s.unit && <span className="text-xs font-medium pb-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>{s.unit}</span>}
+                  <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{s.price ?? 'Sob consulta'}</span>
                 </div>
 
                 <button
@@ -354,6 +336,12 @@ export function ServicosView({ preview }: { preview: boolean }) {
                 options={talhoes.map((t) => ({ value: t, label: t }))}
                 placeholder="Selecione a propriedade"
               />
+              {talhoes.length === 0 && (
+                <p className="mt-1.5 text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>
+                  Nenhuma propriedade cadastrada —{' '}
+                  <a href="/propriedades" className="font-semibold underline" style={{ color: 'var(--color-frutificar-green)' }}>cadastre sua propriedade</a>.
+                </p>
+              )}
             </div>
 
             <div>

@@ -2,6 +2,8 @@
 // senão renderiza o mock. A UI fica em PodcastsView (client).
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { listEpisodes } from '@/server/repositories/podcasts.repository'
 import { mockEpisodes, COVERS, type Episode } from './data'
@@ -27,9 +29,13 @@ export default async function PodcastsPage() {
     return <PodcastsView initialEpisodes={mockEpisodes} />
   }
 
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  let episodes: Episode[] = []
   try {
     const rows = await listEpisodes()
-    const episodes: Episode[] = rows.map((e, i) => ({
+    episodes = rows.map((e, i) => ({
       id: e.id,
       title: e.title,
       host: e.podcast?.title ?? 'Frutificar no Campo',
@@ -38,9 +44,10 @@ export default async function PodcastsPage() {
       cover: COVERS[i % COVERS.length],
       url: e.audioUrl ?? '',
     }))
-    // Em modo real mostramos o que existe (mesmo vazio → estado vazio na view).
-    return <PodcastsView initialEpisodes={episodes} />
-  } catch {
-    return <PodcastsView initialEpisodes={mockEpisodes} />
+  } catch (err) {
+    console.error('[podcasts] erro ao carregar do banco:', err)
+    episodes = []
   }
+  // Em modo real mostramos o que existe (mesmo vazio → estado vazio na view).
+  return <PodcastsView initialEpisodes={episodes} />
 }

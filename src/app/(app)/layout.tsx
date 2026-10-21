@@ -33,9 +33,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Modo de manutenção (admin /configuracoes): bloqueia produtores, admin passa.
   if (!PREVIEW_MODE && session && session.user.role !== 'ADMIN') {
+    let maintenance = false
     try {
-      if ((await getSetting('maintenance_mode')) === 'true') return <MaintenanceScreen />
+      maintenance = (await getSetting('maintenance_mode')) === 'true'
     } catch { /* sem settings — segue normal */ }
+    if (maintenance) return <MaintenanceScreen />
   }
 
   const userPlan = session?.user.plan ?? 'GOLD'

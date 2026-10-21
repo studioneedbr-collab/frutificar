@@ -12,9 +12,11 @@ export default async function AdminSolicitacoesPage() {
     return <SolicitacoesView initial={mockSolicitacoes} preview />
   }
 
+  let items: SolicitacaoItem[] = []
+
   try {
     const rows = await listAllServiceRequests()
-    const items: SolicitacaoItem[] = rows.map((r) => ({
+    items = rows.map((r) => ({
       id: r.id,
       user: r.user.name,
       email: r.user.email,
@@ -23,10 +25,10 @@ export default async function AdminSolicitacoesPage() {
       status: r.status as SolStatus,
       date: r.createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
     }))
-    return <SolicitacoesView initial={items} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/solicitacoes] erro ao carregar do banco:', err)
-    return <SolicitacoesView initial={[]} preview={false} />
+    items = []
   }
+  return <SolicitacoesView initial={items} preview={false} />
 }

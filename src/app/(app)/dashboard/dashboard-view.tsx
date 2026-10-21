@@ -8,33 +8,67 @@ import {
 } from 'lucide-react'
 import type { DashboardData } from './data'
 
-/* DEV PREVIEW — sem banco. Dados mock de um produtor Gold. */
-const user = { firstName: 'Douglas', plan: 'Gold' }
+export type DashboardUser = { firstName: string; plan: string | null }
+export type DashboardCourse = { title: string; module: string; progress: number; href: string }
+export type DashboardLive = { title: string; when: string }
+// Dados reais do aluno (modo real). No preview a view usa os mocks abaixo.
+export type DashboardReal = {
+  courses: DashboardCourse[]
+  lives: DashboardLive[]
+  coursesInProgress: number
+  lessonsDone: number
+  hoursStudied: number
+  diagnosticsCount: number
+}
 
-const stats = [
+/* DEV PREVIEW — sem banco. Dados mock de um produtor Gold (só no modo demo). */
+const mockStats = [
   { icon: BookOpen, label: 'Cursos em andamento', value: '3', sub: '2 perto de concluir', color: 'oklch(0.48 0.13 144)', bg: 'oklch(0.48 0.13 144 / 0.1)' },
   { icon: Clock, label: 'Horas estudadas', value: '24h', sub: '+5h esta semana', color: 'oklch(0.55 0.1 220)', bg: 'oklch(0.55 0.1 220 / 0.1)' },
   { icon: Radio, label: 'Próxima live', value: '2 dias', sub: 'Manejo de pragas', color: 'oklch(0.62 0.12 55)', bg: 'oklch(0.62 0.12 55 / 0.1)' },
   { icon: Leaf, label: 'Diagnósticos', value: 'Ilimitado', sub: 'Benefício Gold', color: 'oklch(0.62 0.14 75)', bg: 'oklch(0.78 0.17 75 / 0.16)' },
 ]
 
-const courses = [
-  { title: 'Manejo Integrado de Pragas', module: 'Módulo 4 de 6 · Controle biológico', progress: 68 },
-  { title: 'Correção e Adubação de Solo', module: 'Módulo 2 de 5 · Calagem', progress: 35 },
-  { title: 'Gestão Financeira da Fazenda', module: 'Módulo 6 de 6 · Fechamento de safra', progress: 92 },
+const mockCourses: DashboardCourse[] = [
+  { title: 'Manejo Integrado de Pragas', module: 'Módulo 4 de 6 · Controle biológico', progress: 68, href: '/cursos' },
+  { title: 'Correção e Adubação de Solo', module: 'Módulo 2 de 5 · Calagem', progress: 35, href: '/cursos' },
+  { title: 'Gestão Financeira da Fazenda', module: 'Módulo 6 de 6 · Fechamento de safra', progress: 92, href: '/cursos' },
 ]
 
-const recommended = [
+const mockRecommended = [
   { icon: Headphones, title: 'Podcast: Café de qualidade', sub: 'Episódio novo · 32 min', href: '/podcasts' },
   { icon: MessageCircle, title: 'Tire dúvidas no Chat IA', sub: 'Análise de imagem da lavoura', href: '/chat' },
   { icon: Sun, title: 'Dia de Campo em Patrocínio', sub: 'Inscrições abertas · 12 jul', href: '/dias-de-campo' },
 ]
 
-export function DashboardView({ data }: { data: DashboardData }) {
-  const lives = [
-    { title: data.nextLiveTitle, agro: 'Agr. Helena Prado', when: data.nextLiveWhen, tag: 'AO VIVO' },
-    { title: 'Leitura de análise de solo na prática', agro: 'Agr. Marcos Lima', when: 'Sex, 28 jun · 20h', tag: 'GOLD' },
+// Recomendações em modo real: só atalhos para as seções, sem dados inventados.
+const realRecommended = [
+  { icon: Headphones, title: 'Podcasts Frutificar', sub: 'Ouça os episódios', href: '/podcasts' },
+  { icon: MessageCircle, title: 'Tire dúvidas no Chat IA', sub: 'Análise de imagem da lavoura', href: '/chat' },
+  { icon: Sun, title: 'Dias de Campo', sub: 'Veja a agenda de eventos', href: '/dias-de-campo' },
+]
+
+export function DashboardView({
+  data, user, real, preview = false,
+}: { data: DashboardData; user: DashboardUser; real?: DashboardReal; preview?: boolean }) {
+  const r: DashboardReal = real ?? { courses: [], lives: [], coursesInProgress: 0, lessonsDone: 0, hoursStudied: 0, diagnosticsCount: 0 }
+
+  const stats = preview ? mockStats : [
+    { ...mockStats[0], value: String(r.coursesInProgress), sub: `${r.lessonsDone} ${r.lessonsDone === 1 ? 'aula concluída' : 'aulas concluídas'}` },
+    { ...mockStats[1], value: `${r.hoursStudied}h`, sub: 'Em aulas concluídas' },
+    { ...mockStats[2], value: data.nextLiveWhen ? data.nextLiveWhen.split(' · ')[0] : '—', sub: data.nextLiveTitle || 'Nenhuma agendada' },
+    { ...mockStats[3], value: String(r.diagnosticsCount), sub: 'Análises de solo' },
   ]
+  const courses = preview ? mockCourses : r.courses
+  const recommended = preview ? mockRecommended : realRecommended
+  const lives = preview
+    ? [
+        { title: data.nextLiveTitle, agro: 'Agr. Helena Prado', when: data.nextLiveWhen, tag: 'AO VIVO' },
+        { title: 'Leitura de análise de solo na prática', agro: 'Agr. Marcos Lima', when: 'Sex, 28 jun · 20h', tag: 'GOLD' },
+      ]
+    : r.lives.map((l) => ({ title: l.title, agro: '', when: l.when, tag: 'AO VIVO' }))
+  const topCourse = courses[0]
+  const showGold = preview || user.plan === 'Gold'
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-4">
@@ -65,16 +99,22 @@ export function DashboardView({ data }: { data: DashboardData }) {
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold mb-3"
               style={{ background: 'oklch(1 0 0 / 0.08)', border: '1px solid oklch(1 0 0 / 0.14)', color: 'oklch(0.83 0.08 144)', letterSpacing: '0.06em' }}
             >
-              <Sprout size={12} /> PLANO {user.plan.toUpperCase()} ATIVO
+              <Sprout size={12} /> {user.plan ? `PLANO ${user.plan.toUpperCase()} ATIVO` : 'FRUTIFICAR'}
             </div>
             <h1
               className="text-2xl md:text-3xl font-bold text-white"
               style={{ fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em' }}
             >
-              Bom te ver de novo, {user.firstName}.
+              Bom te ver de novo{user.firstName ? `, ${user.firstName}` : ''}.
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: 'oklch(1 0 0 / 0.6)' }}>
-              Você concluiu <strong style={{ color: 'oklch(0.83 0.08 144)' }}>92%</strong> de Gestão Financeira — falta pouco para o certificado.
+              {preview ? (
+                <>Você concluiu <strong style={{ color: 'oklch(0.83 0.08 144)' }}>92%</strong> de Gestão Financeira — falta pouco para o certificado.</>
+              ) : topCourse ? (
+                <>Você concluiu <strong style={{ color: 'oklch(0.83 0.08 144)' }}>{topCourse.progress}%</strong> de {topCourse.title}. Continue de onde parou.</>
+              ) : (
+                <>Comece um curso e acompanhe seu progresso por aqui.</>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
@@ -136,10 +176,15 @@ export function DashboardView({ data }: { data: DashboardData }) {
               </Link>
             </div>
             <div className="space-y-3">
+              {courses.length === 0 && (
+                <p className="text-sm rounded-xl p-4" style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)', color: 'oklch(0.55 0.04 144)' }}>
+                  Você ainda não tem cursos em andamento. <Link href="/cursos" className="font-semibold" style={{ color: 'var(--color-earth)' }}>Ver cursos</Link>
+                </p>
+              )}
               {courses.map((c) => (
                 <Link
                   key={c.title}
-                  href="/cursos"
+                  href={c.href}
                   className="dash-lift block rounded-xl p-4 transition-colors"
                   style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}
                 >
@@ -174,6 +219,11 @@ export function DashboardView({ data }: { data: DashboardData }) {
               </Link>
             </div>
             <div className="space-y-3">
+              {lives.length === 0 && (
+                <p className="text-sm rounded-xl p-4" style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)', color: 'oklch(0.55 0.04 144)' }}>
+                  Nenhuma live agendada no momento.
+                </p>
+              )}
               {lives.map((l) => (
                 <div
                   key={l.title}
@@ -186,7 +236,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-sm truncate" style={{ color: 'var(--color-frutificar-deep)' }}>{l.title}</h3>
                     <p className="text-xs mt-0.5 flex items-center gap-1.5" style={{ color: 'oklch(0.55 0.04 144)' }}>
-                      {l.agro} <span style={{ color: 'oklch(0.8 0.02 144)' }}>·</span> {l.when}
+                      {l.agro && <>{l.agro} <span style={{ color: 'oklch(0.8 0.02 144)' }}>·</span> </>}{l.when}
                     </p>
                   </div>
                   <span
@@ -211,16 +261,30 @@ export function DashboardView({ data }: { data: DashboardData }) {
             <h2 className="text-lg font-bold flex items-center gap-2 mb-4" style={{ color: 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>
               <MapPin size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Sua propriedade
             </h2>
-            <div className="rounded-xl p-4 mb-3" style={{ background: 'linear-gradient(150deg, oklch(0.48 0.13 144 / 0.06), oklch(0.62 0.12 55 / 0.05))', border: '1px solid oklch(0.91 0.01 144)' }}>
-              <h3 className="font-bold text-sm" style={{ color: 'var(--color-frutificar-deep)' }}>{data.propertyName}</h3>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>{data.propertyLocation} · {data.plotsCount} talhões · Café arábica</p>
-              <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid oklch(0.91 0.01 144)' }}>
-                <CheckCircle2 size={15} style={{ color: 'var(--color-frutificar-green)' }} />
-                <span className="text-xs font-medium" style={{ color: 'oklch(0.42 0.04 144)' }}>
-                  Último diagnóstico de solo: <strong style={{ color: 'var(--color-frutificar-green)' }}>pH corrigido</strong>
-                </span>
+            {data.propertyName ? (
+              <div className="rounded-xl p-4 mb-3" style={{ background: 'linear-gradient(150deg, oklch(0.48 0.13 144 / 0.06), oklch(0.62 0.12 55 / 0.05))', border: '1px solid oklch(0.91 0.01 144)' }}>
+                <h3 className="font-bold text-sm" style={{ color: 'var(--color-frutificar-deep)' }}>{data.propertyName}</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'oklch(0.55 0.04 144)' }}>
+                  {[data.propertyLocation, `${data.plotsCount} talhões`, preview ? 'Café arábica' : null].filter(Boolean).join(' · ')}
+                </p>
+                {preview && (
+                  <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid oklch(0.91 0.01 144)' }}>
+                    <CheckCircle2 size={15} style={{ color: 'var(--color-frutificar-green)' }} />
+                    <span className="text-xs font-medium" style={{ color: 'oklch(0.42 0.04 144)' }}>
+                      Último diagnóstico de solo: <strong style={{ color: 'var(--color-frutificar-green)' }}>pH corrigido</strong>
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <Link
+                href="/propriedades"
+                className="block rounded-xl p-4 mb-3 text-sm transition-opacity hover:opacity-85"
+                style={{ background: 'oklch(0.98 0.008 144)', border: '1px dashed oklch(0.85 0.02 144)', color: 'oklch(0.55 0.04 144)' }}
+              >
+                Você ainda não cadastrou uma propriedade. <strong style={{ color: 'var(--color-frutificar-green)' }}>Cadastre sua propriedade</strong>
+              </Link>
+            )}
             <Link
               href="/diagnostico"
               className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
@@ -231,7 +295,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           </section>
 
           {/* Benefício Gold — visitas */}
-          <section
+          {showGold && <section
             className="dash-anim relative overflow-hidden rounded-2xl p-6"
             style={{ background: 'linear-gradient(150deg, var(--color-frutificar-night), oklch(0.24 0.09 144))', animationDelay: '0.36s' }}
           >
@@ -241,9 +305,9 @@ export function DashboardView({ data }: { data: DashboardData }) {
                 <Sun size={16} style={{ color: 'oklch(0.78 0.14 75)' }} />
                 <span className="text-[11px] font-bold tracking-wide" style={{ color: 'oklch(0.78 0.14 75)' }}>BENEFÍCIO GOLD</span>
               </div>
-              <h3 className="text-white font-bold text-base mb-1" style={{ fontFamily: 'var(--font-heading)' }}>2 visitas técnicas este mês</h3>
+              <h3 className="text-white font-bold text-base mb-1" style={{ fontFamily: 'var(--font-heading)' }}>{preview ? '2 visitas técnicas este mês' : 'Visitas técnicas'}</h3>
               <p className="text-xs mb-4" style={{ color: 'oklch(1 0 0 / 0.55)', lineHeight: 1.6 }}>
-                Você ainda tem <strong style={{ color: 'white' }}>1 visita</strong> disponível. Agende um técnico na sua propriedade.
+                {preview && <>Você ainda tem <strong style={{ color: 'white' }}>1 visita</strong> disponível. </>}Agende um técnico na sua propriedade.
               </p>
               <Link
                 href="/agendamentos"
@@ -253,7 +317,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                 Agendar agora <ArrowUpRight size={15} />
               </Link>
             </div>
-          </section>
+          </section>}
 
           {/* Recomendado */}
           <section className="dash-anim rounded-2xl p-6 bg-white" style={{ border: '1px solid oklch(0.91 0.01 144)', animationDelay: '0.42s' }}>

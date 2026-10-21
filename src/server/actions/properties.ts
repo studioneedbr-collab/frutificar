@@ -1,6 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { deleteFromStorage } from '@/lib/storage'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import type { ActionResult } from '@/lib/action-types'
 import { revalidatePath } from 'next/cache'
@@ -52,7 +54,17 @@ export async function deleteProperty(id: string): Promise<ActionResult> {
       return { ok: false, error: 'Acesso negado.' }
     }
 
+    // Arquivos ligados à propriedade (documentos e laudos) saem junto do Storage.
+    const [docs, analyses] = await Promise.all([
+      prisma.propertyDocument.findMany({ where: { propertyId: id }, select: { fileUrl: true } }),
+      prisma.soilAnalysis.findMany({ where: { plot: { propertyId: id } }, select: { nutrients: true } }),
+    ])
     await propertiesRepository.deleteProperty(id)
+    const files = [
+      ...docs.map((d) => d.fileUrl),
+      ...analyses.map((a) => (a.nutrients as { fileUrl?: string | null } | null)?.fileUrl),
+    ]
+    await Promise.all(files.map((u) => deleteFromStorage(u)))
     revalidatePath('/propriedades')
     return { ok: true, data: undefined }
   } catch {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus, Wrench, Pencil, Trash2, X, Circle } from 'lucide-react'
@@ -33,7 +33,11 @@ const tmpId = () => `tmp-${++tmp}`
 export function ServicosAdminView({ initial, preview }: { initial: ServiceItem[]; preview: boolean }) {
   const router = useRouter()
   const [services, setServices] = useState<ServiceItem[]>(initial)
-  useEffect(() => { setServices(initial) }, [initial])
+  const [prevInitial, setPrevInitial] = useState(initial)
+  if (initial !== prevInitial) {
+    setPrevInitial(initial)
+    setServices(initial)
+  }
 
   const [filter, setFilter] = useState<Filter>('Todos')
   const [createOpen, setCreateOpen] = useState(false)

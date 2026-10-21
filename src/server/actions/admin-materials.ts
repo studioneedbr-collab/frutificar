@@ -1,6 +1,8 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { deleteFromStorage } from '@/lib/storage'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { PlanName } from '@prisma/client'
@@ -61,10 +63,15 @@ export async function updateResourceAction(
   }
 
   try {
+    const before = await prisma.downloadableResource.findUnique({ where: { id }, select: { fileUrl: true } })
     await materialsRepository.updateResource(id, {
       ...parsed.data,
       requiredPlan: parsed.data.requiredPlan as PlanName | undefined,
     })
+    // Arquivo trocado: apaga o antigo do Storage.
+    if (parsed.data.fileUrl !== undefined && before?.fileUrl && before.fileUrl !== parsed.data.fileUrl) {
+      await deleteFromStorage(before.fileUrl)
+    }
     revalidatePath('/admin/materiais')
     return { ok: true, data: undefined }
   } catch {
@@ -79,7 +86,8 @@ export async function deleteResourceAction(id: string): Promise<ActionResult> {
   }
 
   try {
-    await materialsRepository.deleteResource(id)
+    const removed = await materialsRepository.deleteResource(id)
+    await deleteFromStorage(removed.fileUrl)
     revalidatePath('/admin/materiais')
     return { ok: true, data: undefined }
   } catch {

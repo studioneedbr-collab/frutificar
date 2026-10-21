@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Download, FileText, Table2, File, Pencil, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -69,7 +69,11 @@ export function MateriaisView({
   const [materials, setMaterials] = useState<Material[]>(initialMaterials)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setMaterials(initialMaterials) }, [initialMaterials])
+  const [prevInitialMaterials, setPrevInitialMaterials] = useState(initialMaterials)
+  if (initialMaterials !== prevInitialMaterials) {
+    setPrevInitialMaterials(initialMaterials)
+    setMaterials(initialMaterials)
+  }
 
   const [filter, setFilter] = useState<string>('TODOS')
 

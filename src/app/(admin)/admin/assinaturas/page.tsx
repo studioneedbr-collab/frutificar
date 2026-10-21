@@ -26,9 +26,10 @@ export default async function AdminAssinaturasPage() {
   }
 
   // Modo real: tenta o banco; em qualquer falha, lista vazia (nunca mock) + log.
+  let subscriptions: Sub[] = []
   try {
     const rows = await listAllSubscriptions()
-    const subscriptions: Sub[] = rows.map((s) => {
+    subscriptions = rows.map((s) => {
       const plan = s.plan.name as Plan
       const status = s.status as Status
       return {
@@ -43,11 +44,10 @@ export default async function AdminAssinaturasPage() {
         price: Number(s.plan.priceMonthly),
       }
     })
-
-    return <AssinaturasView initialSubscriptions={subscriptions} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/assinaturas] erro ao carregar do banco:', err)
-    return <AssinaturasView initialSubscriptions={[]} preview={false} />
+    subscriptions = []
   }
+  return <AssinaturasView initialSubscriptions={subscriptions} preview={false} />
 }

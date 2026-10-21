@@ -5,7 +5,7 @@ import { requireFeature } from '@/lib/access-control'
 import { rateLimit, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit'
 import { revalidatePath } from 'next/cache'
 import type { ActionResult } from '@/lib/action-types'
-import { uploadToStorage } from '@/lib/storage'
+import { uploadToStorage, deleteFromStorage } from '@/lib/storage'
 import * as properties from '@/server/repositories/properties.repository'
 
 const TYPES = ['LICENCA', 'DOCUMENTO', 'HISTORICO']
@@ -80,6 +80,8 @@ export async function deletePropertyDocumentAction(id: string): Promise<ActionRe
     if (!doc) return { ok: false, error: 'Item não encontrado.' }
     if (doc.property.userId !== session.user.id) return { ok: false, error: 'Acesso negado.' }
     await properties.deletePropertyDocument(id)
+    // Libera o espaço do arquivo no Storage.
+    await deleteFromStorage(doc.fileUrl)
     revalidatePath('/gestao')
     return { ok: true, data: undefined }
   } catch {

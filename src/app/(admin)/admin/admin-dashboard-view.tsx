@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -17,6 +17,7 @@ import {
 } from '@/server/actions/admin'
 import type { Solicitation } from './data'
 
+// Valores fixos dos cards: só no modo demo (preview). Em modo real vêm de `metrics`.
 const stats = [
   {
     label: 'Alunos ativos',
@@ -65,6 +66,7 @@ export type DashboardMetrics = {
   monthlyRevenue: number
 }
 
+// Listas fictícias — só no modo demo (preview).
 const defaultRecentUsers: DashboardUser[] = [
   { name: 'João Carlos Silva', email: 'joao@exemplo.com', plan: 'GOLD', status: 'ACTIVE', joined: '12 jun 2026' },
   { name: 'Maria Aparecida Costa', email: 'maria@exemplo.com', plan: 'PREMIUM', status: 'ACTIVE', joined: '11 jun 2026' },
@@ -104,7 +106,7 @@ function solicitationVisual(kind: Solicitation['kind']) {
 }
 
 export function AdminDashboardView({
-  initialSolicitations, preview, metrics, recentUsers = defaultRecentUsers, recentCourses = defaultRecentCourses,
+  initialSolicitations, preview, metrics: metricsProp, recentUsers: recentUsersProp, recentCourses: recentCoursesProp,
 }: {
   initialSolicitations: Solicitation[]
   preview: boolean
@@ -115,6 +117,12 @@ export function AdminDashboardView({
   const router = useRouter()
   const [requests, setRequests] = useState<Solicitation[]>(initialSolicitations)
   const [rejectTarget, setRejectTarget] = useState<Solicitation | null>(null)
+
+  // Mock só no preview; em modo real, sem dados → zeros/listas vazias.
+  const recentUsers = recentUsersProp ?? (preview ? defaultRecentUsers : [])
+  const recentCourses = recentCoursesProp ?? (preview ? defaultRecentCourses : [])
+  const metrics = metricsProp
+    ?? (preview ? undefined : { activeStudents: 0, activeSubscriptions: 0, publishedCourses: 0, monthlyRevenue: 0 })
 
   // Em modo real, os valores dos 4 cards vêm das métricas do banco (sem % de tendência).
   const metricOverrides = metrics
@@ -127,7 +135,11 @@ export function AdminDashboardView({
     : null
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setRequests(initialSolicitations) }, [initialSolicitations])
+  const [prevInitialSolicitations, setPrevInitialSolicitations] = useState(initialSolicitations)
+  if (initialSolicitations !== prevInitialSolicitations) {
+    setPrevInitialSolicitations(initialSolicitations)
+    setRequests(initialSolicitations)
+  }
 
   async function handleAccept(req: Solicitation) {
     setRequests((cur) => cur.filter((r) => r.id !== req.id))

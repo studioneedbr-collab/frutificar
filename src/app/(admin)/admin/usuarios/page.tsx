@@ -20,9 +20,10 @@ export default async function AdminUsuariosPage() {
   }
 
   // Modo real: lê do banco; em caso de erro, lista vazia (nunca mock) + log.
+  let users: User[] = []
   try {
     const rows = await listUsers()
-    const users: User[] = rows.map((u) => ({
+    users = rows.map((u) => ({
       id: u.id,
       name: u.name,
       email: u.email,
@@ -31,11 +32,10 @@ export default async function AdminUsuariosPage() {
       role: u.role,
       joined: u.createdAt.toLocaleDateString('pt-BR'),
     }))
-
-    return <UsuariosView initialUsers={users} preview={false} />
   } catch (err) {
     // Nunca mostrar mock em produção: lista vazia + log para investigar.
     console.error('[admin/usuarios] erro ao carregar do banco:', err)
-    return <UsuariosView initialUsers={[]} preview={false} />
+    users = []
   }
+  return <UsuariosView initialUsers={users} preview={false} />
 }

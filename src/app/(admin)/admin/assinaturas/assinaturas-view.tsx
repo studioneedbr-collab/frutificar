@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Circle, Eye, ArrowLeftRight, Ban, RotateCcw, CheckCircle2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -60,7 +60,11 @@ export function AssinaturasView({
   const [subs, setSubs] = useState<Sub[]>(initialSubscriptions)
 
   // Reconcilia com os dados do servidor após cada router.refresh() (modo real).
-  useEffect(() => { setSubs(initialSubscriptions) }, [initialSubscriptions])
+  const [prevInitialSubscriptions, setPrevInitialSubscriptions] = useState(initialSubscriptions)
+  if (initialSubscriptions !== prevInitialSubscriptions) {
+    setPrevInitialSubscriptions(initialSubscriptions)
+    setSubs(initialSubscriptions)
+  }
 
   const [planFilter, setPlanFilter] = useState<PlanFilter>('Todas')
   const [statusFilter, setStatusFilter] = useState<string>('Todos')

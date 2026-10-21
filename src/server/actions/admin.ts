@@ -162,10 +162,10 @@ export async function addCourseModule(
   }
 
   try {
-    const module = await adminRepository.addModule(courseId, parsed.data.title)
+    const courseModule = await adminRepository.addModule(courseId, parsed.data.title)
     revalidatePath('/admin/cursos')
     revalidatePath('/cursos')
-    return { ok: true, data: { id: module.id } }
+    return { ok: true, data: { id: courseModule.id } }
   } catch {
     return { ok: false, error: 'Erro ao adicionar módulo.' }
   }
