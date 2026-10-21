@@ -50,6 +50,10 @@ const statusFilterOptions = [
 
 const labelClass = 'block text-xs font-semibold mb-1.5'
 
+// Ciclo de cobrança: mock sem ciclo = mensal.
+const cycleSuffix = (s: Sub) => (s.cycle === 'YEARLY' ? '/ano' : '/mês')
+const cycleLabel = (s: Sub) => (s.cycle === 'YEARLY' ? 'Anual' : 'Mensal')
+
 export function AssinaturasView({
   initialSubscriptions, preview,
 }: {
@@ -109,7 +113,8 @@ export function AssinaturasView({
     const name = planTarget.name
     const plan = newPlan
     setSubs((cur) =>
-      cur.map((s) => (s.id === id ? { ...s, plan, value: planValue[plan] } : s)),
+      // Anual: o preço anual vem do servidor no refresh; mantém o valor atual até lá.
+      cur.map((s) => (s.id === id ? { ...s, plan, value: s.cycle === 'YEARLY' ? s.value : planValue[plan] } : s)),
     )
     setPlanTarget(null)
     toast.success('Plano alterado', { description: `${name} · ${planValue[plan]}/mês` })
@@ -155,7 +160,7 @@ export function AssinaturasView({
       return
     }
     const res = await markSubscriptionPaid(id, date)
-    if (res.ok) toast.success('Pagamento registrado', { description: `${name} · assinatura ativa por +1 mês` })
+    if (res.ok) toast.success('Pagamento registrado', { description: `${name} · período renovado (1 mês ou 1 ano, conforme o ciclo)` })
     else toast.error(res.error)
     router.refresh()
   }
@@ -224,7 +229,10 @@ export function AssinaturasView({
                   </div>
                 </div>
                 <span className="text-[11px] font-bold px-2.5 py-1 rounded-full w-fit" style={{ background: plan.bg, color: plan.text }}>{s.plan}</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{s.value}<span className="text-xs font-normal" style={{ color: 'oklch(0.58 0.03 144)' }}>/mês</span></span>
+                <span className="flex flex-col leading-tight">
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{s.value}<span className="text-xs font-normal" style={{ color: 'oklch(0.58 0.03 144)' }}>{cycleSuffix(s)}</span></span>
+                  <span className="text-[10.5px] font-medium" style={{ color: 'oklch(0.6 0.02 144)' }}>{cycleLabel(s)}</span>
+                </span>
                 <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: status.text }}>
                   <Circle size={6} fill={status.dot} style={{ color: status.dot }} />{status.label}
                 </span>
@@ -283,7 +291,7 @@ export function AssinaturasView({
                     <p className="text-[11px]" style={{ color: 'oklch(0.6 0.02 144)' }}>{s.gateway} · renova {s.renewal}</p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: plan.bg, color: plan.text }}>{s.plan}</span>
-                      <span className="text-xs font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{s.value}/mês</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{s.value}{cycleSuffix(s)} · {cycleLabel(s)}</span>
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: status.text }}><Circle size={6} fill={status.dot} style={{ color: status.dot }} />{status.label}</span>
                     </div>
                   </div>
@@ -328,7 +336,7 @@ export function AssinaturasView({
                 { label: 'Usuário', node: <span className="text-sm font-semibold" style={{ color: 'var(--color-frutificar-deep)' }}>{detailTarget.name}</span> },
                 { label: 'Plano', node: (
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: planStyle[detailTarget.plan].bg, color: planStyle[detailTarget.plan].text }}>
-                    {detailTarget.plan} · {detailTarget.value}/mês
+                    {detailTarget.plan} · {detailTarget.value}{cycleSuffix(detailTarget)}
                   </span>
                 ) },
                 { label: 'Status', node: (
@@ -455,12 +463,12 @@ export function AssinaturasView({
               <CheckCircle2 size={18} style={{ color: 'var(--color-frutificar-green)' }} /> Marcar como pago
             </DialogTitle>
             <DialogDescription>
-              Registra um pagamento manual (Pix, transferência) de <strong>{payTarget?.name}</strong> e ativa a assinatura por mais 1 mês. Sem data, usa hoje.
+              Registra um pagamento manual (Pix, transferência) de <strong>{payTarget?.name}</strong> e renova a assinatura por mais um ciclo (mês ou ano). Sem data, usa hoje.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">
             <div className="rounded-xl px-3 py-2.5 text-sm" style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)', color: 'oklch(0.52 0.04 144)' }}>
-              Valor: <strong style={{ color: 'var(--color-frutificar-deep)' }}>{payTarget?.value}/mês</strong>
+              Valor: <strong style={{ color: 'var(--color-frutificar-deep)' }}>{payTarget?.value}{payTarget ? cycleSuffix(payTarget) : ''}</strong>
             </div>
             <div>
               <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Data do pagamento</label>

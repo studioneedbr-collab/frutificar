@@ -23,6 +23,16 @@ enum PlanName {
   GOLD
 }
 
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum CouponDuration {
+  ONCE // desconto só na 1ª cobrança
+  FOREVER // desconto em todas as cobranças
+}
+
 enum SubscriptionStatus {
   PENDING // aguardando o primeiro pagamento (checkout) — sem acesso
   TRIALING // teste grátis de 7 dias, sem pagamento — acesso até currentPeriodEnd
@@ -145,6 +155,8 @@ model Plan {
   id            String   @id @default(cuid())
   name          PlanName @unique
   priceMonthly  Decimal  @db.Decimal(10, 2)
+  /// Preço do plano anual (cobrado 1x/ano). Nulo = plano anual indisponível.
+  priceYearly   Decimal? @db.Decimal(10, 2)
   features      Json
   maxProperties Int      @default(1)
   active        Boolean  @default(true)
@@ -163,11 +175,18 @@ model Subscription {
   currentPeriodEnd      DateTime
   gatewayCustomerId     String?
   gatewaySubscriptionId String?
+  billingCycle          BillingCycle       @default(MONTHLY)
+  /// Cupom aplicado na assinatura.
+  couponId              String?
+  /// Cupom "só a 1ª cobrança": após o 1º pagamento o valor volta ao cheio.
+  couponRevertPending   Boolean            @default(false)
+  canceledAt            DateTime?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  coupon   Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
   payments Payment[]
 
   @@index([status])
@@ -570,4 +589,27 @@ model RecommendationRule {
   updatedAt          DateTime @updatedAt
 
   recommendations Recommendation[]
+}
+
+// ─── Cupons de desconto ───────────────────────────────────
+
+model Coupon {
+  id             String         @id @default(cuid())
+  /// Código digitado no checkout (sempre em MAIÚSCULAS).
+  code           String         @unique
+  /// Desconto em % (1–100). Usar este OU amountOff.
+  percentOff     Int?
+  /// Desconto fixo em R$.
+  amountOff      Decimal?       @db.Decimal(10, 2)
+  duration       CouponDuration @default(ONCE)
+  /// Vale para estes planos (vazio = todos).
+  plans          PlanName[]
+  maxRedemptions Int?
+  redemptions    Int            @default(0)
+  expiresAt      DateTime?
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  subscriptions Subscription[]
 }

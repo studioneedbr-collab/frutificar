@@ -13,7 +13,9 @@ export type Sub = {
   status: Status
   renewal: string
   gateway: string
-  /** Mensalidade numérica (para o MRR). */
+  /** Ciclo de cobrança (ausente no mock = mensal). */
+  cycle?: 'MONTHLY' | 'YEARLY'
+  /** Valor mensal recorrente (para o MRR) — ver src/lib/revenue.ts. */
   price?: number
 }
 

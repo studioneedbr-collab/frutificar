@@ -26,15 +26,15 @@ const goldFeatures = {
 async function main() {
   await prisma.plan.upsert({
     where: { name: PlanName.ESSENCIAL }, update: { priceMonthly: 47, features: essencialFeatures },
-    create: { name: PlanName.ESSENCIAL, priceMonthly: 47, features: essencialFeatures, maxProperties: 1 },
+    create: { name: PlanName.ESSENCIAL, priceMonthly: 47, priceYearly: 470, features: essencialFeatures, maxProperties: 1 },
   })
   await prisma.plan.upsert({
     where: { name: PlanName.PREMIUM }, update: { priceMonthly: 97, features: premiumFeatures },
-    create: { name: PlanName.PREMIUM, priceMonthly: 97, features: premiumFeatures, maxProperties: 3 },
+    create: { name: PlanName.PREMIUM, priceMonthly: 97, priceYearly: 970, features: premiumFeatures, maxProperties: 3 },
   })
   await prisma.plan.upsert({
     where: { name: PlanName.GOLD }, update: { priceMonthly: 197, features: goldFeatures },
-    create: { name: PlanName.GOLD, priceMonthly: 197, features: goldFeatures, maxProperties: 10 },
+    create: { name: PlanName.GOLD, priceMonthly: 197, priceYearly: 1970, features: goldFeatures, maxProperties: 10 },
   })
   console.log('Planos seedados: Essencial R$47 · Premium R$97 · Gold R$197')
 }

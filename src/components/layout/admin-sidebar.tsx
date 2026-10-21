@@ -10,6 +10,7 @@ import {
   LayoutDashboard, Users, CreditCard, BookOpen, Video,
   Mic2, Download, Calendar, Wrench, Sun, FileText,
   Settings, ChevronRight, Inbox, Menu, MessageSquare,
+  Wallet, TicketPercent, HardDrive,
 } from 'lucide-react'
 
 const navGroups = [
@@ -24,6 +25,8 @@ const navGroups = [
     items: [
       { href: '/admin/usuarios',    label: 'Usuários',      icon: Users },
       { href: '/admin/assinaturas', label: 'Assinaturas',   icon: CreditCard },
+      { href: '/admin/financeiro',  label: 'Financeiro',    icon: Wallet },
+      { href: '/admin/cupons',      label: 'Cupons',        icon: TicketPercent },
     ],
   },
   {
@@ -49,6 +52,7 @@ const navGroups = [
     label: 'Sistema',
     items: [
       { href: '/admin/planos',        label: 'Planos',          icon: FileText },
+      { href: '/admin/armazenamento', label: 'Armazenamento',   icon: HardDrive },
       { href: '/admin/configuracoes', label: 'Configurações',   icon: Settings },
     ],
   },

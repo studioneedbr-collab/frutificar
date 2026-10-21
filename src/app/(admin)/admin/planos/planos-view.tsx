@@ -86,18 +86,20 @@ export function PlanosView({
     const data = new FormData(e.currentTarget)
     const name = String(data.get('name') ?? '').trim() || editTarget.name
     const price = Number(String(data.get('price') ?? '').trim()) || editTarget.price
+    const yearlyRaw = String(data.get('yearlyPrice') ?? '').trim()
+    const yearlyPrice = yearlyRaw ? Number(yearlyRaw) : null
     const features = editFeatures
 
     setPlans((cur) =>
       cur.map((p) =>
-        p.id === planId ? { ...p, name, price, color: editColor, features } : p,
+        p.id === planId ? { ...p, name, price, yearlyPrice, color: editColor, features } : p,
       ),
     )
     setEditTarget(null)
     toast.success('Plano atualizado', { description: name })
 
     if (!preview) {
-      const res = await updatePlanAction(planId, { priceMonthly: Number(price), features })
+      const res = await updatePlanAction(planId, { priceMonthly: Number(price), priceYearly: yearlyPrice, features })
       if (!res.ok) toast.error(res.error)
       router.refresh()
     }
@@ -147,6 +149,7 @@ export function PlanosView({
       id: String(nextId),
       name,
       price,
+      yearlyPrice: price * 10,
       color: createColor,
       active: true,
       subscribers: 0,
@@ -166,12 +169,15 @@ export function PlanosView({
           <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)', letterSpacing: '-0.03em' }}>Planos</h1>
           <p className="text-sm mt-1" style={{ color: 'oklch(0.52 0.04 144)' }}>Configuração dos planos de assinatura da plataforma</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-85 transition-opacity"
-          style={{ background: 'linear-gradient(130deg, var(--color-frutificar-night) 0%, var(--color-frutificar-forest) 100%)' }}>
-          <Plus size={15} /> Novo plano
-        </button>
+        {/* Os planos são fixos no sistema (Essencial, Premium, Gold): criar só no modo demo. */}
+        {preview && (
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-85 transition-opacity"
+            style={{ background: 'linear-gradient(130deg, var(--color-frutificar-night) 0%, var(--color-frutificar-forest) 100%)' }}>
+            <Plus size={15} /> Novo plano
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -197,6 +203,11 @@ export function PlanosView({
             <div className="mb-5">
               <span className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-frutificar-deep)', letterSpacing: '-0.04em' }}>{formatPrice(p.price)}</span>
               <span className="text-sm" style={{ color: 'oklch(0.58 0.03 144)' }}>/mês</span>
+              {p.yearlyPrice != null && (
+                <p className="text-xs mt-0.5 tabular-nums" style={{ color: 'oklch(0.55 0.03 144)' }}>
+                  ou {p.yearlyPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ano
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-5 p-3 rounded-xl" style={{ background: 'oklch(0.975 0.005 144)' }}>
@@ -269,6 +280,10 @@ export function PlanosView({
                   <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Preço mensal (R$)</label>
                   <input name="price" type="number" min="0" required defaultValue={editTarget.price} placeholder="Ex.: 47" className={inputClass} style={inputStyle} />
                 </div>
+              </div>
+              <div>
+                <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Preço anual (R$) — vazio = sem opção anual</label>
+                <input name="yearlyPrice" type="number" min="5" step="0.01" defaultValue={editTarget.yearlyPrice ?? ''} placeholder={`Ex.: ${editTarget.price * 10} (2 meses grátis)`} className={inputClass} style={inputStyle} />
               </div>
               <div>
                 <label className={labelClass} style={{ color: 'var(--color-frutificar-deep)' }}>Cor do plano</label>

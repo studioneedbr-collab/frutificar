@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { chargeFor, applyCoupon, planLabel } from '@/server/services/billing.service'
 import type { PlanName, SubscriptionStatus } from '@prisma/client'
 
 export async function listAllSubscriptions() {
@@ -7,7 +8,9 @@ export async function listAllSubscriptions() {
     where: { user: { role: { not: 'ADMIN' }, deletedAt: null } },
     include: {
       user: { select: { name: true, email: true } },
-      plan: { select: { name: true, priceMonthly: true } },
+      plan: { select: { name: true, priceMonthly: true, priceYearly: true } },
+      // Só o necessário para o MRR (src/lib/revenue.ts).
+      coupon: { select: { percentOff: true, amountOff: true, duration: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -61,27 +64,38 @@ export async function statusOnReactivate(id: string): Promise<SubscriptionStatus
 export async function registerManualPayment(id: string, paidAt: Date) {
   const sub = await prisma.subscription.findUniqueOrThrow({
     where: { id },
-    select: { userId: true, currentPeriodEnd: true, plan: { select: { name: true, priceMonthly: true } } },
+    select: {
+      userId: true,
+      currentPeriodEnd: true,
+      billingCycle: true,
+      plan: { select: { name: true, priceMonthly: true, priceYearly: true } },
+      coupon: { select: { percentOff: true, amountOff: true, duration: true } },
+    },
   })
+  // Mesmo valor e vigência do checkout: ciclo anual = 12 meses; cupom
+  // "em todas as cobranças" continua valendo.
+  const full = chargeFor(sub.plan, sub.billingCycle)
+  const amount = sub.coupon?.duration === 'FOREVER' ? applyCoupon(full, sub.coupon) : full
   const base = sub.currentPeriodEnd > paidAt ? sub.currentPeriodEnd : paidAt
   const nextEnd = new Date(base)
-  nextEnd.setMonth(nextEnd.getMonth() + 1)
+  if (sub.billingCycle === 'YEARLY') nextEnd.setFullYear(nextEnd.getFullYear() + 1)
+  else nextEnd.setMonth(nextEnd.getMonth() + 1)
 
   return prisma.$transaction([
     prisma.payment.create({
       data: {
         userId: sub.userId,
         subscriptionId: id,
-        amount: sub.plan.priceMonthly,
+        amount,
         status: 'PAID',
         method: 'Manual (admin)',
-        description: `Mensalidade ${sub.plan.name}`,
+        description: `${sub.billingCycle === 'YEARLY' ? 'Anuidade' : 'Mensalidade'} ${planLabel(sub.plan.name)}`,
         paidAt,
       },
     }),
     prisma.subscription.update({
       where: { id },
-      data: { status: 'ACTIVE', currentPeriodEnd: nextEnd },
+      data: { status: 'ACTIVE', currentPeriodEnd: nextEnd, canceledAt: null },
     }),
   ])
 }

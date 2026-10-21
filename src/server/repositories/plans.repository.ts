@@ -9,11 +9,12 @@ export async function listPlans() {
 
 export async function updatePlan(
   id: string,
-  data: { priceMonthly?: number; features?: string[]; active?: boolean },
+  data: { priceMonthly?: number; priceYearly?: number | null; features?: string[]; active?: boolean },
 ) {
   const updateData: Prisma.PlanUpdateInput = {}
 
   if (data.priceMonthly !== undefined) updateData.priceMonthly = data.priceMonthly
+  if (data.priceYearly !== undefined) updateData.priceYearly = data.priceYearly
   if (data.features !== undefined) updateData.features = data.features
   if (data.active !== undefined) updateData.active = data.active
 

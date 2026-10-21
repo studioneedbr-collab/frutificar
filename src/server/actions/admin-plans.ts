@@ -7,7 +7,9 @@ import type { ActionResult } from '@/lib/action-types'
 import * as plansRepository from '@/server/repositories/plans.repository'
 
 const updatePlanSchema = z.object({
-  priceMonthly: z.coerce.number().nonnegative().optional(),
+  priceMonthly: z.coerce.number().nonnegative().max(100000).optional(),
+  // Anual: nulo = sem opção anual no checkout.
+  priceYearly: z.coerce.number().min(5).max(1000000).nullable().optional(),
   features: z.array(z.string()).optional(),
 })
 

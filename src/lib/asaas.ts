@@ -43,6 +43,7 @@ export type AsaasSubscription = {
   value: number
   status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
   billingType: AsaasBillingType
+  cycle?: AsaasCycle
   nextDueDate: string
   deleted?: boolean
 }
@@ -118,6 +119,8 @@ export function updateCustomer(id: string, input: { name?: string; email?: strin
 
 // ─── Assinaturas ──────────────────────────────────────────
 
+export type AsaasCycle = 'MONTHLY' | 'YEARLY'
+
 export function createSubscription(input: {
   customer: string
   billingType: AsaasBillingType
@@ -125,8 +128,9 @@ export function createSubscription(input: {
   nextDueDate: string
   description: string
   externalReference: string
+  cycle: AsaasCycle
 }) {
-  return request<AsaasSubscription>('POST', '/subscriptions', { ...input, cycle: 'MONTHLY' })
+  return request<AsaasSubscription>('POST', '/subscriptions', input)
 }
 
 export function getSubscription(id: string) {
@@ -136,7 +140,7 @@ export function getSubscription(id: string) {
 /** Atualiza forma de pagamento / valor; updatePendingPayments aplica às cobranças em aberto. */
 export function updateSubscription(
   id: string,
-  input: { billingType?: AsaasBillingType; value?: number; description?: string },
+  input: { billingType?: AsaasBillingType; value?: number; description?: string; cycle?: AsaasCycle },
 ) {
   return request<AsaasSubscription>('POST', `/subscriptions/${id}`, {
     ...input,
@@ -157,6 +161,18 @@ export async function listSubscriptionPayments(id: string): Promise<AsaasPayment
 
 export function getPayment(id: string) {
   return request<AsaasPayment>('GET', `/payments/${id}`)
+}
+
+/** Cobrança avulsa (ex.: diferença proporcional de upgrade de plano). */
+export function createPayment(input: {
+  customer: string
+  billingType: AsaasBillingType
+  value: number
+  dueDate: string
+  description: string
+  externalReference: string
+}) {
+  return request<AsaasPayment>('POST', '/payments', input)
 }
 
 export function getPixQrCode(paymentId: string) {

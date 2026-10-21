@@ -81,6 +81,7 @@ export function GestaoView({ properties, preview }: { properties: GestaoProperty
     const fd = new FormData(form)
     // Foto é reduzida no navegador antes de subir (economiza espaço).
     const picked = fd.get('file')
+    const hasFile = picked instanceof File && picked.size > 0
     if (picked instanceof File && picked.size > 0) {
       const small = await compressImage(picked)
       if (small.size > 4_000_000) { toast.error('Arquivo muito grande', { description: 'O limite é 4 MB.' }); return }
@@ -112,7 +113,9 @@ export function GestaoView({ properties, preview }: { properties: GestaoProperty
     const res = await createPropertyDocumentAction(fd)
     setSaving(false)
     if (!res.ok) { toast.error(res.error); return }
-    patchProp(property.id, (p) => ({ ...p, docs: [{ ...optimistic, id: res.data.id }, ...p.docs] }))
+    // Arquivo anexado abre pela rota protegida (bucket privado).
+    const fileUrl = hasFile ? `/api/arquivos/documento/${res.data.id}` : null
+    patchProp(property.id, (p) => ({ ...p, docs: [{ ...optimistic, id: res.data.id, fileUrl }, ...p.docs] }))
     setAddType(null)
     toast.success('Salvo com sucesso')
     router.refresh()

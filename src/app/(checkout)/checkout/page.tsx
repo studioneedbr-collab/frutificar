@@ -41,7 +41,8 @@ export default async function CheckoutPage({
     const p = plansDb.find((x) => x.name === name)
     if (!p) return []
     const features = Array.isArray(p.features) ? (p.features as string[]) : []
-    return [{ name, price: Number(p.priceMonthly), features }]
+    const price = Number(p.priceMonthly)
+    return [{ name, price, yearly: p.priceYearly != null ? Number(p.priceYearly) : price * 10, features }]
   })
 
   const { plano } = await searchParams

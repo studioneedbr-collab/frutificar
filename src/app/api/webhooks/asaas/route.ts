@@ -3,6 +3,7 @@
 import { timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
 import type { AsaasPayment } from '@/lib/asaas'
+import { reportError } from '@/lib/alerts'
 import { applyAsaasPayment, applyAsaasSubscriptionEnded } from '@/server/services/billing.service'
 
 export const dynamic = 'force-dynamic'
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true })
   } catch (err) {
     // 500 faz o Asaas reenviar o evento depois.
-    console.error('[webhook/asaas] erro ao processar', event, body.id, err)
+    await reportError('webhook Asaas', err, { evento: event, eventoId: body.id ?? null })
     return NextResponse.json({ error: 'processing failed' }, { status: 500 })
   }
 }

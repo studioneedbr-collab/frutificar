@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { gerarRecibo } from '@/lib/reports'
 import {
-  changePlan, cancelSubscription, reactivateSubscription,
+  changePlan, upgradePlan, cancelSubscription, reactivateSubscription,
 } from '@/server/actions/subscription'
 
 /* Plano, status, forma de pagamento e histórico vêm do banco (page.tsx).
@@ -19,7 +19,7 @@ import {
    acontecem só na página segura do Asaas (fatura). */
 
 export type SubStatus = 'PENDING' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'
-export type PlanOption = { name: string; price: string; features: string[] }
+export type PlanOption = { name: string; price: string; amount: number; features: string[] }
 type PaymentRow = { date: string; desc: string; value: string; method: string }
 
 const statusInfo: Record<SubStatus, { label: string; bg: string; fg: string; dot: string }> = {
@@ -40,11 +40,13 @@ type ToastKind = 'success' | 'info' | 'danger'
 type Toast = { id: number; title: string; desc?: string; kind: ToastKind }
 
 export function AssinaturaView({
-  planName, planPrice, planFeatures, status, periodEnd, paymentMethod, openInvoiceUrl,
+  planName, planPrice, planAmount, cycle, planFeatures, status, periodEnd, paymentMethod, openInvoiceUrl,
   payerName, payments, plans, preview,
 }: {
   planName: string
   planPrice: string
+  planAmount: number
+  cycle: 'MONTHLY' | 'YEARLY'
   planFeatures: string[]
   status: SubStatus
   periodEnd: string
@@ -75,6 +77,7 @@ export function AssinaturaView({
   }, [toasts])
 
   const cancelled = status === 'CANCELED'
+  const per = cycle === 'YEARLY' ? '/ano' : '/mês'
   const st = statusInfo[status] ?? statusInfo.ACTIVE
 
   /* ── Ações (o servidor é a fonte da verdade; a tela recarrega os dados) ── */
@@ -109,6 +112,26 @@ export function AssinaturaView({
     const target = changeTarget
     setChangeTarget(null)
     if (preview) return notify(`Mudança para o ${target.name} (demo)`, undefined, 'info')
+    const planCode = target.name.toUpperCase() as 'ESSENCIAL' | 'PREMIUM' | 'GOLD'
+    if (target.amount > planAmount) {
+      // Upgrade: paga só a diferença proporcional; o plano muda ao confirmar.
+      startTransition(async () => {
+        const res = await upgradePlan({ plan: planCode })
+        if (!res.ok) return notify('Não foi possível fazer o upgrade', res.error, 'danger')
+        if (res.data.applied) {
+          notify(`Plano alterado para ${target.name}`, 'Os novos recursos já estão liberados.')
+          router.refresh()
+        } else {
+          window.open(res.data.invoiceUrl, '_blank', 'noopener')
+          notify(
+            'Pague a diferença para liberar o upgrade',
+            `Valor proporcional: ${res.data.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. O plano muda assim que o pagamento confirmar.`,
+            'info',
+          )
+        }
+      })
+      return
+    }
     startTransition(async () => {
       const res = await changePlan({
         plan: target.name.toUpperCase() as 'ESSENCIAL' | 'PREMIUM' | 'GOLD',
@@ -174,7 +197,7 @@ export function AssinaturaView({
             <div className="flex flex-wrap items-end gap-3 mb-2">
               <h2 className="text-3xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em' }}>{planName}</h2>
               <span className="text-sm mb-1" style={{ color: 'oklch(1 0 0 / 0.7)' }}>
-                <strong className="text-white">{planPrice}</strong>/mês
+                <strong className="text-white">{planPrice}</strong>{per}
               </span>
               <span className="text-[11px] font-bold px-2.5 py-1 rounded-full mb-1 inline-flex items-center gap-1.5" style={{ background: st.bg, color: st.fg }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
@@ -317,7 +340,7 @@ export function AssinaturaView({
                   <h3 className="text-xl font-bold mb-1" style={{ color: current ? 'white' : 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{p.name}</h3>
                   <div className="flex items-end gap-1 mb-4">
                     <span className="text-3xl font-bold tabular-nums" style={{ color: current ? 'white' : 'var(--color-frutificar-deep)', fontFamily: 'var(--font-heading)' }}>{p.price}</span>
-                    <span className="text-sm mb-1" style={{ color: current ? 'oklch(1 0 0 / 0.4)' : 'oklch(0.6 0.02 144)' }}>/mês</span>
+                    <span className="text-sm mb-1" style={{ color: current ? 'oklch(1 0 0 / 0.4)' : 'oklch(0.6 0.02 144)' }}>{per}</span>
                   </div>
                   <ul className="space-y-2 mb-5">
                     {p.features.slice(0, 4).map((item) => (
@@ -383,19 +406,23 @@ export function AssinaturaView({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle style={heading}>Mudar para o plano {changeTarget?.name}?</DialogTitle>
-            <DialogDescription>O novo valor vale a partir da próxima cobrança.</DialogDescription>
+            <DialogDescription>
+              {changeTarget && changeTarget.amount > planAmount
+                ? 'Você paga agora só a diferença proporcional aos dias que faltam; o novo plano é liberado assim que o pagamento confirmar.'
+                : 'O novo valor vale a partir da próxima cobrança.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-between rounded-xl p-4" style={{ background: 'oklch(0.98 0.008 144)', border: '1px solid oklch(0.93 0.01 144)' }}>
             <div className="text-center flex-1">
               <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(0.55 0.04 144)' }}>ATUAL</div>
               <div className="font-bold" style={heading}>{planName}</div>
-              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{planPrice}/mês</div>
+              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{planPrice}{per}</div>
             </div>
             <ArrowRight size={18} style={{ color: 'var(--color-earth)' }} />
             <div className="text-center flex-1">
               <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(0.55 0.04 144)' }}>NOVO</div>
               <div className="font-bold" style={heading}>{changeTarget?.name}</div>
-              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{changeTarget?.price}/mês</div>
+              <div className="text-xs" style={{ color: 'oklch(0.55 0.04 144)' }}>{changeTarget?.price}{per}</div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2 pt-1">

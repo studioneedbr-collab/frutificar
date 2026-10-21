@@ -3,6 +3,7 @@ import { canAccessFeature, getUserActivePlan } from '@/lib/access-control'
 import { rateLimit as hitRateLimit } from '@/lib/rate-limit'
 import { prisma } from '@/lib/prisma'
 import { openai } from '@/lib/openai'
+import { reportError } from '@/lib/alerts'
 import { getSetting } from '@/server/repositories/settings.repository'
 import { createTextStreamResponse } from 'ai'
 import { z } from 'zod'
@@ -233,8 +234,8 @@ export async function POST(request: Request) {
             persistTimeout,
           ]).catch((err: unknown) => console.error('Failed to persist message:', err))
         } catch (err) {
-          console.error('Stream error:', err)
           controller.enqueue('\n\n[Erro ao processar resposta. Tente novamente.]')
+          await reportError('chat IA', err, { etapa: 'stream', modelo: aiModel })
         } finally {
           controller.close()
         }
@@ -249,7 +250,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    console.error('OpenAI error:', error)
+    await reportError('chat IA', error, { etapa: 'requisição OpenAI', modelo: aiModel })
     return new Response(
       JSON.stringify({ error: 'Erro ao processar mensagem.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

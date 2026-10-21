@@ -71,7 +71,7 @@ export default async function DiagnosticoPage() {
   const latest = analyses.find((a) => a.status === 'COMPLETED')
   let initialResult: DiagnosticResult | null = null
   if (latest) {
-    const n = (latest.nutrients ?? {}) as { params?: SoilParam[]; recommendations?: string[] }
+    const n = (latest.nutrients ?? {}) as { params?: SoilParam[]; recommendations?: string[]; fileUrl?: string | null }
     initialResult = {
       id: latest.id,
       talhao: latest.plot?.name ?? '—',
@@ -80,6 +80,8 @@ export default async function DiagnosticoPage() {
       params: Array.isArray(n.params) ? n.params : [],
       recommendations: Array.isArray(n.recommendations) ? n.recommendations : [],
       summary: latest.summary ?? undefined,
+      // Laudo original: só o caminho protegido (nunca a referência do Storage).
+      fileUrl: n.fileUrl ? `/api/arquivos/laudo/${latest.id}` : null,
     }
   }
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { SubscriptionStatus, PlanName } from '@prisma/client'
@@ -18,6 +19,7 @@ export async function cancelSubscriptionAdmin(id: string): Promise<ActionResult>
 
   try {
     await adminSubscriptionsRepository.setSubscriptionStatus(id, SubscriptionStatus.CANCELED)
+    await prisma.subscription.update({ where: { id }, data: { canceledAt: new Date() } })
     // Para de gerar cobranças no Asaas.
     await cancelGatewaySubscription(id)
     revalidatePath('/admin/assinaturas')
@@ -38,6 +40,7 @@ export async function reactivateSubscriptionAdmin(id: string): Promise<ActionRes
   try {
     const status = await adminSubscriptionsRepository.statusOnReactivate(id)
     await adminSubscriptionsRepository.setSubscriptionStatus(id, status)
+    await prisma.subscription.update({ where: { id }, data: { canceledAt: null } })
     revalidatePath('/admin/assinaturas')
     return { ok: true, data: undefined }
   } catch (err) {

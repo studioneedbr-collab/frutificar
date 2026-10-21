@@ -14,7 +14,7 @@ import 'server-only'
 
 const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email'
 
-function baseUrl(): string {
+export function baseUrl(): string {
   return process.env.NEXTAUTH_URL ?? process.env.AUTH_URL ?? 'http://localhost:3000'
 }
 
@@ -31,7 +31,7 @@ type Recipient = { email: string; name?: string }
  * Dispara um e-mail transacional pelo Brevo. Nunca lança: em caso de falha,
  * apenas loga e retorna false — o chamador decide se isso é crítico.
  */
-async function sendBrevoEmail(params: {
+export async function sendBrevoEmail(params: {
   to: Recipient[]
   subject: string
   htmlContent: string
@@ -93,9 +93,9 @@ const C = {
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji'"
 
-type Detail = { label: string; value: string }
+export type Detail = { label: string; value: string }
 
-type EmailParts = {
+export type EmailParts = {
   preheader: string
   eyebrow: string
   heading: string
@@ -154,7 +154,7 @@ function detailsCard(details: Detail[]): string {
 }
 
 /** Monta o HTML completo de um e-mail a partir das partes. */
-function renderEmail(p: EmailParts): string {
+export function renderEmail(p: EmailParts): string {
   const paragraphs = p.paragraphs
     .map(
       (t) =>
@@ -337,4 +337,9 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
   })
   // O link só aparece no log em desenvolvimento (em produção ele dá acesso à conta).
   if (!sent && process.env.NODE_ENV !== 'production') console.info(`[email:stub] Reset de senha para ${email}: ${link}`)
+}
+
+/** Escapa texto vindo do usuário antes de entrar no HTML do e-mail. */
+export function escapeHtml(v: string): string {
+  return v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 }

@@ -6,6 +6,8 @@ import { randomBytes } from 'crypto'
 //   SUPABASE_URL                → derivada do DATABASE_URL se ausente
 //   SUPABASE_SERVICE_ROLE_KEY   → chave "service_role" do projeto (Settings → API)
 //   SUPABASE_STORAGE_BUCKET     → nome do bucket público (default: "uploads")
+//   SUPABASE_PRIVATE_BUCKET     → bucket PRIVADO p/ documentos e laudos dos alunos
+//                                 (default: "privado"; criado automaticamente)
 
 // Deriva a URL base do Supabase a partir de SUPABASE_URL ou do ref no DATABASE_URL.
 function resolveSupabaseUrl(): string | null {
@@ -29,6 +31,76 @@ function serviceKey(): string | null {
 // true quando há URL + chave válida para realmente subir arquivos.
 export function storageConfigured(): boolean {
   return Boolean(resolveSupabaseUrl() && serviceKey())
+}
+
+export function publicBucketName(): string {
+  return process.env.SUPABASE_STORAGE_BUCKET || 'uploads'
+}
+
+export function privateBucketName(): string {
+  return process.env.SUPABASE_PRIVATE_BUCKET || 'privado'
+}
+
+// Referência gravada no banco para arquivos privados (nunca vira link público):
+//   storage-private://<pasta>/<arquivo>
+export const PRIVATE_REF_PREFIX = 'storage-private://'
+
+// Caminho no formato que nós mesmos geramos ("<pasta>/<arquivo>", sem "..").
+const OBJECT_PATH_RE = /^[a-z0-9-]+\/[A-Za-z0-9._-]+$/i
+
+export function isPrivateRef(v: string | null | undefined): boolean {
+  return typeof v === 'string' && v.startsWith(PRIVATE_REF_PREFIX)
+}
+
+// "storage-private://pasta/arquivo" → "pasta/arquivo" (ou null se inválido).
+export function privateRefPath(ref: string): string | null {
+  if (!isPrivateRef(ref)) return null
+  const path = ref.slice(PRIVATE_REF_PREFIX.length)
+  return OBJECT_PATH_RE.test(path) ? path : null
+}
+
+function authHeaders(key: string): Record<string, string> {
+  return { apikey: key, Authorization: `Bearer ${key}` }
+}
+
+// Cache em memória: o bucket privado só precisa ser conferido 1x por instância.
+let privateBucketReady: Promise<boolean> | null = null
+
+/**
+ * Garante que o bucket privado existe (cria com public:false se faltar).
+ * "Já existe" conta como sucesso. Em caso de falha, tenta de novo na próxima chamada.
+ */
+export function ensurePrivateBucket(): Promise<boolean> {
+  if (privateBucketReady) return privateBucketReady
+  const base = resolveSupabaseUrl()
+  const key = serviceKey()
+  if (!base || !key) return Promise.resolve(false)
+  const bucket = privateBucketName()
+
+  privateBucketReady = (async () => {
+    try {
+      const res = await fetch(`${base}/storage/v1/bucket`, {
+        method: 'POST',
+        headers: { ...authHeaders(key), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bucket, name: bucket, public: false }),
+      })
+      if (res.ok) return true
+      const detail = await res.text().catch(() => '')
+      // Supabase responde 400/409 com "already exists" quando o bucket já existe.
+      if (res.status === 409 || /already exists|duplicate/i.test(detail)) return true
+      console.error('[storage] falha ao criar bucket privado', res.status, detail.slice(0, 300))
+      return false
+    } catch (err) {
+      console.error('[storage] falha ao criar bucket privado', err)
+      return false
+    }
+  })()
+
+  const pending = privateBucketReady
+  pending.then((ok) => {
+    if (!ok && privateBucketReady === pending) privateBucketReady = null
+  })
+  return pending
 }
 
 export type UploadResult =
@@ -86,15 +158,21 @@ const KIND_LABEL: Record<FileKind, string> = {
   office: 'Word/Excel/PowerPoint (DOCX, XLSX, PPTX)',
 }
 
-// Sobe um arquivo e devolve a URL pública. Só aceita os tipos em `allow`,
-// conferidos pelo conteúdo; o nome no bucket é aleatório (não adivinhável).
+// Sobe um arquivo. Só aceita os tipos em `allow`, conferidos pelo conteúdo;
+// o nome no bucket é aleatório (não adivinhável).
+//  - visibility 'public' (padrão): bucket público, devolve a URL pública
+//    (materiais, podcasts e demais uploads do admin).
+//  - visibility 'private': bucket privado, devolve a referência
+//    "storage-private://<pasta>/<arquivo>" — o arquivo só abre por link
+//    assinado gerado em /api/arquivos (documentos e laudos dos alunos).
 export async function uploadToStorage(
   file: File,
-  opts: { folder: UploadFolder; allow: FileKind[]; bucket?: string },
+  opts: { folder: UploadFolder; allow: FileKind[]; bucket?: string; visibility?: 'public' | 'private' },
 ): Promise<UploadResult> {
   const base = resolveSupabaseUrl()
   const key = serviceKey()
-  const bucket = opts.bucket || process.env.SUPABASE_STORAGE_BUCKET || 'uploads'
+  const isPrivate = opts.visibility === 'private'
+  const bucket = isPrivate ? privateBucketName() : opts.bucket || publicBucketName()
 
   if (!base || !key) {
     return {
@@ -108,6 +186,10 @@ export async function uploadToStorage(
   const type = sniffFile(head, file.name)
   if (!type || !opts.allow.includes(type.kind)) {
     return { ok: false, error: `Formato não permitido. Envie ${opts.allow.map((k) => KIND_LABEL[k]).join(' ou ')}.` }
+  }
+
+  if (isPrivate && !(await ensurePrivateBucket())) {
+    return { ok: false, error: 'Armazenamento privado indisponível. Tente novamente.' }
   }
 
   const path = `${opts.folder}/${Date.now()}-${randomBytes(12).toString('hex')}.${type.ext}`
@@ -129,30 +211,155 @@ export async function uploadToStorage(
     return { ok: false, error: `Falha no upload (${res.status}). Tente novamente.` }
   }
 
+  if (isPrivate) return { ok: true, url: `${PRIVATE_REF_PREFIX}${path}` }
   return { ok: true, url: `${base}/storage/v1/object/public/${bucket}/${path}` }
 }
 
 /**
- * Remove do Storage um arquivo enviado por nós (a partir da URL pública).
- * Ignora URLs externas (YouTube, Drive…). Nunca lança erro: falha só é logada,
- * para não travar a exclusão do registro no banco.
+ * Gera um link assinado (temporário) para um arquivo privado
+ * ("storage-private://..."). Devolve a URL completa ou null se falhar.
+ */
+export async function createSignedUrl(ref: string, expiresInSeconds = 120): Promise<string | null> {
+  const base = resolveSupabaseUrl()
+  const key = serviceKey()
+  const path = privateRefPath(ref)
+  if (!base || !key || !path) return null
+  try {
+    const res = await fetch(`${base}/storage/v1/object/sign/${privateBucketName()}/${path}`, {
+      method: 'POST',
+      headers: { ...authHeaders(key), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: expiresInSeconds }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      console.error('[storage] falha ao assinar link', res.status, path)
+      return null
+    }
+    const data = (await res.json()) as { signedURL?: string; signedUrl?: string }
+    const signed = data.signedURL ?? data.signedUrl
+    if (!signed) return null
+    if (/^https?:\/\//i.test(signed)) return signed
+    // A API devolve o caminho relativo a /storage/v1 (ex.: "/object/sign/...?token=...").
+    return `${base}/storage/v1${signed.startsWith('/') ? '' : '/'}${signed}`
+  } catch (err) {
+    console.error('[storage] falha ao assinar link', path, err)
+    return null
+  }
+}
+
+/**
+ * Remove do Storage um arquivo enviado por nós — a partir da URL pública ou
+ * da referência privada ("storage-private://..."). Ignora URLs externas
+ * (YouTube, Drive…). Nunca lança erro: falha só é logada, para não travar a
+ * exclusão do registro no banco.
  */
 export async function deleteFromStorage(publicUrl: string | null | undefined): Promise<void> {
   const base = resolveSupabaseUrl()
   const key = serviceKey()
   if (!publicUrl || !base || !key) return
-  const prefix = `${base}/storage/v1/object/public/`
-  if (!publicUrl.startsWith(prefix)) return
-  const objectPath = publicUrl.slice(prefix.length) // "<bucket>/<pasta>/<arquivo>"
+  let objectPath: string // "<bucket>/<pasta>/<arquivo>"
+  if (isPrivateRef(publicUrl)) {
+    const path = privateRefPath(publicUrl)
+    if (!path) return
+    objectPath = `${privateBucketName()}/${path}`
+  } else {
+    const prefix = `${base}/storage/v1/object/public/`
+    if (!publicUrl.startsWith(prefix)) return
+    objectPath = publicUrl.slice(prefix.length)
+  }
   // Só caminhos no formato que nós mesmos geramos (sem "..").
   if (!/^[a-z0-9_-]+\/[a-z0-9-]+\/[A-Za-z0-9._-]+$/i.test(objectPath)) return
   try {
     const res = await fetch(`${base}/storage/v1/object/${objectPath}`, {
       method: 'DELETE',
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      headers: authHeaders(key),
     })
     if (!res.ok && res.status !== 404) console.error('[storage] falha ao apagar', res.status, objectPath)
   } catch (err) {
     console.error('[storage] falha ao apagar', objectPath, err)
   }
+}
+
+/**
+ * Apaga um objeto pelo bucket + caminho (usado pela limpeza do admin).
+ * Devolve true se apagou (ou já não existia).
+ */
+export async function deleteStorageObject(bucket: string, path: string): Promise<boolean> {
+  const base = resolveSupabaseUrl()
+  const key = serviceKey()
+  if (!base || !key) return false
+  if (!/^[a-z0-9_-]+$/i.test(bucket) || path.includes('..') || !/^[A-Za-z0-9._/-]+$/.test(path)) return false
+  try {
+    const res = await fetch(`${base}/storage/v1/object/${bucket}/${path}`, {
+      method: 'DELETE',
+      headers: authHeaders(key),
+    })
+    if (!res.ok && res.status !== 404) {
+      console.error('[storage] falha ao apagar', res.status, bucket, path)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[storage] falha ao apagar', bucket, path, err)
+    return false
+  }
+}
+
+export type StorageObject = { path: string; size: number; updatedAt: string | null }
+
+type ListEntry = {
+  name: string
+  id: string | null
+  updated_at?: string | null
+  created_at?: string | null
+  metadata?: { size?: number } | null
+}
+
+/**
+ * Lista todos os arquivos de um bucket (percorre as pastas recursivamente).
+ * Lança erro se o Storage não responder — quem chama decide o que mostrar.
+ * Bucket inexistente → lista vazia.
+ */
+export async function listStorageObjects(bucket: string, prefix = ''): Promise<StorageObject[]> {
+  const base = resolveSupabaseUrl()
+  const key = serviceKey()
+  if (!base || !key) throw new Error('Storage não configurado.')
+
+  const out: StorageObject[] = []
+  const LIMIT = 1000
+  const queue: string[] = [prefix.replace(/^\/+|\/+$/g, '')]
+  let guard = 0
+
+  while (queue.length) {
+    const folder = queue.shift() as string
+    if (++guard > 5000) break // proteção contra laço infinito
+    for (let offset = 0; ; offset += LIMIT) {
+      const res = await fetch(`${base}/storage/v1/object/list/${bucket}`, {
+        method: 'POST',
+        headers: { ...authHeaders(key), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix: folder, limit: LIMIT, offset, sortBy: { column: 'name', order: 'asc' } }),
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '')
+        if ((res.status === 400 || res.status === 404) && /not.?found/i.test(detail)) return out
+        throw new Error(`Falha ao listar o bucket ${bucket} (${res.status}).`)
+      }
+      const items = (await res.json()) as ListEntry[]
+      for (const it of items) {
+        const full = folder ? `${folder}/${it.name}` : it.name
+        if (it.id === null) {
+          queue.push(full) // pasta
+        } else if (it.name !== '.emptyFolderPlaceholder') {
+          out.push({
+            path: full,
+            size: Number(it.metadata?.size ?? 0),
+            updatedAt: it.updated_at ?? it.created_at ?? null,
+          })
+        }
+      }
+      if (items.length < LIMIT) break
+    }
+  }
+  return out
 }

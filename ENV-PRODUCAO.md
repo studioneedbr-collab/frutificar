@@ -77,3 +77,28 @@ APP_URL='https://www.frutificardigital.com.br' WEBHOOK_EMAIL='seu@email.com' \
 4. `NEXTAUTH_URL` = domínio de produção (não `localhost`).
 5. Rodar as migrations contra o banco (`prisma migrate deploy`) se ainda não rodou em produção.
 6. Deploy.
+
+---
+
+## Alertas de erro (e-mail para o admin)
+
+Erros não tratados no servidor (páginas, APIs, server actions), falhas da IA (chat e diagnóstico), banco fora do ar e variáveis críticas ausentes geram um e-mail **"⚠️ Erro na plataforma: …"** para o admin.
+
+| Variável | Para quê |
+|---|---|
+| `ADMIN_NOTIFICATION_EMAIL` | Quem recebe os alertas (sem ela, os erros só vão para os logs da Vercel) |
+| `BREVO_API_KEY` | Necessária para o e-mail sair de verdade (sem ela, só log) |
+| `CRON_SECRET` | Recomendado: protege `/api/cron/keepalive`, que roda todo dia e checa banco + `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, `BREVO_API_KEY`, `OPENAI_API_KEY` |
+
+Limites: no máximo 1 e-mail por tipo de erro a cada 15 min e 20 por hora. Só em produção. O e-mail nunca leva senhas, tokens, CPF, dados de cartão nem corpo de requisição.
+
+## Backup semanal do banco (GitHub Actions)
+
+O workflow `.github/workflows/backup-banco.yml` roda todo domingo e guarda um dump criptografado como artifact do GitHub (30 dias). Configure em **GitHub → Settings → Secrets and variables → Actions**:
+
+| Segredo | Valor |
+|---|---|
+| `BACKUP_DATABASE_URL` | Supabase → Connect → **Session pooler** (porta 5432) |
+| `BACKUP_PASSPHRASE` | senha forte (`openssl rand -base64 32`) — guarde fora do GitHub, sem ela o backup não abre |
+
+Passo a passo e restauração: [docs/BACKUP.md](docs/BACKUP.md).

@@ -8,6 +8,7 @@ import type { PlanName } from '@prisma/client'
 import { PREVIEW_MODE } from '@/lib/preview'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { chargeFor } from '@/server/services/billing.service'
 import { AssinaturaView, type PlanOption, type SubStatus } from './assinatura-view'
 
 const PLAN_ORDER: PlanName[] = ['ESSENCIAL', 'PREMIUM', 'GOLD']
@@ -30,9 +31,9 @@ function features(raw: unknown): string[] {
 
 // Só para o modo demo.
 const DEMO_PLANS: PlanOption[] = [
-  { name: 'Essencial', price: 'R$ 47,00', features: ['Curso completo', 'Chat inteligente', 'Diagnóstico por imagem'] },
-  { name: 'Premium', price: 'R$ 97,00', features: ['Tudo do Essencial', 'Minicursos', 'Gestão da propriedade'] },
-  { name: 'Gold', price: 'R$ 197,00', features: ['Tudo do Premium', 'Dias de campo', 'Tutoria'] },
+  { name: 'Essencial', price: 'R$ 47,00', amount: 47, features: ['Curso completo', 'Chat inteligente', 'Diagnóstico por imagem'] },
+  { name: 'Premium', price: 'R$ 97,00', amount: 97, features: ['Tudo do Essencial', 'Minicursos', 'Gestão da propriedade'] },
+  { name: 'Gold', price: 'R$ 197,00', amount: 197, features: ['Tudo do Premium', 'Dias de campo', 'Tutoria'] },
 ]
 
 export default async function AssinaturaPage() {
@@ -41,6 +42,8 @@ export default async function AssinaturaPage() {
       <AssinaturaView
         planName="Gold"
         planPrice="R$ 197,00"
+        planAmount={197}
+        cycle="MONTHLY"
         planFeatures={DEMO_PLANS[2].features}
         status="ACTIVE"
         periodEnd="12 jul 2026"
@@ -64,10 +67,11 @@ export default async function AssinaturaPage() {
       select: {
         status: true,
         currentPeriodEnd: true,
-        plan: { select: { name: true, priceMonthly: true, features: true } },
+        billingCycle: true,
+        plan: { select: { name: true, priceMonthly: true, priceYearly: true, features: true } },
       },
     }),
-    prisma.plan.findMany({ select: { name: true, priceMonthly: true, features: true } }),
+    prisma.plan.findMany({ select: { name: true, priceMonthly: true, priceYearly: true, features: true } }),
     // Só o necessário para a tela (nada de ids do gateway no navegador).
     prisma.payment.findMany({
       where: { userId },
@@ -90,15 +94,21 @@ export default async function AssinaturaPage() {
   // Fatura em aberto (renovação): o link é a página segura do próprio Asaas.
   const open = payments.find((p) => p.status === 'PENDING' && p.invoiceUrl?.startsWith('https://'))
 
+  // Preços no mesmo ciclo da assinatura (mensal ou anual).
+  const cycle = sub.billingCycle
   const plans: PlanOption[] = PLAN_ORDER.flatMap((name) => {
     const p = plansDb.find((x) => x.name === name)
-    return p ? [{ name: planLabel(name), price: brl(Number(p.priceMonthly)), features: features(p.features) }] : []
+    if (!p) return []
+    const amount = chargeFor(p, cycle)
+    return [{ name: planLabel(name), price: brl(amount), amount, features: features(p.features) }]
   })
 
   return (
     <AssinaturaView
       planName={planLabel(sub.plan.name)}
-      planPrice={brl(Number(sub.plan.priceMonthly))}
+      planPrice={brl(chargeFor(sub.plan, cycle))}
+      planAmount={chargeFor(sub.plan, cycle)}
+      cycle={cycle}
       planFeatures={features(sub.plan.features)}
       status={sub.status as SubStatus}
       periodEnd={fmtDate(sub.currentPeriodEnd)}

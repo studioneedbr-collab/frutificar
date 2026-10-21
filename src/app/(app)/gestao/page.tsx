@@ -31,7 +31,8 @@ export default async function GestaoPage() {
         type: d.type as DocType,
         title: d.title,
         description: d.description,
-        fileUrl: d.fileUrl,
+        // Nunca expõe a referência/URL do Storage: o download passa pela rota protegida.
+        fileUrl: d.fileUrl ? `/api/arquivos/documento/${d.id}` : null,
         issuer: d.issuer,
         issuedAt: iso(d.issuedAt),
         expiresAt: iso(d.expiresAt),

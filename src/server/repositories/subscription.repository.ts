@@ -16,7 +16,7 @@ export async function getPlanByName(name: PlanName) {
 
 export async function updateSubscription(
   userId: string,
-  data: { planId?: string; status?: SubscriptionStatus; currentPeriodEnd?: Date },
+  data: { planId?: string; status?: SubscriptionStatus; currentPeriodEnd?: Date; canceledAt?: Date | null },
 ) {
   return prisma.subscription.update({
     where: { userId },

@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { PlanName, SubscriptionStatus } from '@prisma/client'
 import { Check, Copy, CreditCard, ExternalLink, FileText, Loader2, LogOut, QrCode, ShieldCheck } from 'lucide-react'
 import { FrutificarLogo } from '@/components/shared/logo'
-import { createCheckout, checkCheckoutStatus } from '@/server/actions/checkout'
+import { createCheckout, checkCheckoutStatus, quoteCheckoutAction, type CheckoutQuote } from '@/server/actions/checkout'
 import { logoutAction } from '@/server/actions/auth'
 import type { OpenCharge } from '@/server/services/billing.service'
 
-export type CheckoutPlan = { name: PlanName; price: number; features: string[] }
+export type CheckoutPlan = { name: PlanName; price: number; yearly: number; features: string[] }
+type Cycle = 'MONTHLY' | 'YEARLY'
 type Method = 'PIX' | 'CREDIT_CARD' | 'BOLETO'
 
 const planLabel: Record<PlanName, string> = { ESSENCIAL: 'Essencial', PREMIUM: 'Premium', GOLD: 'Gold' }
@@ -49,6 +50,11 @@ export function CheckoutView({
   initialCharge: OpenCharge | null
 }) {
   const [plan, setPlan] = useState<PlanName>(initialPlan)
+  const [cycle, setCycle] = useState<Cycle>('MONTHLY')
+  const [couponInput, setCouponInput] = useState('')
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [couponLoading, setCouponLoading] = useState(false)
   const [method, setMethod] = useState<Method>(
     initialCharge && initialCharge.billingType !== 'UNDEFINED' ? (initialCharge.billingType as Method) : 'PIX',
   )
@@ -61,6 +67,29 @@ export function CheckoutView({
   const polling = useRef(false)
 
   const selected = plans.find((p) => p.name === plan)
+  const fullPrice = selected ? (cycle === 'YEARLY' ? selected.yearly : selected.price) : 0
+  const today = quote ? quote.first : fullPrice
+  const per = cycle === 'YEARLY' ? '/ano' : '/mês'
+
+  // Plano ou ciclo mudou: o cupom precisa ser recalculado.
+  function choosePlan(p: PlanName) { setPlan(p); setQuote(null); setCouponError(null) }
+  function chooseCycle(c: Cycle) { setCycle(c); setQuote(null); setCouponError(null) }
+
+  async function applyCoupon() {
+    const code = couponInput.trim()
+    if (!code) return
+    setCouponLoading(true)
+    setCouponError(null)
+    try {
+      const res = await quoteCheckoutAction({ plan, cycle, couponCode: code })
+      if (res.ok && res.data.coupon) setQuote(res.data)
+      else { setQuote(null); setCouponError(res.ok ? 'Cupom inválido.' : res.error) }
+    } catch {
+      setCouponError('Não foi possível validar o cupom agora.')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
   const firstName = userName.split(' ')[0]
 
   // Enquanto há cobrança na tela, consulta o status a cada 5s.
@@ -94,7 +123,11 @@ export function CheckoutView({
     }
     setLoading(true)
     try {
-      const res = await createCheckout({ plan, method, cpfCnpj: needsCpf ? cpf : undefined })
+      const res = await createCheckout({
+        plan, method, cycle,
+        cpfCnpj: needsCpf ? cpf : undefined,
+        couponCode: quote?.coupon?.code,
+      })
       if (!res.ok) {
         setError(res.error)
         return
@@ -168,12 +201,23 @@ export function CheckoutView({
           <form onSubmit={handleSubmit} className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
             <div className="space-y-6">
               <section>
-                <h2 className="text-sm font-bold mb-3" style={heading}>1. Plano</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <h2 className="text-sm font-bold" style={heading}>1. Plano</h2>
+                  <div role="radiogroup" aria-label="Ciclo de cobrança" className="inline-flex rounded-lg p-1" style={{ background: 'oklch(0.94 0.015 144)' }}>
+                    {(['MONTHLY', 'YEARLY'] as const).map((c) => (
+                      <button key={c} type="button" role="radio" aria-checked={cycle === c} onClick={() => chooseCycle(c)}
+                        className="px-3 py-1.5 rounded-md text-[13px] font-semibold transition-colors"
+                        style={cycle === c ? { background: 'white', color: 'var(--color-frutificar-deep)', boxShadow: '0 1px 3px oklch(0 0 0 / 0.1)' } : { color: 'oklch(0.45 0.04 144)' }}>
+                        {c === 'MONTHLY' ? 'Mensal' : 'Anual'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {plans.map((p) => {
                     const active = p.name === plan
                     return (
-                      <button type="button" key={p.name} onClick={() => setPlan(p.name)}
+                      <button type="button" key={p.name} onClick={() => choosePlan(p.name)}
                         className="text-left rounded-xl p-4 transition-shadow"
                         style={{
                           background: 'white',
@@ -182,8 +226,13 @@ export function CheckoutView({
                         }}>
                         <span className="block text-sm font-bold" style={{ color: 'var(--color-frutificar-deep)' }}>{planLabel[p.name]}</span>
                         <span className="block mt-1 text-lg font-extrabold tabular-nums" style={heading}>
-                          {brl(p.price)}<span className="text-xs font-medium" style={{ color: 'oklch(0.55 0.03 144)' }}>/mês</span>
+                          {brl(cycle === 'YEARLY' ? p.yearly : p.price)}<span className="text-xs font-medium" style={{ color: 'oklch(0.55 0.03 144)' }}>{per}</span>
                         </span>
+                        {cycle === 'YEARLY' && p.price * 12 > p.yearly && (
+                          <span className="block mt-0.5 text-[11px] font-semibold" style={{ color: 'var(--color-frutificar-green)' }}>
+                            economize {brl(p.price * 12 - p.yearly)}
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -237,17 +286,49 @@ export function CheckoutView({
               <h2 className="font-bold" style={heading}>Resumo</h2>
               <div className="mt-4 flex items-baseline justify-between">
                 <span className="text-sm" style={{ color: 'oklch(0.45 0.04 144)' }}>Plano {planLabel[plan]}</span>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>{selected ? brl(selected.price) : '—'}</span>
+                <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-frutificar-deep)' }}>{selected ? brl(fullPrice) : '—'}</span>
               </div>
               <div className="mt-1 flex items-baseline justify-between">
                 <span className="text-sm" style={{ color: 'oklch(0.45 0.04 144)' }}>Cobrança</span>
-                <span className="text-sm" style={{ color: 'oklch(0.45 0.04 144)' }}>Mensal</span>
+                <span className="text-sm" style={{ color: 'oklch(0.45 0.04 144)' }}>{cycle === 'YEARLY' ? 'Anual' : 'Mensal'}</span>
+              </div>
+              {quote?.coupon && (
+                <div className="mt-1 flex items-baseline justify-between">
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-frutificar-green)' }}>Cupom {quote.coupon.code}</span>
+                  <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-frutificar-green)' }}>−{brl(quote.full - quote.first)}</span>
+                </div>
+              )}
+
+              {/* Cupom */}
+              <div className="mt-4">
+                <label htmlFor="cupom" className="block text-[12px] font-semibold mb-1.5" style={{ color: 'oklch(0.45 0.04 144)' }}>Cupom de desconto</label>
+                <div className="flex gap-2">
+                  <input id="cupom" value={couponInput} autoComplete="off" maxLength={40}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void applyCoupon() } }}
+                    placeholder="EX.: BEMVINDO10"
+                    className="flex-1 min-w-0 h-10 rounded-lg px-3 text-sm bg-white outline-none focus:ring-2 uppercase"
+                    style={{ border: '1px solid oklch(0.88 0.03 144)', color: 'var(--color-frutificar-deep)' }} />
+                  <button type="button" onClick={() => void applyCoupon()} disabled={couponLoading || !couponInput.trim()}
+                    className="shrink-0 h-10 px-3 rounded-lg text-sm font-bold disabled:opacity-50"
+                    style={{ background: 'oklch(0.48 0.13 144 / 0.1)', color: 'var(--color-frutificar-green)' }}>
+                    {couponLoading ? <Loader2 size={14} className="animate-spin" /> : 'Aplicar'}
+                  </button>
+                </div>
+                {couponError && <p role="alert" className="mt-1.5 text-[12px] font-medium" style={{ color: 'oklch(0.5 0.18 27)' }}>{couponError}</p>}
               </div>
               <div className="my-4 h-px" style={{ background: 'oklch(0.92 0.01 144)' }} />
               <div className="flex items-baseline justify-between">
                 <span className="font-bold" style={heading}>Hoje</span>
-                <span className="text-xl font-extrabold tabular-nums" style={heading}>{selected ? brl(selected.price) : '—'}</span>
+                <span className="text-xl font-extrabold tabular-nums" style={heading}>{selected ? brl(today) : '—'}</span>
               </div>
+              {quote?.coupon && (
+                <p className="mt-1 text-[12px]" style={{ color: 'oklch(0.52 0.03 144)' }}>
+                  {quote.coupon.duration === 'FOREVER'
+                    ? `Desconto em todas as cobranças: ${brl(quote.recurring)}${per}.`
+                    : `Desconto só na 1ª cobrança; depois ${brl(quote.full)}${per}.`}
+                </p>
+              )}
 
               {error && (
                 <div role="alert" className="mt-4 text-sm font-medium px-4 py-3 rounded-lg"

@@ -387,6 +387,18 @@ export function DiagnosticoView({
             >
               <FileText size={15} /> Baixar laudo (PDF)
             </button>
+            {result.fileUrl && (
+              // Arquivo original enviado pelo aluno (rota protegida → link temporário).
+              <a
+                href={result.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 ml-2 rounded-xl font-bold text-sm transition-opacity hover:opacity-85"
+                style={{ background: 'oklch(0.48 0.13 144 / 0.08)', color: 'var(--color-frutificar-green)' }}
+              >
+                <Paperclip size={15} /> Ver laudo enviado
+              </a>
+            )}
           </div>
         </section>
       ) : (

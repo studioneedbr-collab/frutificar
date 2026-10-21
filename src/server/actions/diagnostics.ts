@@ -10,6 +10,7 @@ import { AnalysisStatus } from '@prisma/client'
 import * as diagnosticsRepository from '@/server/repositories/diagnostics.repository'
 import { uploadToStorage, sniffFile } from '@/lib/storage'
 import { analyzeSoilReportWithAI, type AiSoilResult } from '@/lib/soil-ai'
+import { reportError } from '@/lib/alerts'
 
 const requestDiagnosticSchema = z.object({
   plotId: z.string(),
@@ -118,7 +119,7 @@ export async function analyzeSoilReport(
       observacoes,
     })
   } catch (err) {
-    console.error('[analyzeSoilReport] falha na IA:', err)
+    await reportError('diagnóstico IA', err, { tipoArquivo: mime, tipoAnalise: analysisType })
     return {
       ok: false,
       error: 'Não foi possível ler o laudo com a IA. Verifique a OPENAI_API_KEY ou tente uma foto mais nítida.',
@@ -132,16 +133,17 @@ export async function analyzeSoilReport(
     }
   }
 
-  // Upload do laudo ao Storage (best-effort — não bloqueia se não configurado).
-  let fileUrl: string | null = null
-  const up = await uploadToStorage(file, { folder: 'laudos', allow: ['pdf', 'image'] })
-  if (up.ok) fileUrl = up.url
+  // Upload do laudo ao Storage PRIVADO (best-effort — não bloqueia se não configurado).
+  // Grava a referência "storage-private://..."; o aluno abre via /api/arquivos.
+  let fileRef: string | null = null
+  const up = await uploadToStorage(file, { folder: 'laudos', allow: ['pdf', 'image'], visibility: 'private' })
+  if (up.ok) fileRef = up.url
 
   // Grava o diagnóstico concluído com o plano da IA.
   try {
     const analysis = await diagnosticsRepository.createSoilAnalysis(plotId, {
       ph: result.ph,
-      nutrients: { params: result.params, recommendations: result.recommendations, fileUrl },
+      nutrients: { params: result.params, recommendations: result.recommendations, fileUrl: fileRef },
       analyzedAt: new Date(),
       status: AnalysisStatus.COMPLETED,
       analysisType,
@@ -149,6 +151,8 @@ export async function analyzeSoilReport(
     })
 
     revalidatePath('/diagnostico')
+    // Ao cliente vai só o caminho protegido (nunca a referência interna).
+    const fileUrl = fileRef ? `/api/arquivos/laudo/${analysis.id}` : null
     return { ok: true, data: { ...result, id: analysis.id, fileUrl } }
   } catch (err) {
     console.error('[analyzeSoilReport] falha ao salvar:', err)

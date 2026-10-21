@@ -1,0 +1,77 @@
+# Backup semanal do banco (Supabase Postgres) — grátis e sem ocupar disco no Supabase.
+# O dump é criptografado com GPG (AES256) e guardado como artifact do GitHub por 30 dias.
+# Como restaurar: veja docs/BACKUP.md.
+name: Backup do banco
+
+on:
+  schedule:
+    - cron: '0 6 * * 0' # domingo, 06:00 UTC (03:00 em Brasília)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-banco
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Verificar segredos
+        run: |
+          missing=0
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Segredo BACKUP_DATABASE_URL não configurado (Settings → Secrets and variables → Actions)."
+            missing=1
+          fi
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Segredo BACKUP_PASSPHRASE não configurado (Settings → Secrets and variables → Actions)."
+            missing=1
+          fi
+          exit $missing
+
+      - name: Instalar postgresql-client 17 (repositório PGDG)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates gnupg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Gerar dump
+        run: |
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" \
+            --no-owner --no-privileges --format=custom -f backup.dump
+          ls -lh backup.dump
+
+      - name: Criptografar dump
+        id: enc
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          OUT="backup-${DATE}.dump.gpg"
+          gpg --symmetric --batch --yes --pinentry-mode loopback \
+            --passphrase "$BACKUP_PASSPHRASE" --cipher-algo AES256 \
+            -o "$OUT" backup.dump
+          rm -f backup.dump
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          ls -lh "$OUT"
+
+      - name: Enviar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.enc.outputs.file }}
+          path: ${{ steps.enc.outputs.file }}
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 0

@@ -50,7 +50,8 @@ export async function createPropertyDocumentAction(
   let fileUrl: string | null = null
   if (file instanceof File && file.size > 0) {
     if (file.size > MAX_BYTES) return { ok: false, error: 'Arquivo muito grande (máx. 4 MB).' }
-    const up = await uploadToStorage(file, { folder: 'propriedade', allow: ['pdf', 'image', 'office'] })
+    // Bucket privado: o arquivo só abre via /api/arquivos (link assinado, dono ou admin).
+    const up = await uploadToStorage(file, { folder: 'propriedade', allow: ['pdf', 'image', 'office'], visibility: 'private' })
     if (!up.ok) return { ok: false, error: up.error }
     fileUrl = up.url
   }

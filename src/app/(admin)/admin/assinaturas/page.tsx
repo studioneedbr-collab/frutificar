@@ -3,14 +3,16 @@
 export const dynamic = 'force-dynamic'
 
 import { PREVIEW_MODE } from '@/lib/preview'
+import { cyclePrice, monthlyValue } from '@/lib/revenue'
 import { listAllSubscriptions } from '@/server/repositories/admin-subscriptions.repository'
 import { mockSubscriptions, type Plan, type Status, type Sub } from './data'
 import { AssinaturasView } from './assinaturas-view'
 
-const planValue: Record<Plan, string> = {
-  GOLD: 'R$ 197',
-  PREMIUM: 'R$ 97',
-  ESSENCIAL: 'R$ 47',
+// Valor cobrado por ciclo, no estilo "R$ 197" (centavos só quando houver).
+function fmtBRL(n: number): string {
+  return n.toLocaleString('pt-BR', {
+    style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 2,
+  })
 }
 
 function fmtDate(d: Date): string {
@@ -37,11 +39,14 @@ export default async function AdminAssinaturasPage() {
         name: s.user.name ?? '—',
         email: s.user.email ?? '—',
         plan,
-        value: planValue[plan] ?? `R$ ${Number(s.plan.priceMonthly)}`,
+        // Preço cheio do ciclo (mensal: /mês; anual: /ano).
+        value: fmtBRL(cyclePrice(s)),
+        cycle: s.billingCycle,
         status,
         renewal: status === 'CANCELED' ? '—' : fmtDate(s.currentPeriodEnd),
         gateway: s.gatewaySubscriptionId ?? '—',
-        price: Number(s.plan.priceMonthly),
+        // Valor mensal recorrente (anual ÷ 12, cupom FOREVER aplicado) — base do MRR.
+        price: monthlyValue(s),
       }
     })
   } catch (err) {
